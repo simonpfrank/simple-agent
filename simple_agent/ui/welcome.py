@@ -69,7 +69,7 @@ def show_welcome(
     console.print(f"[dim]Config loaded:[/dim] [cyan]{config_file}[/cyan]")
     console.print(f"[dim]Logging to:[/dim] [cyan]{log_file}[/cyan]")
     console.print(
-        "[bold green]Ready![/bold green] [dim](/ for commands and space for sub commands)[/dim]"
+        "[bold green]Ready![/bold green] [dim](/ for commands and space for sub commands). use --help to see any command or sub command help[/dim]"
     )
     console.print()
 
