@@ -12,24 +12,25 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style
 from rich.console import Console
 
-from repl_cli_template.core.config_manager import ConfigManager
-from repl_cli_template.core.logging_setup import setup_logging
-from repl_cli_template.ui.welcome import show_welcome
-from repl_cli_template.ui.styles import APP_THEME
-from repl_cli_template.commands.system_commands import (
+from simple_agent.core.config_manager import ConfigManager
+from simple_agent.core.logging_setup import setup_logging
+from simple_agent.core.agent_manager import AgentManager
+from simple_agent.ui.welcome import show_welcome
+from simple_agent.ui.styles import APP_THEME
+from simple_agent.commands.system_commands import (
     help_command,
     quit_command,
     exit_command,
 )
-from repl_cli_template.commands.config_commands import config
-from repl_cli_template.commands.process_commands import process
+from simple_agent.commands.config_commands import config
+from simple_agent.commands.agent_commands import agent
 
 # Initialize console
 console = Console(theme=APP_THEME)
 
 # Application metadata
-APP_NAME = "REPL CLI Template"
-APP_VERSION = "1.0.0"
+APP_NAME = "Simple Agent"
+APP_VERSION = "0.1.0"
 DEFAULT_CONFIG = "config.yaml"
 
 # REPL UI constants
@@ -79,6 +80,10 @@ def cli(context, config, repl_mode):
     console_enabled = context.invoked_subcommand is not None
 
     setup_logging(log_file, log_level, console_enabled)
+
+    # Initialize AgentManager (business logic)
+    agent_manager = AgentManager(config_dict)
+    context.obj["agent_manager"] = agent_manager
 
     # If no subcommand provided, start REPL mode
     if context.invoked_subcommand is None or repl_mode:
@@ -131,7 +136,7 @@ def start_repl(context: click.Context) -> None:
             commands_dict[name] = cmd.help or "No description"
 
     # Create custom completer with Click CLI group for subcommand support
-    from repl_cli_template.ui.completion import SlashCommandCompleter
+    from simple_agent.ui.completion import SlashCommandCompleter
 
     completer = SlashCommandCompleter(commands_dict, cli_group=context.command)
 
@@ -287,7 +292,7 @@ def start_repl(context: click.Context) -> None:
         repl(context, prompt_kwargs=prompt_kwargs)
     except (KeyboardInterrupt, EOFError):
         # Handle Ctrl+C and Ctrl+D gracefully
-        from repl_cli_template.ui.welcome import show_goodbye
+        from simple_agent.ui.welcome import show_goodbye
 
         console.print()
         show_goodbye(console)
@@ -305,7 +310,7 @@ cli.add_command(help_command, name="help")
 cli.add_command(quit_command, name="quit")
 cli.add_command(exit_command, name="exit")
 cli.add_command(config, name="config")
-cli.add_command(process, name="process")
+cli.add_command(agent, name="agent")
 
 
 def main():

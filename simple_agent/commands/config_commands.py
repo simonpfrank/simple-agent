@@ -10,8 +10,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from repl_cli_template.core.config_manager import ConfigManager
-from repl_cli_template.ui.styles import (
+from simple_agent.core.config_manager import ConfigManager
+from simple_agent.ui.styles import (
     APP_THEME,
     format_success,
     format_error,
@@ -119,7 +119,12 @@ def config_load(context, file):
 
 
 @config.command("save")
-@click.option("--file", "-f", required=True, help="Path to save config file")
+@click.option(
+    "--file",
+    "-f",
+    default=None,
+    help="Path to save config file (defaults to loaded config file)",
+)
 @click.pass_context
 def config_save(context, file):
     """Save current configuration to YAML file."""
@@ -131,6 +136,10 @@ def config_save(context, file):
         if not config_dict:
             console.print(format_error("No configuration to save"))
             raise click.Abort()
+
+        # Use default config file if not specified
+        if file is None:
+            file = context.obj.get("config_file", "config.yaml")
 
         # Save config
         ConfigManager.save(config_dict, file)

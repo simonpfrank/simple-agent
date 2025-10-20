@@ -5,8 +5,8 @@ System commands: help, quit, reload, etc.
 import click
 from rich.console import Console
 from rich.table import Table
-from repl_cli_template.ui.styles import APP_THEME, format_info
-from repl_cli_template.ui.welcome import show_goodbye
+from simple_agent.ui.styles import APP_THEME, format_info
+from simple_agent.ui.welcome import show_goodbye
 
 
 def _get_console(context: click.Context) -> Console:

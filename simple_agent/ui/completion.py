@@ -89,11 +89,18 @@ class SlashCommandCompleter(Completer):
                                     -len(current_part) if current_part else 0
                                 )
 
+                                # Normalize help text - take first line only
+                                help_text = (
+                                    (subcmd.help or "No description")
+                                    .split("\n")[0]
+                                    .strip()
+                                )
+
                                 yield Completion(
                                     text=subcmd_name,
                                     start_position=start_position,
                                     display=subcmd_name,
-                                    display_meta=subcmd.help or "No description",
+                                    display_meta=help_text,
                                 )
                         return
 

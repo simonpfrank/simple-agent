@@ -8,8 +8,8 @@ import logging
 from rich.console import Console
 from rich.table import Table
 
-from repl_cli_template.core.processor import process_data
-from repl_cli_template.ui.styles import APP_THEME, format_success, format_error
+from simple_agent.core.processor import process_data
+from simple_agent.ui.styles import APP_THEME, format_success, format_error
 
 logger = logging.getLogger(__name__)
 
