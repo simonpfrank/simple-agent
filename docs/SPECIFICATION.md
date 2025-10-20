@@ -624,6 +624,12 @@ python -m simple_agent.app
 - **Prompt inspection commands**: `/prompt show`, `/prompt raw`
 - **Response inspection commands**: `/response show`, `/response raw`
 - **History command**: `/history show` (requires memory)
+- **Configurable paths and overrides**:
+  - Configurable prompt template folder path (default: config/prompts/)
+  - Configurable tool folder path (default: tools/)
+  - REPL commands to view and modify config settings
+  - Ability to save config changes from REPL to config.yaml
+  - Full override hierarchy: CLI args > REPL overrides > config.yaml > code defaults
 - **Jinja2 template variables**: Dynamic prompt substitution
 - **Tool auto-discovery system**: Drop tools in directory, auto-register
 - **YAML agent definitions**: Per-agent config files

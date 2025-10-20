@@ -57,6 +57,9 @@ def cli(context, config, repl_mode):
 
     # Load configuration
     try:
+        # Load .env file first to populate environment variables
+        ConfigManager.load_env()
+
         if Path(config).exists():
             config_dict = ConfigManager.load(config)
             config_dict = ConfigManager.merge_with_defaults(config_dict)
@@ -64,6 +67,9 @@ def cli(context, config, repl_mode):
             # Use defaults if config file doesn't exist
             config_dict = ConfigManager.get_defaults()
             console.print("[dim]Config file not found, using defaults[/dim]")
+
+        # Substitute environment variables in config (e.g., ${OPENAI_API_KEY})
+        config_dict = ConfigManager.substitute_env_vars(config_dict)
 
         context.obj["config"] = config_dict
         context.obj["config_file"] = config

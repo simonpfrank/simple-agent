@@ -1,29 +1,48 @@
-# Configuration file for REPL/CLI Template
-# This file demonstrates the configuration structure
+# Simple Agent Configuration
 
-app:
-  name: "REPL CLI Template"
-  version: "1.0.0"
+# LLM Provider Settings
+llm:
+  # Active provider: openai, ollama, lmstudio, anthropic
+  provider: "openai"
 
+  # OpenAI Configuration
+  openai:
+    model: "gpt-4o-mini"
+    api_key: "${OPENAI_API_KEY}"  # References .env
+    temperature: 0.7
+    max_tokens: 2000
+
+  # LM Studio Configuration (local, OpenAI-compatible API)
+  lmstudio:
+    model: "llama-3.2-1b-instruct"
+    base_url: "http://localhost:1234/v1"
+    temperature: 0.7
+    max_tokens: 2000
+
+  # Ollama Configuration (local)
+  ollama:
+    model: "llama3.2:1b"
+    base_url: "http://localhost:11434"
+    temperature: 0.7
+    max_tokens: 2000
+
+  # Anthropic Configuration
+  anthropic:
+    model: "claude-3-5-sonnet-20241022"
+    api_key: "${ANTHROPIC_API_KEY}"  # References .env
+    temperature: 0.7
+    max_tokens: 2000
+
+# Agent Settings
+agents:
+  # Default agent configuration
+  default:
+    role: "You are a helpful AI assistant."
+    verbosity: 1  # 0=quiet, 1=normal, 2=verbose
+    max_steps: 10  # Max tool call iterations
+
+# Logging
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
   file: "logs/app.log"
-  console_enabled: false  # Set to true for CLI mode console output
-
-paths:
-  input_dir: "data/input"
-  output_dir: "data/output"
-
-# Agent mode configuration
-agent:
-  enabled: false  # Set to true to send unknown text to agent/LLM instead of showing error
-  # When enabled, free text (without /) will be queued for agent processing
-  # When disabled, unknown commands show helpful error message
-
-# Custom project configuration
-# Add your project-specific settings below
-custom:
-  # Example settings:
-  # max_retries: 3
-  # timeout: 30
-  # api_key: "your-api-key-here"
+  console_enabled: false

@@ -3,6 +3,8 @@ Configuration management module.
 Handles loading, saving, and accessing configuration values.
 """
 
+import os
+import re
 import yaml
 import logging
 from pathlib import Path
@@ -59,13 +61,13 @@ class ConfigManager:
     @staticmethod
     def load_env(path: str = ".env") -> Dict[str, str]:
         """
-        Load environment variables from .env file.
+        Load environment variables from .env file and set them in os.environ.
 
         Args:
             path: Path to .env file (defaults to ".env")
 
         Returns:
-            Dictionary of environment variables
+            Dictionary of environment variables loaded
 
         Raises:
             None - returns empty dict if file not found
@@ -87,7 +89,11 @@ class ConfigManager:
                     # Parse KEY=VALUE format
                     if "=" in line:
                         key, value = line.split("=", 1)
-                        env_vars[key.strip()] = value.strip()
+                        key = key.strip()
+                        value = value.strip()
+                        env_vars[key] = value
+                        # Set in os.environ so it's available to child processes
+                        os.environ[key] = value
 
             logger.info(f"Loaded {len(env_vars)} env variables from: {path}")
             return env_vars
@@ -278,3 +284,38 @@ class ConfigManager:
         except yaml.YAMLError as e:
             logger.exception(f"Invalid YAML in template: {template_path}")
             raise ValueError(f"Invalid YAML in template: {template_path}") from e
+
+    @staticmethod
+    def substitute_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Recursively substitute ${VAR_NAME} patterns with environment variable values.
+
+        Args:
+            config: Configuration dictionary
+
+        Returns:
+            Configuration with environment variables substituted
+        """
+
+        def substitute_value(value: Any) -> Any:
+            """Recursively substitute env vars in values."""
+            if isinstance(value, str):
+                # Find all ${VAR} patterns
+                pattern = r"\$\{([^}]+)\}"
+                matches = re.findall(pattern, value)
+                for var_name in matches:
+                    env_value = os.environ.get(var_name, "")
+                    if not env_value:
+                        logger.warning(
+                            f"Environment variable '{var_name}' not found, using empty string"
+                        )
+                    value = value.replace(f"${{{var_name}}}", env_value)
+                return value
+            elif isinstance(value, dict):
+                return {k: substitute_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [substitute_value(item) for item in value]
+            else:
+                return value
+
+        return substitute_value(config)
