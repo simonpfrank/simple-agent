@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff check repl_cli_template/ --fix)",
+      "Bash(ruff format repl_cli_template/)",
+      "Bash(python -m pytest repl_cli_template/tests/ -v -x)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

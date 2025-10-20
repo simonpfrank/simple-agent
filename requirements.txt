@@ -1,0 +1,14 @@
+# Core dependencies
+click>=8.1.0,<8.2.0  # Pin to 8.1.x to avoid click-repl compatibility issues in 8.2+
+click-repl>=0.3.0
+rich>=13.0.0
+prompt-toolkit>=3.0.0
+PyYAML>=6.0.0
+
+# Optional dependencies (uncomment if needed)
+# questionary>=2.0.0
+# watchdog>=3.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0

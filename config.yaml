@@ -1,0 +1,29 @@
+# Configuration file for REPL/CLI Template
+# This file demonstrates the configuration structure
+
+app:
+  name: "REPL CLI Template"
+  version: "1.0.0"
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/app.log"
+  console_enabled: false  # Set to true for CLI mode console output
+
+paths:
+  input_dir: "data/input"
+  output_dir: "data/output"
+
+# Agent mode configuration
+agent:
+  enabled: false  # Set to true to send unknown text to agent/LLM instead of showing error
+  # When enabled, free text (without /) will be queued for agent processing
+  # When disabled, unknown commands show helpful error message
+
+# Custom project configuration
+# Add your project-specific settings below
+custom:
+  # Example settings:
+  # max_retries: 3
+  # timeout: 30
+  # api_key: "your-api-key-here"
