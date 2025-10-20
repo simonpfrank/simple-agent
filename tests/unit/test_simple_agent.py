@@ -6,7 +6,6 @@ Tests the thin wrapper around SmolAgents CodeAgent.
 
 from unittest.mock import Mock, patch, MagicMock
 
-import pytest
 
 from simple_agent.agents.simple_agent import SimpleAgent
 
@@ -87,7 +86,7 @@ class TestSimpleAgentInitialization:
         """Test initialization with custom verbosity and max_steps."""
         model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
 
-        agent = SimpleAgent(
+        SimpleAgent(
             name="test_agent",
             model_provider="openai",
             model_config=model_config,
@@ -118,7 +117,7 @@ class TestSimpleAgentModelCreation:
             "temperature": 0.7,
         }
 
-        agent = SimpleAgent(
+        SimpleAgent(
             name="openai_agent",
             model_provider="openai",
             model_config=model_config,
@@ -141,7 +140,7 @@ class TestSimpleAgentModelCreation:
             "base_url": "http://localhost:11434",
         }
 
-        agent = SimpleAgent(
+        SimpleAgent(
             name="ollama_agent",
             model_provider="ollama",
             model_config=model_config,

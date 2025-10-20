@@ -68,8 +68,9 @@ def cli(context, config, repl_mode):
             config_dict = ConfigManager.get_defaults()
             console.print("[dim]Config file not found, using defaults[/dim]")
 
-        # Substitute environment variables in config (e.g., ${OPENAI_API_KEY})
-        config_dict = ConfigManager.substitute_env_vars(config_dict)
+        # NOTE: We do NOT substitute env vars here globally
+        # Config dict keeps placeholders (${VAR}) to avoid storing secrets
+        # Substitution happens at point-of-use (e.g., when creating models)
 
         context.obj["config"] = config_dict
         context.obj["config_file"] = config

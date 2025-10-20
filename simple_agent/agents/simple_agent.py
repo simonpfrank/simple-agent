@@ -71,7 +71,7 @@ class SimpleAgent:
 
         Args:
             provider: LLM provider name
-            config: Model configuration dict
+            config: Model configuration dict (may contain ${VAR} placeholders)
 
         Returns:
             LiteLLMModel instance
@@ -84,6 +84,8 @@ class SimpleAgent:
         if provider == "ollama" or provider == "lmstudio":
             # Local models need custom_llm_provider
             base_url = config.get("base_url", "http://localhost:11434")
+            # Resolve env vars at point-of-use (base_url might have tokens)
+            base_url = ConfigManager.resolve_env_var(base_url)
             return LiteLLMModel(
                 model_id=f"ollama/{model_id}",
                 api_base=base_url,
@@ -91,8 +93,9 @@ class SimpleAgent:
                 max_tokens=max_tokens,
             )
         elif provider == "openai":
-            # OpenAI models
-            api_key = config.get("api_key")
+            # OpenAI models - resolve API key from env var at point-of-use
+            api_key = config.get("api_key", "")
+            api_key = ConfigManager.resolve_env_var(api_key)
             return LiteLLMModel(
                 model_id=model_id,
                 api_key=api_key,
@@ -100,8 +103,9 @@ class SimpleAgent:
                 max_tokens=max_tokens,
             )
         elif provider == "anthropic":
-            # Anthropic models
-            api_key = config.get("api_key")
+            # Anthropic models - resolve API key from env var at point-of-use
+            api_key = config.get("api_key", "")
+            api_key = ConfigManager.resolve_env_var(api_key)
             return LiteLLMModel(
                 model_id=model_id,
                 api_key=api_key,
@@ -111,11 +115,22 @@ class SimpleAgent:
         else:
             # Generic provider - let LiteLLM figure it out
             logger.warning(f"Unknown provider: {provider}, using generic configuration")
-            return LiteLLMModel(
-                model_id=model_id,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            # Still resolve api_key if present
+            api_key = config.get("api_key")
+            if api_key:
+                api_key = ConfigManager.resolve_env_var(api_key)
+                return LiteLLMModel(
+                    model_id=model_id,
+                    api_key=api_key,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+            else:
+                return LiteLLMModel(
+                    model_id=model_id,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
 
     def run(self, prompt: str) -> str:
         """

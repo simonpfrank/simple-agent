@@ -41,8 +41,15 @@ def config():
 
 
 @config.command("show")
+@click.option(
+    "--resolve",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="Resolve environment variables for display (shows actual values)",
+)
 @click.pass_context
-def config_show(context):
+def config_show(context, resolve):
     """Display current configuration."""
     console = _get_console(context)
 
@@ -53,8 +60,21 @@ def config_show(context):
             console.print(format_info("No configuration loaded"))
             return
 
+        # If --resolve flag is set, create temporary copy with substituted values
+        if resolve:
+            display_config = ConfigManager.substitute_env_vars(config_dict)
+            console.print(
+                "[dim yellow]⚠ Showing resolved values (secrets visible)[/dim yellow]"
+            )
+        else:
+            # Default: show placeholders (safe)
+            display_config = config_dict
+            console.print("[dim]Showing config with placeholders (safe)[/dim]")
+
         # Convert config to YAML for pretty display
-        config_yaml = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
+        config_yaml = yaml.dump(
+            display_config, default_flow_style=False, sort_keys=False
+        )
 
         # Syntax highlighting
         syntax = Syntax(config_yaml, "yaml", theme="monokai", line_numbers=False)

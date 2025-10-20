@@ -58,7 +58,7 @@ class TestAgentManagerCreateAgent:
         }
 
         manager = AgentManager(config)
-        agent = manager.create_agent("test_agent")
+        manager.create_agent("test_agent")
 
         # Verify SimpleAgent was called twice (once for auto-load, once for test_agent)
         assert mock_simple_agent.call_count == 2
@@ -75,21 +75,22 @@ class TestAgentManagerCreateAgent:
         assert "test_agent" in manager.agents
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
-    def test_create_agent_with_custom_provider(
-        self, mock_simple_agent: Mock
-    ) -> None:
+    def test_create_agent_with_custom_provider(self, mock_simple_agent: Mock) -> None:
         """Test creating agent with custom provider override."""
         config = {
             "llm": {
                 "provider": "openai",
                 "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
-                "ollama": {"model": "llama3.2:1b", "base_url": "http://localhost:11434"},
+                "ollama": {
+                    "model": "llama3.2:1b",
+                    "base_url": "http://localhost:11434",
+                },
             },
             "agents": {"default": {"role": "Test"}},
         }
 
         manager = AgentManager(config)
-        agent = manager.create_agent("ollama_agent", provider="ollama")
+        manager.create_agent("ollama_agent", provider="ollama")
 
         # Verify provider override worked
         call_kwargs = mock_simple_agent.call_args.kwargs
@@ -109,7 +110,7 @@ class TestAgentManagerCreateAgent:
 
         manager = AgentManager(config)
         custom_role = "Custom role for this agent"
-        agent = manager.create_agent("custom_agent", role=custom_role)
+        manager.create_agent("custom_agent", role=custom_role)
 
         # Verify role override worked
         call_kwargs = mock_simple_agent.call_args.kwargs
@@ -127,7 +128,7 @@ class TestAgentManagerCreateAgent:
         }
 
         manager = AgentManager(config)
-        agent = manager.create_agent("researcher", template="researcher")
+        manager.create_agent("researcher", template="researcher")
 
         # Verify template was passed
         call_kwargs = mock_simple_agent.call_args.kwargs

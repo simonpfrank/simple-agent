@@ -141,7 +141,7 @@ class TestAgentLifecycleMocked:
         agent_manager = AgentManager(test_config)
 
         # Create agent with defaults
-        agent = agent_manager.create_agent("default_agent")
+        agent_manager.create_agent("default_agent")
 
         # Verify defaults were applied from config
         # Note: call_args gets the LAST call, which is for 'default_agent'

@@ -1,16 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ruff check repl_cli_template/ --fix)",
-      "Bash(ruff format repl_cli_template/)",
-      "Bash(python -m pytest repl_cli_template/tests/ -v -x)",
-      "Bash(gh issue view 2 --repo simonpfrank/simple-agent)",
-      "Bash(gh issue view 3 --repo simonpfrank/simple-agent)",
-      "Bash(gh issue view 4 --repo simonpfrank/simple-agent)",
-      "Bash(gh issue view 5 --repo simonpfrank/simple-agent)",
-      "Bash(gh issue list --repo simonpfrank/simple-agent --limit 20)",
-      "Bash(gh issue view 6 --repo simonpfrank/simple-agent)",
-      "Bash(gh issue view 7 --repo simonpfrank/simple-agent)"
+      "Bash(gh issue close 5 --repo simonpfrank/simple-agent --comment \"Fixed in commit 8730354. Removed process command registration from app.py.\")"
     ],
     "deny": [],
     "ask": []

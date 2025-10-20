@@ -286,31 +286,64 @@ class ConfigManager:
             raise ValueError(f"Invalid YAML in template: {template_path}") from e
 
     @staticmethod
+    def resolve_env_var(value: str) -> str:
+        """
+        Resolve a single environment variable placeholder to its actual value.
+
+        Used for point-of-use substitution (e.g., when creating API clients).
+        This keeps secrets out of the config dict and only resolves when needed.
+
+        Args:
+            value: String that may contain ${VAR_NAME} placeholder
+
+        Returns:
+            Resolved value with environment variable substituted, or original value
+
+        Examples:
+            >>> os.environ['API_KEY'] = 'secret123'
+            >>> ConfigManager.resolve_env_var('${API_KEY}')
+            'secret123'
+            >>> ConfigManager.resolve_env_var('literal_value')
+            'literal_value'
+        """
+        if not isinstance(value, str):
+            return value
+
+        # Check if it's a ${VAR} pattern
+        pattern = r"^\$\{([^}]+)\}$"
+        match = re.match(pattern, value)
+
+        if match:
+            var_name = match.group(1)
+            env_value = os.environ.get(var_name, "")
+            if not env_value:
+                logger.warning(
+                    f"Environment variable '{var_name}' not found, using empty string"
+                )
+            return env_value
+
+        return value
+
+    @staticmethod
     def substitute_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Recursively substitute ${VAR_NAME} patterns with environment variable values.
+
+        NOTE: This method creates a NEW dict with substituted values.
+        Only use for temporary display purposes (e.g., /config show).
+        The main config dict should keep placeholders to avoid storing secrets.
 
         Args:
             config: Configuration dictionary
 
         Returns:
-            Configuration with environment variables substituted
+            NEW configuration dict with environment variables substituted
         """
 
         def substitute_value(value: Any) -> Any:
             """Recursively substitute env vars in values."""
             if isinstance(value, str):
-                # Find all ${VAR} patterns
-                pattern = r"\$\{([^}]+)\}"
-                matches = re.findall(pattern, value)
-                for var_name in matches:
-                    env_value = os.environ.get(var_name, "")
-                    if not env_value:
-                        logger.warning(
-                            f"Environment variable '{var_name}' not found, using empty string"
-                        )
-                    value = value.replace(f"${{{var_name}}}", env_value)
-                return value
+                return ConfigManager.resolve_env_var(value)
             elif isinstance(value, dict):
                 return {k: substitute_value(v) for k, v in value.items()}
             elif isinstance(value, list):

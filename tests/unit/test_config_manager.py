@@ -5,9 +5,7 @@ Tests configuration loading, saving, accessing, and template management.
 """
 
 import os
-import tempfile
 from pathlib import Path
-from unittest.mock import patch, mock_open
 
 import pytest
 import yaml
@@ -230,3 +228,33 @@ class TestConfigManagerMergeWithDefaults:
         assert result["custom_key"] == "custom_value"
         # Defaults should also be present
         assert "logging" in result
+
+
+class TestConfigManagerResolveEnvVar:
+    """Test environment variable resolution."""
+
+    def test_resolve_env_var_with_placeholder(self, monkeypatch) -> None:
+        """Test resolving ${VAR} placeholder."""
+        monkeypatch.setenv("TEST_KEY", "secret123")
+
+        result = ConfigManager.resolve_env_var("${TEST_KEY}")
+
+        assert result == "secret123"
+
+    def test_resolve_env_var_without_placeholder(self) -> None:
+        """Test literal value passes through unchanged."""
+        result = ConfigManager.resolve_env_var("literal_value")
+
+        assert result == "literal_value"
+
+    def test_resolve_env_var_missing_env_var(self) -> None:
+        """Test missing env var returns empty string."""
+        result = ConfigManager.resolve_env_var("${NONEXISTENT_VAR}")
+
+        assert result == ""
+
+    def test_resolve_env_var_non_string(self) -> None:
+        """Test non-string values pass through unchanged."""
+        assert ConfigManager.resolve_env_var(123) == 123
+        assert ConfigManager.resolve_env_var(None) is None
+        assert ConfigManager.resolve_env_var({"key": "value"}) == {"key": "value"}
