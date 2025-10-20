@@ -287,15 +287,22 @@ This document defines requirements for a simple, lightweight agent framework bui
 ### Phase 0: Foundation
 - Create project structure
 - Install SmolAgents and dependencies
-- Set up configuration system
-- Create basic agent wrapper
+- Set up configuration system (YAML + .env)
+- Prompt template system (static YAML in config/prompts/)
+- Message formatting (system/user role separation)
+- Create basic agent wrapper with template support
+- Basic REPL commands: /agent create, /agent run, /agent list
+- LLM provider switching (OpenAI, Ollama, LM Studio)
 
-### Phase 1: Core Features (MVP)
-- YAML agent configuration
+### Phase 1: Interactive & Inspection Features
+- Interactive chat mode: /agent chat <name>
+- Prompt inspection commands: /prompt show, /prompt raw
+- Response inspection commands: /response show, /response raw
+- History command: /history show
+- Jinja2 template variables for dynamic prompts
 - Tool auto-discovery system
-- LLM provider switching
-- Basic agent execution
-- Simple memory (conversation history)
+- YAML agent definitions (per-agent config files)
+- Basic memory (conversation history)
 - Multi-agent sequential flows
 
 ### Phase 2: Enhanced Features
@@ -303,7 +310,6 @@ This document defines requirements for a simple, lightweight agent framework bui
 - Simple guardrails (input/output validation)
 - RAG with Chroma
 - MCP tool integration
-- REPL/CLI integration
 
 ### Phase 3: Advanced Features
 - ReACT pattern optimization

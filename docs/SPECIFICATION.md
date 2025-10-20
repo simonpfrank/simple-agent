@@ -111,6 +111,9 @@ simple_agent/
 │
 └── config/                     # Configuration files
     ├── defaults.yaml           # Default settings
+    ├── prompts/                # Prompt templates (Phase 0)
+    │   ├── default.yaml
+    │   └── researcher.yaml
     └── agents/                 # Agent definitions (future)
         └── example.yaml
 
@@ -120,8 +123,9 @@ tests/
 │   ├── test_agent_manager.py
 │   └── test_simple_agent.py
 │
-├── integration/                # Integration tests (real)
-│   └── test_agent_lifecycle.py
+├── integration/                # Integration tests
+│   ├── test_agent_lifecycle_mocked.py    # With mocked LLM (CI/CD)
+│   └── test_agent_lifecycle_live.py      # With real LLM (definitive)
 │
 └── data/                       # Test fixtures
     └── test_config.yaml
@@ -143,9 +147,11 @@ requirements.txt               # Dependencies
 ### Scope Reminder
 - Install SmolAgents and basic dependencies
 - Configuration system (YAML + .env)
-- Simple agent wrapper
-- Basic REPL integration
-- LLM support (OpenAI, Ollama)
+- Prompt template system (static YAML in `config/prompts/`)
+- Message formatting (system/user role separation)
+- Simple agent wrapper with template support
+- Basic REPL integration (`/agent create`, `/agent run`, `/agent list`)
+- LLM support (OpenAI, Ollama, LM Studio)
 
 ### Component Specifications
 
@@ -173,6 +179,10 @@ class ConfigManager:
     @staticmethod
     def merge_with_defaults(config: dict) -> dict:
         """Merge user config with defaults."""
+
+    @staticmethod
+    def load_prompt_template(template_name: str) -> dict:
+        """Load prompt template from config/prompts/{template_name}.yaml"""
 ```
 
 **Config File Structure: `config.yaml`**
@@ -222,6 +232,36 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+**Prompt Template Files: `config/prompts/*.yaml`**
+
+```yaml
+# config/prompts/default.yaml
+name: default
+system: |
+  You are a helpful AI assistant.
+  Answer questions clearly and concisely.
+```
+
+```yaml
+# config/prompts/researcher.yaml
+name: researcher
+system: |
+  You are a research assistant.
+  Provide detailed, well-sourced answers.
+  Cite your reasoning step by step.
+  Focus on accuracy and thoroughness.
+```
+
+**Message Format (Standard OpenAI/Anthropic):**
+
+```python
+# Messages sent to LLM
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "What is AI?"}
+]
+```
+
 #### 2. Simple Agent Wrapper
 
 **File: `simple_agent/agents/simple_agent.py`**
@@ -238,6 +278,7 @@ class SimpleAgent:
         model_provider: str,
         model_config: dict,
         role: str = None,
+        template: str = None,
         tools: list = None,
         verbosity: int = 1,
         max_steps: int = 10
@@ -249,13 +290,21 @@ class SimpleAgent:
             name: Agent identifier
             model_provider: "openai", "ollama", etc.
             model_config: Dict with model settings
-            role: Optional system prompt/persona
+            role: Optional system prompt/persona (overrides template)
+            template: Optional template name to load from config/prompts/
             tools: List of tool instances
             verbosity: 0=quiet, 1=normal, 2=verbose
             max_steps: Max tool call iterations
         """
         self.name = name
         self.model_provider = model_provider
+
+        # Load template if specified and no explicit role
+        if template and not role:
+            from simple_agent.core.config_manager import ConfigManager
+            template_data = ConfigManager.load_prompt_template(template)
+            role = template_data.get("system", "")
+
         self.role = role
 
         # Create LiteLLM model instance
@@ -403,16 +452,17 @@ def agent(ctx):
 @agent.command()
 @click.argument("name")
 @click.option("--provider", "-p", default=None, help="LLM provider")
-@click.option("--role", "-r", default=None, help="Agent role/persona")
+@click.option("--template", "-t", default=None, help="Prompt template name")
+@click.option("--role", "-r", default=None, help="Agent role/persona (overrides template)")
 @click.pass_context
-def create(ctx, name: str, provider: str, role: str):
+def create(ctx, name: str, provider: str, template: str, role: str):
     """Create a new agent."""
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
     try:
         # Business logic in agent_manager, not here
-        agent = agent_manager.create_agent(name, provider, role)
+        agent = agent_manager.create_agent(name, provider, template, role)
         console.print(f"[green]✓[/green] Created agent: {agent}")
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
@@ -552,10 +602,13 @@ python -m simple_agent.app
 ## Phase 0: Success Criteria
 
 - [ ] Configuration loads from `config.yaml` and `.env`
-- [ ] Can create agent with OpenAI or Ollama
+- [ ] Prompt templates load from `config/prompts/`
+- [ ] Can create agent with OpenAI, Ollama, or LM Studio
+- [ ] Can create agent with template or explicit role
 - [ ] Can run prompt through agent and get LLM response
+- [ ] Messages formatted correctly (system/user roles)
 - [ ] All unit tests pass (with mocks)
-- [ ] Integration test passes (with real LLM or mock)
+- [ ] Integration test passes (mocked and live versions)
 - [ ] Manual REPL test successful
 - [ ] Code follows CLAUDE.md standards (< 100 lines/class, type hints, etc.)
 
@@ -563,11 +616,19 @@ python -m simple_agent.app
 
 ## Future Phases (Brief Overview)
 
-### Phase 1: Core Features
-- Tool auto-discovery system
-- YAML agent definitions (per-agent config files)
-- Basic memory (conversation history)
-- Multi-agent sequential flows
+### Phase 1: Interactive & Inspection Features
+- **Interactive chat mode**: `/agent chat <name>` command
+  - Enter chat mode with specific agent
+  - Free text input without `/` prefix
+  - Exit with `/exit` or Ctrl+D
+- **Prompt inspection commands**: `/prompt show`, `/prompt raw`
+- **Response inspection commands**: `/response show`, `/response raw`
+- **History command**: `/history show` (requires memory)
+- **Jinja2 template variables**: Dynamic prompt substitution
+- **Tool auto-discovery system**: Drop tools in directory, auto-register
+- **YAML agent definitions**: Per-agent config files
+- **Basic memory**: Conversation history retention
+- **Multi-agent sequential flows**: Chain agents in simple pipelines
 
 ### Phase 2: Enhanced Features
 - Human-in-the-loop approval wrapper
@@ -579,6 +640,7 @@ python -m simple_agent.app
 - ReACT pattern optimization
 - Multi-agent conditional routing
 - Advanced memory strategies
+- Tool composition and chaining
 
 ### Phase 4: Raspberry Pi
 - Pi deployment optimization
