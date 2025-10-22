@@ -9,6 +9,7 @@ import logging
 from typing import Any, Dict, Literal, Optional
 
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
+from smolagents.monitoring import LogLevel
 
 from simple_agent.core.config_manager import ConfigManager
 
@@ -30,6 +31,7 @@ class SimpleAgent:
         max_steps: int = 10,
         agent_type: Literal["tool_calling", "code"] = "tool_calling",
         executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker",
+        debug_enabled: bool = False,
     ):
         """
         Initialize agent.
@@ -41,10 +43,11 @@ class SimpleAgent:
             role: Optional system prompt/persona (overrides template)
             template: Optional template name to load from config/prompts/
             tools: List of tool instances
-            verbosity: 0=quiet, 1=normal, 2=verbose
+            verbosity: 0=quiet, 1=normal, 2=verbose (DEPRECATED - use debug_enabled)
             max_steps: Max tool call iterations
             agent_type: Agent type - "tool_calling" (safe, default) or "code" (requires Docker)
             executor_type: Executor for code agent - "docker" (default), "e2b", "modal", "wasm"
+            debug_enabled: Enable debug mode (verbose output and logging)
 
         Raises:
             ValueError: If invalid agent_type or attempting to use unsafe executor
@@ -66,6 +69,7 @@ class SimpleAgent:
         self.name = name
         self.model_provider = model_provider
         self.agent_type = agent_type
+        self.debug_enabled = debug_enabled
 
         # Load template if specified and no explicit role
         if template and not role:
@@ -77,6 +81,14 @@ class SimpleAgent:
         # Create LiteLLM model instance
         self.model = self._create_model(model_provider, model_config)
 
+        # Map debug mode to SmolAgents LogLevel
+        # LogLevel: OFF=-1, ERROR=0, INFO=1, DEBUG=2
+        verbosity_level = LogLevel.DEBUG if debug_enabled else LogLevel.INFO
+        logger.debug(
+            f"Agent '{name}' verbosity set to {verbosity_level.name} "
+            f"(debug_enabled={debug_enabled})"
+        )
+
         # Create appropriate agent type
         if agent_type == "tool_calling":
             self.agent = ToolCallingAgent(
@@ -84,6 +96,7 @@ class SimpleAgent:
                 model=self.model,
                 max_steps=max_steps,
                 instructions=role,
+                verbosity_level=verbosity_level,
             )
             logger.info(f"Created ToolCallingAgent: {self.name} ({model_provider})")
         elif agent_type == "code":
@@ -91,7 +104,7 @@ class SimpleAgent:
                 tools=tools or [],
                 model=self.model,
                 max_steps=max_steps,
-                verbosity_level=verbosity,
+                verbosity_level=verbosity_level,
                 instructions=role,
                 executor_type=executor_type,
             )
@@ -114,6 +127,11 @@ class SimpleAgent:
         model_id = config.get("model")
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 2000)
+
+        logger.debug(
+            f"Creating LiteLLM model - provider: {provider}, "
+            f"model: {model_id}, temp: {temperature}, max_tokens: {max_tokens}"
+        )
 
         # Handle provider-specific configuration
         if provider == "ollama" or provider == "lmstudio":

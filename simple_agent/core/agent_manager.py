@@ -49,6 +49,11 @@ class AgentManager:
         Returns:
             Created SimpleAgent instance
         """
+        logger.debug(
+            f"Creating agent '{name}' - provider: {provider}, "
+            f"role: {role}, template: {template}"
+        )
+
         # Get defaults from config if not specified
         provider = provider or self.config.get("llm", {}).get("provider")
 
@@ -66,6 +71,9 @@ class AgentManager:
         agent_type = agent_defaults.get("agent_type", "tool_calling")
         executor_type = agent_defaults.get("executor_type", "docker")
 
+        # Get debug mode from config
+        debug_enabled = self.config.get("debug", {}).get("enabled", False)
+
         # Create agent
         agent = SimpleAgent(
             name=name,
@@ -77,6 +85,7 @@ class AgentManager:
             max_steps=max_steps,
             agent_type=agent_type,
             executor_type=executor_type,
+            debug_enabled=debug_enabled,
         )
 
         # Register
@@ -130,6 +139,7 @@ class AgentManager:
         agent = self.get_agent(name)
         logger.debug(f"Running agent '{name}' with prompt: {prompt[:50]}...")
         result = agent.run(prompt)
+        logger.debug(f"Agent '{name}' completed - result length: {len(str(result))}")
         return result
 
     def _load_agents_from_config(self) -> None:
@@ -140,6 +150,7 @@ class AgentManager:
         Uses agent name from config key, and config values for settings.
         """
         agents_config = self.config.get("agents", {})
+        logger.debug(f"Auto-loading agents from config: {list(agents_config.keys())}")
 
         for agent_name, agent_config in agents_config.items():
             if isinstance(agent_config, dict):

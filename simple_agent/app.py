@@ -41,8 +41,10 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console in CLI mode
 @click.group(invoke_without_command=True)
 @click.option("--config", "-c", default=DEFAULT_CONFIG, help="Path to config file")
 @click.option("--repl-mode", is_flag=True, default=False, help="Start in REPL mode")
+@click.option("--debug/--no-debug", "-d/-nd", default=None,
+              help="Enable debug mode (verbose output). Overrides config setting.")
 @click.pass_context
-def cli(context, config, repl_mode):
+def cli(context, config, repl_mode, debug):
     """
     REPL/CLI Template Application.
 
@@ -68,6 +70,16 @@ def cli(context, config, repl_mode):
             config_dict = ConfigManager.get_defaults()
             console.print("[dim]Config file not found, using defaults[/dim]")
 
+        # CLI debug flag overrides config setting
+        if debug is not None:
+            if "debug" not in config_dict:
+                config_dict["debug"] = {}
+            config_dict["debug"]["enabled"] = debug
+
+        # Get debug mode (from CLI flag or config)
+        debug_enabled = config_dict.get("debug", {}).get("enabled", False)
+        context.obj["debug"] = debug_enabled
+
         # NOTE: We do NOT substitute env vars here globally
         # Config dict keeps placeholders (${VAR}) to avoid storing secrets
         # Substitution happens at point-of-use (e.g., when creating models)
@@ -82,6 +94,10 @@ def cli(context, config, repl_mode):
     # Setup logging
     log_file = ConfigManager.get(config_dict, "logging.file", "logs/app.log")
     log_level = ConfigManager.get(config_dict, "logging.level", "INFO")
+
+    # Override log level if debug mode is enabled
+    if debug_enabled:
+        log_level = "DEBUG"
 
     # Enable console logging only if NOT in REPL mode
     console_enabled = context.invoked_subcommand is not None

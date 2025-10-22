@@ -1,16 +1,65 @@
 # Phase 1: Interactive & Inspection Features
 
-**Status:** 🔴 Not Started
+**Status:** 🟡 In Progress (Phase 0.6 Complete - Debug Mode)
 **Priority:** P1 - After Phase 0.5
-**Estimated Effort:** 3-4 days
+**Estimated Effort:** 3-4 weeks (6 sub-phases)
 
 ---
 
 ## Overview
 
-Phase 1 adds interactive capabilities and inspection tools to enhance the user experience. This includes chat mode, prompt/response inspection, history viewing, and advanced configuration management.
+Phase 1 adds interactive capabilities, inspection tools, and tool management to enhance the user experience. This includes chat mode, prompt/response inspection, history viewing, tool management, and agent configuration.
 
-**Goal:** Transform the REPL from command-driven to conversational while adding powerful inspection and configuration tools.
+**Goal:** Transform the REPL from command-driven to conversational while adding powerful inspection, tool management, and configuration tools.
+
+**Phase 1 Sub-Phases:**
+- **Phase 0.6:** ✅ Debug Mode (Completed)
+- **Phase 1.1:** Interactive Chat & Inspection
+- **Phase 1.2:** History & Memory
+- **Phase 1.3:** Configuration Management
+- **Phase 1.4:** Tool Management
+- **Phase 1.5:** YAML Agent Definitions
+- **Phase 1.6:** Tool Auto-Discovery
+
+**Note:** Multi-agent flows moved to Phase 2 (complexity requires Phase 1 completion first)
+
+---
+
+## Phase 0.6: Debug Mode ✅ COMPLETED
+
+**Goal:** Add debug infrastructure before Phase 1 complexity
+
+### Features Implemented:
+
+1. **Config-based debug setting** (`config.yaml`)
+   - `debug.enabled: true/false`
+   - Controls Python logging level and SmolAgents verbosity
+
+2. **CLI flag override**
+   - `--debug` / `--no-debug` or `-d` / `-nd`
+   - CLI flag overrides config setting
+
+3. **Python logging integration**
+   - Debug mode → DEBUG level logging
+   - Non-debug mode → INFO level logging
+
+4. **SmolAgents verbosity mapping**
+   - Debug enabled → `LogLevel.DEBUG` (verbose output)
+   - Debug disabled → `LogLevel.INFO` (clean output)
+
+5. **Debug logging statements**
+   - Agent creation, model creation, agent execution
+   - AgentManager lifecycle events
+
+### Logging Behavior:
+- **REPL mode:** Logs to file only
+- **CLI mode:** Logs to file + console (WARNING+ level)
+- **Debug mode:** Changes both Python logging and SmolAgents verbosity
+
+### Testing:
+- All 59 unit/integration tests passing
+- Verified debug vs non-debug output
+- Infrastructure ready for future display profiles
 
 ---
 
@@ -282,12 +331,15 @@ tools/
 ├── __init__.py
 ├── builtin/
 │   ├── __init__.py
-│   ├── python_executor.py  # From Phase 0.5
-│   └── web_search.py       # Example
+│   ├── math_tool.py        # Simple math tool (Phase 1.6)
+│   ├── python_executor.py  # Added in Phase 1.6 (after tool infrastructure)
+│   └── web_search.py       # Example (future)
 └── custom/
     ├── __init__.py
     └── my_tool.py          # User-defined
 ```
+
+**Note:** Python executor tool will be built in Phase 1.6 after the tool infrastructure is in place. We'll start with a simple math tool for testing tool functionality.
 
 **Tool File Format:**
 ```python
@@ -315,10 +367,114 @@ def my_custom_tool(arg1: str, arg2: int) -> str:
 - `/tool list` - List all available tools
 - `/tool info <name>` - Show tool details
 - `/tool reload` - Reload tools from disk
+- `/tool add <agent_name> <tool_name>` - Add tool to agent
+- `/tool remove <agent_name> <tool_name>` - Remove tool from agent
+- `/tool enable <tool_name>` - Enable a tool globally
+- `/tool disable <tool_name>` - Disable a tool globally
 
 ---
 
-### 8. YAML Agent Definitions
+### 8. Tool Management for Agents
+
+**Goal:** Add/remove tools from existing agents dynamically
+
+**Commands:**
+- `/agent tools <name>` - List tools attached to agent
+- `/agent add-tool <agent_name> <tool_name>` - Add tool to agent
+- `/agent remove-tool <agent_name> <tool_name>` - Remove tool from agent
+- `/agent save <name>` - Save agent configuration (including tools) to YAML
+
+**Example:**
+```
+> /agent create my_agent
+✓ Created agent 'my_agent'
+
+> /agent tools my_agent
+Agent 'my_agent' tools: (none)
+
+> /agent add-tool my_agent math_tool
+✓ Added tool 'math_tool' to agent 'my_agent'
+
+> /agent add-tool my_agent python_executor
+✓ Added tool 'python_executor' to agent 'my_agent'
+
+> /agent tools my_agent
+Agent 'my_agent' tools:
+  • math_tool
+  • python_executor
+
+> /agent save my_agent
+✓ Saved agent 'my_agent' to config/agents/my_agent.yaml
+```
+
+**Implementation:**
+- AgentManager maintains tool registry per agent
+- Tools can be added/removed dynamically
+- Save command persists agent configuration to YAML
+- Loading agent from YAML automatically attaches tools
+
+---
+
+### 9. Interactive Agent Creation
+
+**Goal:** Step-by-step prompting for creating agents
+
+**Command:** `/agent create-interactive` or `/agent create --interactive`
+
+**Example Session:**
+```
+> /agent create-interactive
+
+╭──────────────────────────────────────╮
+│   Interactive Agent Creation         │
+╰──────────────────────────────────────╯
+
+Agent name: my_researcher
+
+Select LLM provider:
+  1. OpenAI (gpt-4o-mini)
+  2. Anthropic (claude-3-5-sonnet)
+  3. Ollama (llama3.2:1b)
+  4. Custom
+
+Choice [1]: 1
+
+Select agent type:
+  1. Tool Calling (safe, default)
+  2. Code Agent (requires Docker)
+
+Choice [1]: 1
+
+Agent role/persona (or template name): researcher
+
+Add tools? [y/N]: y
+
+Available tools:
+  1. math_tool
+  2. python_executor
+  3. web_search
+
+Select tools (comma-separated numbers) [1,2]: 1,3
+
+Max steps [10]: 15
+
+Verbosity (0=quiet, 1=normal, 2=verbose) [1]: 2
+
+Save configuration? [Y/n]: y
+
+✓ Created agent 'my_researcher'
+✓ Saved to config/agents/my_researcher.yaml
+```
+
+**Implementation:**
+- Use click.prompt() or prompt_toolkit for interactive prompts
+- Validate inputs at each step
+- Allow defaults for quick setup
+- Option to save as YAML at the end
+
+---
+
+### 10. YAML Agent Definitions
 
 **Goal:** Define agents in YAML files, not just config.yaml
 
@@ -427,82 +583,79 @@ agents:
 
 ---
 
-### 10. Multi-Agent Sequential Flows
+## Features Moved to Phase 2
 
-**Goal:** Chain agents in simple pipelines
+### Multi-Agent Flows (MOVED TO PHASE 2)
 
-**Example Use Case:**
-1. Researcher agent gathers information
-2. Summarizer agent creates summary
-3. Writer agent drafts document
+**Reason:** Multi-agent flows require all Phase 1 infrastructure to be complete first:
+- Tool management system (Phase 1.4)
+- YAML agent definitions (Phase 1.5)
+- Memory and history (Phase 1.2)
+- Complex orchestration logic
 
-**Command:**
-```bash
-/agent flow research,summarize,write "Topic: AI Safety"
-```
+**Deferred Features:**
+- Sequential agent chaining
+- Conditional routing
+- Parallel execution
+- Flow definitions in YAML
+- Flow management commands
 
-**Flow Definition (config.yaml):**
-```yaml
-flows:
-  research_to_document:
-    agents:
-      - name: researcher
-        role: "Gather information"
-      - name: summarizer
-        role: "Create summary"
-      - name: writer
-        role: "Draft document"
-
-    # Pass output of each agent to next
-    mode: "sequential"
-```
-
-**Implementation:**
-```python
-# simple_agent/core/flow_manager.py
-class FlowManager:
-    def run_flow(self, flow_name: str, initial_input: str):
-        """Execute multi-agent flow."""
-        pass
-```
-
-**Commands:**
-- `/flow list` - List available flows
-- `/flow run <name> <input>` - Execute flow
-- `/flow create <name>` - Create new flow interactively
+These will be implemented in Phase 2 with proper orchestration patterns and advanced agent coordination.
 
 ---
 
-## Implementation Order
+## Implementation Order (Sub-Phases)
 
-### Week 1: Foundation
-**Day 1-2:**
-- Interactive chat mode
-- Prompt inspection commands
-- Response inspection commands
+### Phase 0.6: Debug Mode ✅ COMPLETED
+- Config-based debug settings
+- CLI debug flag
+- Python logging and SmolAgents verbosity mapping
+- Debug logging statements throughout codebase
 
-**Day 3:**
-- History command
-- Basic memory implementation
+### Phase 1.1: Interactive Chat & Inspection (Week 1)
+**Days 1-3:**
+- Interactive chat mode (`/agent chat`)
+- Prompt inspection commands (`/prompt show`, `/prompt raw`)
+- Response inspection commands (`/response show`, `/response raw`)
+- Chat mode testing and refinement
 
-### Week 2: Configuration & Tools
-**Day 4:**
-- Configurable paths
-- REPL config overrides
-- CLI argument overrides
+### Phase 1.2: History & Memory (Week 2)
+**Days 4-6:**
+- Basic memory implementation (`AgentMemory` class)
+- History command (`/history show`)
+- History management (`/history clear`, `/history save`, `/history load`)
+- Memory persistence (optional)
 
-**Day 5:**
-- Jinja2 template variables
-- Template rendering engine
+### Phase 1.3: Configuration Management (Week 3)
+**Days 7-10:**
+- Configurable paths system
+- REPL config overrides (`/config set`, `/config get`, `/config reset`)
+- CLI argument overrides (`--set` flag)
+- Config save/load functionality
+- Jinja2 template variables (optional)
 
-### Week 3: Discovery & Flows
-**Day 6:**
-- Tool auto-discovery system
-- Tool management commands
+### Phase 1.4: Tool Management (Week 4)
+**Days 11-14:**
+- Tool management commands (`/tool list`, `/tool info`)
+- Agent tool commands (`/agent tools`, `/agent add-tool`, `/agent remove-tool`)
+- Agent save command (`/agent save`)
+- Tool loading from YAML
+- Simple math tool for testing
 
-**Day 7:**
-- YAML agent definitions
-- Multi-agent sequential flows
+### Phase 1.5: YAML Agent Definitions (Week 5)
+**Days 15-17:**
+- YAML agent definition format
+- Auto-load agents from `config/agents/` directory
+- Agent hierarchy (CLI > agent YAML > config.yaml > defaults)
+- Interactive agent creation (`/agent create-interactive`)
+
+### Phase 1.6: Tool Auto-Discovery (Week 6)
+**Days 18-21:**
+- Tool auto-discovery system (scan `tools/` directory)
+- Tool validation and registration
+- Python executor tool (with Docker) - AFTER tool infrastructure
+- Tool reload command (`/tool reload`)
+- Hot-reload support (optional)
 
 ---
 
@@ -578,26 +731,114 @@ templates:
 
 ---
 
+## Agent Configuration Hierarchy
+
+**Override Priority:** `CLI args > agent YAML > config.yaml > code defaults`
+
+### 1. Code Defaults (Lowest Priority)
+Hardcoded in `SimpleAgent` and `AgentManager`:
+```python
+# Default values if nothing else is specified
+verbosity = 1
+max_steps = 10
+agent_type = "tool_calling"
+```
+
+### 2. config.yaml
+Global defaults for all agents:
+```yaml
+agents:
+  default:
+    role: "You are a helpful AI assistant."
+    verbosity: 1
+    max_steps: 10
+    agent_type: "tool_calling"
+```
+
+### 3. Agent YAML Files (config/agents/*.yaml)
+Per-agent configuration:
+```yaml
+# config/agents/researcher.yaml
+name: "researcher"
+role: "You are a research specialist."
+tools:
+  - python_executor
+  - web_search
+model:
+  provider: "openai"
+  temperature: 0.3
+settings:
+  verbosity: 2
+  max_steps: 15
+```
+
+### 4. CLI Arguments (Highest Priority)
+Command-line overrides everything:
+```bash
+/agent create researcher --provider anthropic --max-steps 20
+```
+
+**Implementation:**
+- AgentManager checks each level in order
+- Higher priority values override lower ones
+- Missing values fall through to next level
+- All levels logged in debug mode
+
+---
+
 ## Acceptance Criteria
 
-### Must Have
+### Phase 0.6: Debug Mode
+- [✅] Config-based debug settings
+- [✅] CLI debug flag (`--debug` / `--no-debug`)
+- [✅] Python logging integration
+- [✅] SmolAgents verbosity mapping
+- [✅] All tests passing (59/59)
+
+### Phase 1.1: Interactive Chat & Inspection
 - [  ] Interactive chat mode working
-- [  ] Prompt/response inspection commands
-- [  ] History command with basic memory
+- [  ] Prompt inspection commands
+- [  ] Response inspection commands
+- [  ] Chat mode exit handling
+- [  ] Tests passing
+
+### Phase 1.2: History & Memory
+- [  ] Basic memory implementation
+- [  ] History command working
+- [  ] History management commands
+- [  ] Memory persistence (optional)
+- [  ] Tests passing
+
+### Phase 1.3: Configuration Management
 - [  ] Configurable paths system
 - [  ] REPL config overrides
-- [  ] Tool auto-discovery working
-- [  ] YAML agent definitions loading
-- [  ] All tests passing (>90% coverage)
+- [  ] Config save/load functionality
+- [  ] CLI argument overrides (optional)
+- [  ] Tests passing
 
-### Nice to Have
-- [  ] Jinja2 template variables
-- [  ] CLI argument overrides
-- [  ] Tool hot-reload
-- [  ] Multi-agent flows
-- [  ] Memory persistence to disk
+### Phase 1.4: Tool Management
+- [  ] Tool management commands
+- [  ] Agent tool commands
+- [  ] Agent save command
+- [  ] Simple math tool implemented
+- [  ] Tests passing
+
+### Phase 1.5: YAML Agent Definitions
+- [  ] YAML agent format defined
+- [  ] Auto-load from config/agents/
+- [  ] Agent hierarchy working
+- [  ] Interactive agent creation
+- [  ] Tests passing
+
+### Phase 1.6: Tool Auto-Discovery
+- [  ] Tool auto-discovery working
+- [  ] Tool validation and registration
+- [  ] Python executor tool (with Docker)
+- [  ] Tool reload command
+- [  ] Tests passing (>90% coverage)
 
 ### Out of Scope (Phase 2)
+- Multi-agent flows (moved to Phase 2)
 - Human-in-the-loop approval
 - Guardrails
 - RAG with Chroma
@@ -607,12 +848,20 @@ templates:
 
 ## Success Metrics
 
-- ✅ Chat mode provides smooth conversation experience
-- ✅ Inspection commands help with debugging
-- ✅ Tool discovery works for custom tools
-- ✅ Config override hierarchy works correctly
-- ✅ Memory tracks conversation history
-- ✅ YAML agents load automatically
+### Phase 0.6: Debug Mode ✅
+- ✅ Debug mode toggles verbose vs clean output
+- ✅ CLI flag overrides config setting correctly
+- ✅ SmolAgents verbosity maps to debug mode
+- ✅ All tests passing
+
+### Phase 1 Overall
+- ✅ Chat mode provides smooth conversation experience (Phase 1.1)
+- ✅ Inspection commands help with debugging (Phase 1.1)
+- ✅ Memory tracks conversation history (Phase 1.2)
+- ✅ Config override hierarchy works correctly (Phase 1.3)
+- ✅ Tool management system functional (Phase 1.4)
+- ✅ YAML agents load automatically (Phase 1.5)
+- ✅ Tool discovery works for custom tools (Phase 1.6)
 - ✅ Documentation complete and clear
 
 ---
@@ -624,18 +873,27 @@ templates:
 1. **Chat mode complexity**
    - Mitigation: Start simple, iterate
    - Keep exit logic clear and reliable
+   - Phase 1.1 focused implementation
 
 2. **Tool discovery performance**
    - Mitigation: Cache discovered tools
    - Lazy loading for large directories
+   - Addressed in Phase 1.6
 
 3. **Memory leaks with conversation history**
    - Mitigation: Implement max_messages limit
    - Sliding window approach
+   - Phase 1.2 includes memory management
 
-4. **Jinja2 template security**
-   - Mitigation: Use sandbox mode
-   - Validate templates before rendering
+4. **Agent hierarchy complexity**
+   - Mitigation: Clear documentation
+   - Debug logging at each level
+   - Phase 1.5 includes comprehensive testing
+
+5. **Tool security with Python executor**
+   - Mitigation: Docker-only execution
+   - Security validation from Phase 0.5
+   - Built last in Phase 1.6
 
 ---
 
@@ -643,13 +901,38 @@ templates:
 
 - [Jinja2 Documentation](https://jinja.palletsprojects.com/)
 - [SmolAgents Tools Guide](https://huggingface.co/docs/smolagents/en/tutorials/tools)
+- [SmolAgents LogLevel Documentation](https://huggingface.co/docs/smolagents/en/api/monitoring)
 - Python importlib for dynamic tool loading
 - Watchdog for file system monitoring
+- Click framework for CLI/REPL
+
+---
+
+## Document Metadata
+
+**Version:** 2.0
+**Date:** 2025-10-22
+**Status:** In Progress - Phase 0.6 Complete
+**Current Sub-Phase:** Phase 0.6 (Debug Mode) ✅ COMPLETED
+
+**Change Log:**
+- v2.0 (2025-10-22): Major restructure - Split into 6 sub-phases, added Phase 0.6 (debug mode), moved multi-agent flows to Phase 2, added tool management and interactive agent creation, added agent hierarchy documentation
+- v1.0 (2025-10-21): Initial Phase 1 specification
 
 ---
 
 ## Notes
 
-This phase significantly enhances user experience and debugging capabilities while maintaining the simple, clean architecture from Phase 0. All features are optional and can be enabled/disabled via configuration.
+This phase significantly enhances user experience and debugging capabilities while maintaining the simple, clean architecture from Phase 0. The sub-phase structure allows for incremental development and testing.
 
-**Next Phase:** Phase 2 - Enhanced Features (Guardrails, RAG, MCP)
+**Key Changes from Original Plan:**
+1. Added Phase 0.6 for debug infrastructure (completed)
+2. Split into 6 manageable sub-phases
+3. Moved multi-agent flows to Phase 2 (requires Phase 1 foundation)
+4. Added tool management commands
+5. Added interactive agent creation
+6. Defined clear agent configuration hierarchy
+
+All features are optional and can be enabled/disabled via configuration.
+
+**Next Phase:** Phase 2 - Enhanced Features (Multi-Agent Flows, Guardrails, RAG, MCP)
