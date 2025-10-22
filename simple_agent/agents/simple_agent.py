@@ -1,13 +1,14 @@
 """
-SimpleAgent - Thin wrapper around SmolAgents CodeAgent.
+SimpleAgent - Thin wrapper around SmolAgents with support for multiple agent types.
 
 Provides a simplified interface for creating and running agents with LiteLLM support.
+Supports ToolCallingAgent (default, safe), CodeAgent (with Docker), and MultiStepAgent.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
-from smolagents import CodeAgent, LiteLLMModel
+from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
 
 from simple_agent.core.config_manager import ConfigManager
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleAgent:
-    """Thin wrapper around SmolAgents CodeAgent."""
+    """Thin wrapper around SmolAgents with support for multiple agent types."""
 
     def __init__(
         self,
@@ -27,6 +28,8 @@ class SimpleAgent:
         tools: Optional[list] = None,
         verbosity: int = 1,
         max_steps: int = 10,
+        agent_type: Literal["tool_calling", "code"] = "tool_calling",
+        executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker",
     ):
         """
         Initialize agent.
@@ -40,9 +43,29 @@ class SimpleAgent:
             tools: List of tool instances
             verbosity: 0=quiet, 1=normal, 2=verbose
             max_steps: Max tool call iterations
+            agent_type: Agent type - "tool_calling" (safe, default) or "code" (requires Docker)
+            executor_type: Executor for code agent - "docker" (default), "e2b", "modal", "wasm"
+
+        Raises:
+            ValueError: If invalid agent_type or attempting to use unsafe executor
         """
+        # Validate agent_type
+        valid_types = ["tool_calling", "code"]
+        if agent_type not in valid_types:
+            raise ValueError(
+                f"Invalid agent_type '{agent_type}'. Must be one of: {valid_types}"
+            )
+
+        # Security: Reject 'local' executor for CodeAgent
+        if agent_type == "code" and executor_type == "local":
+            raise ValueError(
+                "Security error: 'local' executor is unsafe and not allowed. "
+                "Use 'docker' (recommended), 'e2b', 'modal', or 'wasm' instead."
+            )
+
         self.name = name
         self.model_provider = model_provider
+        self.agent_type = agent_type
 
         # Load template if specified and no explicit role
         if template and not role:
@@ -54,16 +77,28 @@ class SimpleAgent:
         # Create LiteLLM model instance
         self.model = self._create_model(model_provider, model_config)
 
-        # Create SmolAgents CodeAgent
-        self.agent = CodeAgent(
-            tools=tools or [],
-            model=self.model,
-            max_steps=max_steps,
-            verbosity_level=verbosity,
-            instructions=role,
-        )
-
-        logger.info(f"Created agent: {self.name} ({model_provider})")
+        # Create appropriate agent type
+        if agent_type == "tool_calling":
+            self.agent = ToolCallingAgent(
+                tools=tools or [],
+                model=self.model,
+                max_steps=max_steps,
+                instructions=role,
+            )
+            logger.info(f"Created ToolCallingAgent: {self.name} ({model_provider})")
+        elif agent_type == "code":
+            self.agent = CodeAgent(
+                tools=tools or [],
+                model=self.model,
+                max_steps=max_steps,
+                verbosity_level=verbosity,
+                instructions=role,
+                executor_type=executor_type,
+            )
+            logger.info(
+                f"Created CodeAgent: {self.name} ({model_provider}) "
+                f"with {executor_type} executor"
+            )
 
     def _create_model(self, provider: str, config: Dict[str, Any]) -> LiteLLMModel:
         """

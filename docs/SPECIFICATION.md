@@ -6,7 +6,11 @@ This specification defines the technical architecture, component design, and imp
 
 **Related Documents:**
 - PRD: `/docs/PRD.md`
-- Progress Tracker: `/docs/Progress_Tracker.md` (to be created)
+- Progress Tracker: `/docs/Progress_Tracker.md`
+- Phase Specifications:
+  - Phase 0: `docs/phases/PHASE_0.md` (✅ Completed)
+  - Phase 0.5: `docs/phases/PHASE_0.5.md` (🔴 Critical Priority)
+  - Phase 1: `docs/phases/PHASE_1.md`
 
 **Approach:** Build incrementally in phases, with clear functionality approval before each phase.
 
@@ -614,44 +618,51 @@ python -m simple_agent.app
 
 ---
 
-## Future Phases (Brief Overview)
+## Project Phases
 
-### Phase 1: Interactive & Inspection Features
-- **Interactive chat mode**: `/agent chat <name>` command
-  - Enter chat mode with specific agent
-  - Free text input without `/` prefix
-  - Exit with `/exit` or Ctrl+D
-- **Prompt inspection commands**: `/prompt show`, `/prompt raw`
-- **Response inspection commands**: `/response show`, `/response raw`
-- **History command**: `/history show` (requires memory)
-- **Configurable paths and overrides**:
-  - Configurable prompt template folder path (default: config/prompts/)
-  - Configurable tool folder path (default: tools/)
-  - REPL commands to view and modify config settings
-  - Ability to save config changes from REPL to config.yaml
-  - Full override hierarchy: CLI args > REPL overrides > config.yaml > code defaults
-- **Jinja2 template variables**: Dynamic prompt substitution
-- **Tool auto-discovery system**: Drop tools in directory, auto-register
-- **YAML agent definitions**: Per-agent config files
-- **Basic memory**: Conversation history retention
-- **Multi-agent sequential flows**: Chain agents in simple pipelines
+This project is built incrementally in phases. Each phase has detailed specifications in separate files to avoid loading large documents repeatedly.
 
-### Phase 2: Enhanced Features
-- Human-in-the-loop approval wrapper
-- Simple guardrails wrapper
-- RAG with Chroma
-- MCP tool integration
+### Phase Status
 
-### Phase 3: Advanced Features
-- ReACT pattern optimization
-- Multi-agent conditional routing
-- Advanced memory strategies
-- Tool composition and chaining
+- **Phase 0: Foundation** ✅ Completed
+  - See: `docs/phases/PHASE_0.md`
+  - ConfigManager, AgentManager, SimpleAgent
+  - Basic REPL integration
+  - All 54 tests passing
 
-### Phase 4: Raspberry Pi
-- Pi deployment optimization
-- Voice I/O
-- GPIO tools
+- **Phase 0.5: Security Fix & Agent Type Architecture** 🔴 Not Started (CRITICAL PRIORITY)
+  - See: `docs/phases/PHASE_0.5.md`
+  - Switch from CodeAgent to ToolCallingAgent
+  - Docker-based Python execution tool
+  - Agent type selection architecture
+  - Security validation
+
+- **Phase 1: Interactive & Inspection Features** 🔴 Not Started
+  - See: `docs/phases/PHASE_1.md`
+  - Interactive chat mode
+  - Prompt/response inspection
+  - Tool auto-discovery
+  - YAML agent definitions
+  - Basic memory and flows
+
+- **Phase 2: Enhanced Features** 🔴 Not Started
+  - Human-in-the-loop approval
+  - Guardrails
+  - RAG with Chroma
+  - MCP tool integration
+
+- **Phase 3: Advanced Features** 🔴 Not Started
+  - ReACT pattern optimization
+  - Multi-agent conditional routing
+  - Advanced memory strategies
+  - Tool composition
+
+- **Phase 4: Raspberry Pi** 🔴 Not Started
+  - Pi deployment optimization
+  - Voice I/O
+  - GPIO tools
+
+**Current Phase:** Phase 0.5 (Critical security fix before continuing to Phase 1)
 
 ---
 
@@ -739,7 +750,13 @@ python -m simple_agent.app
 
 ---
 
-**Version**: 1.0
-**Date**: 2025-10-20
-**Status**: Draft - Awaiting Approval
-**Phase**: 0 (Foundation)
+## Document Control
+
+**Version**: 2.0
+**Date**: 2025-10-21
+**Status**: Active - Phase 0 Complete, Phase 0.5 In Planning
+**Current Phase**: 0.5 (Security Fix & Agent Type Architecture)
+
+**Change Log**:
+- v2.0 (2025-10-21): Restructured to reference phase files, completed Phase 0
+- v1.0 (2025-10-20): Initial specification for Phase 0

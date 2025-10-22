@@ -59,11 +59,12 @@ class AgentManager:
         # Get model config for provider
         model_config = self.config.get("llm", {}).get(provider, {})
 
-        # Get verbosity and max_steps from config
-        verbosity = self.config.get("agents", {}).get("default", {}).get("verbosity", 1)
-        max_steps = (
-            self.config.get("agents", {}).get("default", {}).get("max_steps", 10)
-        )
+        # Get agent settings from config
+        agent_defaults = self.config.get("agents", {}).get("default", {})
+        verbosity = agent_defaults.get("verbosity", 1)
+        max_steps = agent_defaults.get("max_steps", 10)
+        agent_type = agent_defaults.get("agent_type", "tool_calling")
+        executor_type = agent_defaults.get("executor_type", "docker")
 
         # Create agent
         agent = SimpleAgent(
@@ -74,6 +75,8 @@ class AgentManager:
             template=template,
             verbosity=verbosity,
             max_steps=max_steps,
+            agent_type=agent_type,
+            executor_type=executor_type,
         )
 
         # Register

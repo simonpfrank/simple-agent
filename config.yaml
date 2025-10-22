@@ -40,6 +40,8 @@ agents:
     role: "You are a helpful AI assistant."
     verbosity: 1  # 0=quiet, 1=normal, 2=verbose
     max_steps: 10  # Max tool call iterations
+    agent_type: "tool_calling"  # "tool_calling" (safe, default) or "code" (requires Docker)
+    # executor_type: "docker"  # Only for agent_type="code": "docker", "e2b", "modal", "wasm"
 
 # Logging
 logging:

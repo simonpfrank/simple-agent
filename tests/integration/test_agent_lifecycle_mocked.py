@@ -25,15 +25,15 @@ class TestAgentLifecycleMocked:
         return config
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.CodeAgent")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_full_lifecycle_default_agent(
-        self, mock_code_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
+        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
     ) -> None:
         """Test creating and running agent with default configuration."""
         # Setup mock agent response
         mock_agent_instance = MagicMock()
         mock_agent_instance.run.return_value = "The answer is 4"
-        mock_code_agent.return_value = mock_agent_instance
+        mock_tool_calling_agent.return_value = mock_agent_instance
 
         # Initialize AgentManager
         agent_manager = AgentManager(test_config)
@@ -54,12 +54,12 @@ class TestAgentLifecycleMocked:
         mock_agent_instance.run.assert_called_once_with("What is 2+2?")
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.CodeAgent")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     @patch("simple_agent.agents.simple_agent.ConfigManager")
     def test_full_lifecycle_with_template(
         self,
         mock_config_manager: MagicMock,
-        mock_code_agent: MagicMock,
+        mock_tool_calling_agent: MagicMock,
         mock_litellm: MagicMock,
         test_config: dict,
     ) -> None:
@@ -73,7 +73,7 @@ class TestAgentLifecycleMocked:
         # Setup mock agent response
         mock_agent_instance = MagicMock()
         mock_agent_instance.run.return_value = "Research result"
-        mock_code_agent.return_value = mock_agent_instance
+        mock_tool_calling_agent.return_value = mock_agent_instance
 
         # Initialize AgentManager
         agent_manager = AgentManager(test_config)
@@ -96,15 +96,15 @@ class TestAgentLifecycleMocked:
         mock_agent_instance.run.assert_called_once_with("Research AI")
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.CodeAgent")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_multiple_agents(
-        self, mock_code_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
+        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
     ) -> None:
         """Test managing multiple agents."""
         # Setup mocks
         mock_agent_instance = MagicMock()
         mock_agent_instance.run.return_value = "Response"
-        mock_code_agent.return_value = mock_agent_instance
+        mock_tool_calling_agent.return_value = mock_agent_instance
 
         # Initialize AgentManager
         agent_manager = AgentManager(test_config)
@@ -128,14 +128,14 @@ class TestAgentLifecycleMocked:
         assert agent_manager.get_agent("agent3") == agent3
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.CodeAgent")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_config_loading_and_defaults(
-        self, mock_code_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
+        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
     ) -> None:
         """Test that configuration loads correctly and defaults are applied."""
         # Setup mocks
         mock_agent_instance = MagicMock()
-        mock_code_agent.return_value = mock_agent_instance
+        mock_tool_calling_agent.return_value = mock_agent_instance
 
         # Initialize AgentManager
         agent_manager = AgentManager(test_config)
@@ -146,9 +146,9 @@ class TestAgentLifecycleMocked:
         # Verify defaults were applied from config
         # Note: call_args gets the LAST call, which is for 'default_agent'
         # The first call was for auto-loaded 'default' agent
-        call_kwargs = mock_code_agent.call_args.kwargs
+        call_kwargs = mock_tool_calling_agent.call_args.kwargs
         assert call_kwargs["instructions"] == "You are a test assistant."
-        assert call_kwargs["verbosity_level"] == 1
+        # ToolCallingAgent doesn't have verbosity_level parameter
         assert call_kwargs["max_steps"] == 10
 
     def test_error_handling_nonexistent_agent(self, test_config: dict) -> None:
