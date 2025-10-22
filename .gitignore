@@ -57,3 +57,4 @@ data/
 .DS_Store
 Thumbs.db
 .archive
+.envbak
