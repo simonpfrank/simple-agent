@@ -25,6 +25,12 @@ class AgentManager:
         """
         self.config = config
         self.agents: Dict[str, SimpleAgent] = {}
+
+        # Track last interaction for inspection commands
+        self.last_prompt: Optional[str] = None
+        self.last_response: Optional[str] = None
+        self.last_agent: Optional[str] = None
+
         logger.info("AgentManager initialized")
 
         # Auto-load agents from config
@@ -138,7 +144,16 @@ class AgentManager:
         """
         agent = self.get_agent(name)
         logger.debug(f"Running agent '{name}' with prompt: {prompt[:50]}...")
+
+        # Store prompt for inspection
+        self.last_prompt = prompt
+        self.last_agent = name
+
         result = agent.run(prompt)
+
+        # Store response for inspection (convert to string)
+        self.last_response = str(result)
+
         logger.debug(f"Agent '{name}' completed - result length: {len(str(result))}")
         return result
 

@@ -45,7 +45,7 @@ agents:
 
 # Debug Settings
 debug:
-  enabled: true  # Default to true during Phase 1 development, false for production
+  level: "info"  # off (minimal), info (normal), debug (verbose)
   # Future: display_mode (full/minimal), output_template
 
 # Logging

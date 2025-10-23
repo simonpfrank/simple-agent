@@ -24,6 +24,8 @@ from simple_agent.commands.system_commands import (
 )
 from simple_agent.commands.config_commands import config
 from simple_agent.commands.agent_commands import agent
+from simple_agent.commands.inspection_commands import prompt, response
+from simple_agent.commands.debug_commands import debug
 
 # Initialize console
 console = Console(theme=APP_THEME)
@@ -41,8 +43,10 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console in CLI mode
 @click.group(invoke_without_command=True)
 @click.option("--config", "-c", default=DEFAULT_CONFIG, help="Path to config file")
 @click.option("--repl-mode", is_flag=True, default=False, help="Start in REPL mode")
-@click.option("--debug/--no-debug", "-d/-nd", default=None,
-              help="Enable debug mode (verbose output). Overrides config setting.")
+@click.option("--debug", "-d",
+              type=click.Choice(['off', 'info', 'debug'], case_sensitive=False),
+              default=None,
+              help="Debug level: off (minimal), info (normal), debug (verbose). Overrides config setting.")
 @click.pass_context
 def cli(context, config, repl_mode, debug):
     """
@@ -74,11 +78,11 @@ def cli(context, config, repl_mode, debug):
         if debug is not None:
             if "debug" not in config_dict:
                 config_dict["debug"] = {}
-            config_dict["debug"]["enabled"] = debug
+            config_dict["debug"]["level"] = debug
 
-        # Get debug mode (from CLI flag or config)
-        debug_enabled = config_dict.get("debug", {}).get("enabled", False)
-        context.obj["debug"] = debug_enabled
+        # Get debug level (from CLI flag or config)
+        debug_level = config_dict.get("debug", {}).get("level", "info")
+        context.obj["debug_level"] = debug_level
 
         # NOTE: We do NOT substitute env vars here globally
         # Config dict keeps placeholders (${VAR}) to avoid storing secrets
@@ -93,20 +97,41 @@ def cli(context, config, repl_mode, debug):
 
     # Setup logging
     log_file = ConfigManager.get(config_dict, "logging.file", "logs/app.log")
-    log_level = ConfigManager.get(config_dict, "logging.level", "INFO")
 
-    # Override log level if debug mode is enabled
-    if debug_enabled:
-        log_level = "DEBUG"
+    # Set log level based on debug level
+    if debug_level == "off":
+        log_level = "WARNING"  # Minimal output
+    elif debug_level == "debug":
+        log_level = "DEBUG"  # Full debug mode
+    else:  # "info" is default
+        log_level = ConfigManager.get(config_dict, "logging.level", "INFO")
 
     # Enable console logging only if NOT in REPL mode
     console_enabled = context.invoked_subcommand is not None
 
     setup_logging(log_file, log_level, console_enabled)
 
+    # Control LiteLLM logging based on debug level
+    import logging as std_logging
+    if debug_level == "off":
+        # Suppress LiteLLM INFO logs
+        std_logging.getLogger("litellm").setLevel(std_logging.WARNING)
+        std_logging.getLogger("LiteLLM").setLevel(std_logging.WARNING)
+    elif debug_level == "debug":
+        # Enable LiteLLM debug mode
+        try:
+            import litellm
+            litellm.set_verbose = True
+        except ImportError:
+            pass  # LiteLLM not directly imported, managed by smolagents
+    # For "info" level, use default LiteLLM logging (INFO)
+
     # Initialize AgentManager (business logic)
-    agent_manager = AgentManager(config_dict)
-    context.obj["agent_manager"] = agent_manager
+    # IMPORTANT: Only create AgentManager once in REPL mode
+    # click-repl may re-invoke cli() for each command, so check if it exists
+    if "agent_manager" not in context.obj:
+        agent_manager = AgentManager(config_dict)
+        context.obj["agent_manager"] = agent_manager
 
     # If no subcommand provided, start REPL mode
     if context.invoked_subcommand is None or repl_mode:
@@ -334,6 +359,9 @@ cli.add_command(quit_command, name="quit")
 cli.add_command(exit_command, name="exit")
 cli.add_command(config, name="config")
 cli.add_command(agent, name="agent")
+cli.add_command(prompt, name="prompt")
+cli.add_command(response, name="response")
+cli.add_command(debug, name="debug")
 
 
 def main():

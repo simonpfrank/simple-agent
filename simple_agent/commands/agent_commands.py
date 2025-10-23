@@ -1,12 +1,16 @@
 """
 Agent management commands for REPL/CLI.
 
-Provides /agent command group with create, run, and list subcommands.
+Provides /agent command group with create, run, list, and chat subcommands.
 NO business logic - all logic delegated to AgentManager.
 """
 
+import sys
 import click
 from rich.console import Console
+from rich.panel import Panel
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
 
 
 @click.group()
@@ -103,3 +107,76 @@ def list_agents(ctx):
     else:
         console.print("[dim]No agents registered yet.[/dim]")
         console.print("[dim]Use '/agent create <name>' to create an agent.[/dim]\n")
+
+
+@agent.command()
+@click.argument("name")
+@click.pass_context
+def chat(ctx, name: str):
+    """
+    Enter interactive chat mode with an agent.
+
+    Type your messages without the / prefix. Use /exit or Ctrl+D to exit.
+
+    Examples:
+        /agent chat default
+        /agent chat researcher
+    """
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    # Verify agent exists
+    try:
+        agent_manager.get_agent(name)
+    except KeyError as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+        return
+
+    # Display welcome message
+    console.print()
+    console.print(
+        Panel(
+            f"[bold cyan]Chat Mode:[/bold cyan] '{name}'\n"
+            f"[dim]Type your messages without / prefix\n"
+            f"Commands: /exit to exit, Ctrl+D or Ctrl+C to quit[/dim]",
+            title="Interactive Chat",
+            border_style="cyan",
+        )
+    )
+    console.print()
+
+    # Create chat session with history
+    session = PromptSession(history=InMemoryHistory())
+
+    try:
+        while True:
+            try:
+                # Get user input
+                user_input = session.prompt(f"Chat> ")
+
+                # Check for exit command
+                if user_input.strip().lower() == "/exit":
+                    break
+
+                # Skip empty input
+                if not user_input.strip():
+                    continue
+
+                # Run through agent
+                try:
+                    response = agent_manager.run_agent(name, user_input)
+                    console.print(f"[bold green]{name}:[/bold green] {response}\n")
+                except Exception as e:
+                    console.print(f"[red]Error:[/red] {str(e)}\n")
+
+            except EOFError:
+                # Ctrl+D pressed
+                break
+            except KeyboardInterrupt:
+                # Ctrl+C pressed
+                console.print()
+                break
+
+    finally:
+        console.print()
+        console.print("[dim]Exited chat mode.[/dim]\n")
