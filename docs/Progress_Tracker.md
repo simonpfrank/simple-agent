@@ -1,10 +1,11 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 1.1 - Inspection & Chat Features
+**Current Phase**: Phase 1.2 - History & Memory Management
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
+**Phase 1.2 Completed**: 2025-10-23
 
 ---
 
@@ -14,7 +15,55 @@
 - **Phase 0.5**: Security Fix & Agent Type Architecture (✅ Completed) - See below
 - **Phase 0.6**: Debug Mode (✅ Completed) - Integrated into Phase 1.1
 - **Phase 1.1**: Inspection & Chat Features (✅ Completed) - See below
+- **Phase 1.2**: History & Memory Management (✅ Completed) - See below
 - **Phase 1**: Interactive & Inspection Features (🟡 In Progress) - See `docs/phases/PHASE_1.md`
+
+---
+
+## Phase 1.2: History & Memory Management ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-23
+**Total Tests**: 105 (88 previous + 12 unit + 5 integration, all passing)
+**Architecture**: Leverages SmolAgents' built-in memory system
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **History Commands** | | | | | |
+| /history show [--limit N] | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (5/5) | ✅ Pass (5/5) |
+| /history clear | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (3/3) | ✅ Pass (5/5) |
+| /history save <file> | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (4/4) | ✅ Pass (5/5) |
+| **SmolAgents Integration** | | | | | |
+| Memory persistence | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (5/5) |
+| get_full_steps() usage | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (5/5) |
+| reset() usage | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (5/5) |
+| JSON export | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (5/5) |
+
+### Phase 1.2 Implementation Summary
+
+**Features Implemented:**
+1. **History Display**: `/history show` displays SmolAgents memory steps with rich table formatting
+2. **Memory Clear**: `/history clear` resets agent memory using SmolAgents' built-in `reset()`
+3. **History Export**: `/history save <file>` exports memory to JSON with metadata
+4. **SmolAgents Integration**: Directly leverages `agent.memory.get_full_steps()` - no custom storage
+
+**Architecture Decisions:**
+- ✅ Use SmolAgents' in-memory storage (framework built-in)
+- ✅ Access via `agent_wrapper.agent.memory` (through SimpleAgent wrapper)
+- ✅ Optional file-based persistence (JSON export for backups)
+- ✅ No custom memory system needed - leverage framework capabilities
+
+**Files Created:**
+- `simple_agent/commands/history_commands.py` (196 lines)
+- `tests/unit/test_history_commands.py` (280 lines, 12 tests)
+- `tests/integration/test_phase_1_2_mocked.py` (280 lines, 5 tests)
+
+**Files Modified:**
+- `simple_agent/app.py` - Registered history command group
+
+**Test Results:**
+- Unit tests: 12/12 passing ✅
+- Integration tests: 5/5 passing ✅
+- Total: 105 tests passing (entire project)
 
 ---
 
@@ -208,6 +257,11 @@
 - None currently - ready to start Phase 0.5
 
 ### Recent Changes
+- 2025-10-23: ✅ Phase 1.2 COMPLETED - History & Memory Management
+- 2025-10-23: ✅ Implemented /history commands (show, clear, save)
+- 2025-10-23: ✅ Leveraged SmolAgents' built-in memory system
+- 2025-10-23: ✅ All 105 tests passing (88 previous + 12 unit + 5 integration)
+- 2025-10-23: ✅ Integration tests verify SmolAgents memory persistence
 - 2025-10-23: ✅ Phase 1.1 COMPLETED - Inspection & Chat Features
 - 2025-10-23: ✅ Fixed GitHub Issues #7, #9, #10, #11
 - 2025-10-23: ✅ Implemented 3-level debug system (off/info/debug)
@@ -240,4 +294,4 @@
 ---
 
 **Last Updated**: 2025-10-23
-**Next Phase**: Phase 1.2 - Template System (Jinja2) or Phase 1.3 - Advanced Agent Features
+**Next Phase**: Phase 1.3 - Template System (Jinja2) or Phase 1.4 - Advanced Agent Features

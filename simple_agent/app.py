@@ -26,6 +26,7 @@ from simple_agent.commands.config_commands import config
 from simple_agent.commands.agent_commands import agent
 from simple_agent.commands.inspection_commands import prompt, response
 from simple_agent.commands.debug_commands import debug
+from simple_agent.commands.history_commands import history
 
 # Initialize console
 console = Console(theme=APP_THEME)
@@ -362,6 +363,7 @@ cli.add_command(agent, name="agent")
 cli.add_command(prompt, name="prompt")
 cli.add_command(response, name="response")
 cli.add_command(debug, name="debug")
+cli.add_command(history, name="history")
 
 
 def main():
