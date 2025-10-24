@@ -176,7 +176,7 @@ class TestSimpleAgentRun:
         result = agent.run("What is 2+2?")
 
         assert result == "This is the agent response"
-        mock_agent_instance.run.assert_called_once_with("What is 2+2?")
+        mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")

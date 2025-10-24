@@ -75,22 +75,47 @@ def show(ctx, limit: int):
     table.add_column("Content", style="white")
 
     for i, step in enumerate(display_steps, 1):
-        step_type = step.get("type", "unknown")
-
-        if step_type == "task":
+        # SmolAgents memory structure detection
+        if "task" in step:
+            # This is a user task/question
             content = step.get("task", "")
             table.add_row(str(i), "Task", f"[bold]{content}[/bold]")
-        elif step_type == "action":
-            action_name = step.get("name", "")
-            result = step.get("result", "")
-            # Truncate long results
-            if isinstance(result, str) and len(result) > 100:
-                result = result[:100] + "..."
-            table.add_row(str(i), f"Action: {action_name}", str(result))
+        elif "step_number" in step:
+            # This is an agent execution step
+            step_num = step.get("step_number", "?")
+
+            # Check for tool calls
+            if "tool_calls" in step:
+                tool_calls = step.get("tool_calls", [])
+                if tool_calls and len(tool_calls) > 0:
+                    tool_name = tool_calls[0].get("name", "unknown")
+                    tool_args = tool_calls[0].get("arguments", {})
+
+                    # Show tool call info
+                    if tool_name == "final_answer":
+                        answer = tool_args.get("answer", "")
+                        content = f"Answer: {answer}"
+                    else:
+                        content = f"Tool: {tool_name}({tool_args})"
+                else:
+                    content = "Thinking..."
+            else:
+                # No tool calls, show observations if available
+                observations = step.get("observations", "")
+                if observations:
+                    content = f"Observation: {observations}"
+                else:
+                    content = "Processing..."
+
+            # Truncate long content
+            if isinstance(content, str) and len(content) > 100:
+                content = content[:100] + "..."
+
+            table.add_row(str(i), f"Step {step_num}", content)
         else:
-            # Generic display for other step types
+            # Unknown step format - show raw (for debugging)
             content = str(step)[:100]
-            table.add_row(str(i), step_type, content)
+            table.add_row(str(i), "unknown", content)
 
     console.print()
     console.print(table)

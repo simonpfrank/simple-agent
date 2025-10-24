@@ -128,13 +128,15 @@ class AgentManager:
         """
         return list(self.agents.keys())
 
-    def run_agent(self, name: str, prompt: str) -> str:
+    def run_agent(self, name: str, prompt: str, reset: bool = True) -> str:
         """
         Run prompt through specified agent.
 
         Args:
             name: Agent identifier
             prompt: User input
+            reset: If True, reset memory before running. If False, preserve memory
+                   for multi-turn conversations. Default True for backwards compatibility.
 
         Returns:
             Agent response string
@@ -143,13 +145,13 @@ class AgentManager:
             KeyError: If agent doesn't exist
         """
         agent = self.get_agent(name)
-        logger.debug(f"Running agent '{name}' with prompt: {prompt[:50]}...")
+        logger.debug(f"Running agent '{name}' with prompt: {prompt[:50]}... (reset={reset})")
 
         # Store prompt for inspection
         self.last_prompt = prompt
         self.last_agent = name
 
-        result = agent.run(prompt)
+        result = agent.run(prompt, reset=reset)
 
         # Store response for inspection (convert to string)
         self.last_response = str(result)

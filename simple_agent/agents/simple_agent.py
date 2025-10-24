@@ -185,18 +185,20 @@ class SimpleAgent:
                     max_tokens=max_tokens,
                 )
 
-    def run(self, prompt: str) -> str:
+    def run(self, prompt: str, reset: bool = True) -> str:
         """
         Execute prompt through agent.
 
         Args:
             prompt: User input
+            reset: If True, reset memory before running. If False, preserve memory
+                   for multi-turn conversations. Default True for backwards compatibility.
 
         Returns:
             Agent response string
         """
-        logger.debug(f"Running prompt for agent '{self.name}': {prompt[:50]}...")
-        result = self.agent.run(prompt)
+        logger.debug(f"Running prompt for agent '{self.name}': {prompt[:50]}... (reset={reset})")
+        result = self.agent.run(prompt, reset=reset)
         return str(result)
 
     def __repr__(self) -> str:

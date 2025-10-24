@@ -162,9 +162,9 @@ def chat(ctx, name: str):
                 if not user_input.strip():
                     continue
 
-                # Run through agent
+                # Run through agent with reset=False to preserve memory across turns
                 try:
-                    response = agent_manager.run_agent(name, user_input)
+                    response = agent_manager.run_agent(name, user_input, reset=False)
                     console.print(f"[bold green]{name}:[/bold green] {response}\n")
                 except Exception as e:
                     console.print(f"[red]Error:[/red] {str(e)}\n")

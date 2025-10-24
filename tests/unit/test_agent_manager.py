@@ -269,7 +269,7 @@ class TestAgentManagerRunAgent:
         result = manager.run_agent("test_agent", "What is 2+2?")
 
         assert result == "Agent response"
-        mock_agent_instance.run.assert_called_once_with("What is 2+2?")
+        mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
     def test_run_nonexistent_agent_raises_error(self) -> None:
         """Test running prompt through non-existent agent raises KeyError."""

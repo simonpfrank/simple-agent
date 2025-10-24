@@ -51,7 +51,7 @@ class TestAgentLifecycleMocked:
 
         # Verify response
         assert response == "The answer is 4"
-        mock_agent_instance.run.assert_called_once_with("What is 2+2?")
+        mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
@@ -93,7 +93,7 @@ class TestAgentLifecycleMocked:
 
         # Verify
         assert response == "Research result"
-        mock_agent_instance.run.assert_called_once_with("Research AI")
+        mock_agent_instance.run.assert_called_once_with("Research AI", reset=True)
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
