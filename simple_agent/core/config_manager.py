@@ -204,7 +204,13 @@ class ConfigManager:
                 "file": "logs/app.log",
                 "console_enabled": False,
             },
-            "paths": {"input_dir": "data/input", "output_dir": "data/output"},
+            "paths": {
+                "prompts": "config/prompts/",
+                "tools": "tools/",
+                "agents": "config/agents/",
+                "logs": "logs/",
+                "data": "data/",
+            },
             "agent": {
                 "enabled": False,  # EXPERIMENTAL: Agent mode not fully implemented
                 "model": "gpt-4",
