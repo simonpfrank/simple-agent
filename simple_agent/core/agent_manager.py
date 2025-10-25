@@ -231,8 +231,8 @@ class AgentManager:
         agent.tools.append(tool)
 
         # Update underlying SmolAgents agent tools
-        # SmolAgents stores tools as dict, so we need to update it properly
-        agent.agent.tools = agent.tools.copy()
+        # SmolAgents expects tools as dict: {tool_name: tool_object}
+        agent.agent.tools = {t.name: t for t in agent.tools}
 
         logger.info(f"Added tool '{tool_name}' to agent '{agent_name}'")
 
@@ -253,7 +253,8 @@ class AgentManager:
         agent.tools = [t for t in agent.tools if t.name != tool_name]
 
         # Update underlying SmolAgents agent tools
-        agent.agent.tools = agent.tools.copy()
+        # SmolAgents expects tools as dict: {tool_name: tool_object}
+        agent.agent.tools = {t.name: t for t in agent.tools}
 
         logger.info(f"Removed tool '{tool_name}' from agent '{agent_name}'")
 
