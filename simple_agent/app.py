@@ -15,6 +15,7 @@ from rich.console import Console
 from simple_agent.core.config_manager import ConfigManager
 from simple_agent.core.logging_setup import setup_logging
 from simple_agent.core.agent_manager import AgentManager
+from simple_agent.core.tool_manager import ToolManager
 from simple_agent.ui.welcome import show_welcome
 from simple_agent.ui.styles import APP_THEME
 from simple_agent.commands.system_commands import (
@@ -27,6 +28,7 @@ from simple_agent.commands.agent_commands import agent
 from simple_agent.commands.inspection_commands import prompt, response
 from simple_agent.commands.debug_commands import debug
 from simple_agent.commands.history_commands import history
+from simple_agent.commands.tool_commands import tool
 
 # Initialize console
 console = Console(theme=APP_THEME)
@@ -127,11 +129,18 @@ def cli(context, config, repl_mode, debug):
             pass  # LiteLLM not directly imported, managed by smolagents
     # For "info" level, use default LiteLLM logging (INFO)
 
+    # Initialize ToolManager
+    # IMPORTANT: Only create ToolManager once in REPL mode
+    if "tool_manager" not in context.obj:
+        tool_manager = ToolManager(auto_load_builtin=True)
+        context.obj["tool_manager"] = tool_manager
+
     # Initialize AgentManager (business logic)
     # IMPORTANT: Only create AgentManager once in REPL mode
     # click-repl may re-invoke cli() for each command, so check if it exists
     if "agent_manager" not in context.obj:
         agent_manager = AgentManager(config_dict)
+        agent_manager.tool_manager = context.obj["tool_manager"]
         context.obj["agent_manager"] = agent_manager
 
     # If no subcommand provided, start REPL mode
@@ -364,6 +373,7 @@ cli.add_command(prompt, name="prompt")
 cli.add_command(response, name="response")
 cli.add_command(debug, name="debug")
 cli.add_command(history, name="history")
+cli.add_command(tool, name="tool")
 
 
 def main():
