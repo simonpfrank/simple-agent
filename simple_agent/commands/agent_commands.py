@@ -180,3 +180,100 @@ def chat(ctx, name: str):
     finally:
         console.print()
         console.print("[dim]Exited chat mode.[/dim]\n")
+
+
+@agent.command()
+@click.argument("name")
+@click.pass_context
+def tools(ctx, name: str):
+    """
+    List all tools attached to an agent.
+
+    Examples:
+        /agent tools my_agent
+        /agent tools default
+    """
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    try:
+        # Get tools from agent_manager
+        tool_names = agent_manager.get_agent_tools(name)
+
+        if not tool_names:
+            console.print()
+            console.print(f"[yellow]Agent '{name}' has no tools attached.[/yellow]")
+            console.print()
+            return
+
+        # Display tools
+        console.print()
+        console.print(f"[bold]Tools for agent '{name}':[/bold]")
+        for tool_name in sorted(tool_names):
+            console.print(f"  • {tool_name}")
+        console.print()
+        console.print(f"[dim]Total: {len(tool_names)} tools[/dim]")
+        console.print(
+            f"[dim]Use [cyan]/tool info --name <tool>[/cyan] for tool details[/dim]\n"
+        )
+
+    except KeyError as e:
+        console.print()
+        console.print(f"[red]Error:[/red] {str(e)}")
+        console.print()
+
+
+@agent.command("add-tool")
+@click.argument("name")
+@click.option("--tool", "-t", required=True, help="Tool name to add")
+@click.pass_context
+def add_tool(ctx, name: str, tool: str):
+    """
+    Add a tool to an existing agent.
+
+    Examples:
+        /agent add-tool my_agent --tool calculator
+        /agent add-tool default -t add
+    """
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    try:
+        # Add tool via agent_manager
+        agent_manager.add_tool_to_agent(name, tool)
+        console.print()
+        console.print(f"[green]✓[/green] Added tool '{tool}' to agent '{name}'")
+        console.print()
+
+    except KeyError as e:
+        console.print()
+        console.print(f"[red]Error:[/red] {str(e)}")
+        console.print()
+
+
+@agent.command("remove-tool")
+@click.argument("name")
+@click.option("--tool", "-t", required=True, help="Tool name to remove")
+@click.pass_context
+def remove_tool(ctx, name: str, tool: str):
+    """
+    Remove a tool from an existing agent.
+
+    Examples:
+        /agent remove-tool my_agent --tool calculator
+        /agent remove-tool default -t add
+    """
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    try:
+        # Remove tool via agent_manager
+        agent_manager.remove_tool_from_agent(name, tool)
+        console.print()
+        console.print(f"[green]✓[/green] Removed tool '{tool}' from agent '{name}'")
+        console.print()
+
+    except KeyError as e:
+        console.print()
+        console.print(f"[red]Error:[/red] {str(e)}")
+        console.print()

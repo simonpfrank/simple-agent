@@ -70,6 +70,7 @@ class SimpleAgent:
         self.model_provider = model_provider
         self.agent_type = agent_type
         self.debug_enabled = debug_enabled
+        self.tools = tools or []  # Store tools list for access
 
         # Load template if specified and no explicit role
         if template and not role:

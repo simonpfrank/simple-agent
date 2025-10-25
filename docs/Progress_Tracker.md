@@ -1,12 +1,13 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 1.3 - Configuration Management
+**Current Phase**: Phase 1.4 - Tool Management
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
 **Phase 1.2 Completed**: 2025-10-23
 **Phase 1.3 Completed**: 2025-10-23
+**Phase 1.4 Completed**: 2025-10-25
 
 ---
 
@@ -18,7 +19,73 @@
 - **Phase 1.1**: Inspection & Chat Features (✅ Completed) - See below
 - **Phase 1.2**: History & Memory Management (✅ Completed) - See below
 - **Phase 1.3**: Configuration Management (✅ Completed) - See below
+- **Phase 1.4**: Tool Management (✅ Completed) - See below
 - **Phase 1**: Interactive & Inspection Features (🟡 In Progress) - See `docs/phases/PHASE_1.md`
+
+---
+
+## Phase 1.4: Tool Management ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-25
+**Total Tests**: 147 (137 unit + 10 integration, all passing)
+**Architecture**: SmolAgents tool integration with dynamic tool management
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **Core Tool Management** | | | | | |
+| ToolManager | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (14/14) | ✅ Pass (10/10) |
+| AgentManager tool support | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (6/6) | ✅ Pass (10/10) |
+| SimpleAgent tools attribute | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (10/10) |
+| **Tool Commands** | | | | | |
+| /tool list | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (3/3) | ⏭️ N/A |
+| /tool info --name <tool> | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (3/3) | ⏭️ N/A |
+| **Agent Tool Commands** | | | | | |
+| /agent tools <name> | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (4/4) | ⏭️ N/A |
+| /agent add-tool <name> --tool <tool> | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (4/4) | ⏭️ N/A |
+| /agent remove-tool <name> --tool <tool> | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (3/3) | ⏭️ N/A |
+| **Built-in Tools** | | | | | |
+| Calculator tools (add, subtract, multiply, divide) | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (10/10) |
+
+### Phase 1.4 Implementation Summary
+
+**Features Implemented:**
+1. **ToolManager**: Central registry for tool registration, retrieval, and management
+2. **Tool Commands**: `/tool list` and `/tool info` for tool discovery and inspection
+3. **Agent Tool Support**: Create agents with tools, add/remove tools dynamically
+4. **Agent Tool Commands**: `/agent tools`, `/agent add-tool`, `/agent remove-tool` for agent tool management
+5. **Built-in Tools**: Calculator tools (add, subtract, multiply, divide) using @tool decorator
+
+**Architecture Decisions:**
+- ✅ ToolManager as central registry pattern
+- ✅ SmolAgents @tool decorator for tool creation
+- ✅ Dynamic tool loading from tools/builtin/ directory
+- ✅ Tools attached to agents via SimpleAgent wrapper
+- ✅ Tools parameter in create_agent() for initial tool sets
+- ✅ Add/remove tools dynamically to existing agents
+- ✅ Tools stored as list in SimpleAgent, synced with SmolAgents agent
+
+**Files Created:**
+- `simple_agent/core/tool_manager.py` (147 lines)
+- `simple_agent/commands/tool_commands.py` (130 lines)
+- `tools/__init__.py`
+- `tools/builtin/__init__.py`
+- `tools/builtin/calculator.py` (40 lines, 4 tools)
+- `tests/unit/test_tool_manager.py` (190 lines, 14 tests)
+- `tests/unit/test_tool_commands.py` (128 lines, 6 tests)
+- `tests/unit/test_agent_tools.py` (156 lines, 6 tests)
+- `tests/unit/test_agent_commands.py` (221 lines, 11 tests)
+- `tests/integration/test_tool_integration.py` (224 lines, 10 tests)
+
+**Files Modified:**
+- `simple_agent/core/agent_manager.py` - Added tool management methods (add_tool_to_agent, remove_tool_from_agent, get_agent_tools), added tools parameter to create_agent()
+- `simple_agent/agents/simple_agent.py` - Added tools attribute tracking
+- `simple_agent/commands/agent_commands.py` - Added tools, add-tool, remove-tool commands
+- `simple_agent/app.py` - Register tool command group (will be done in commit)
+
+**Test Results:**
+- Unit tests: 37/37 new tests passing ✅
+- Integration tests: 10/10 passing ✅
+- Total: 147 tests passing (137 unit + 10 integration)
 
 ---
 
@@ -303,6 +370,12 @@
 - None currently - ready to start Phase 0.5
 
 ### Recent Changes
+- 2025-10-25: ✅ Phase 1.4 COMPLETED - Tool Management
+- 2025-10-25: ✅ Implemented ToolManager with built-in calculator tools
+- 2025-10-25: ✅ Implemented /tool list and /tool info commands
+- 2025-10-25: ✅ Implemented agent tool support (create with tools, add/remove dynamically)
+- 2025-10-25: ✅ Implemented /agent tools, /agent add-tool, /agent remove-tool commands
+- 2025-10-25: ✅ All 147 tests passing (137 unit + 10 integration)
 - 2025-10-23: ✅ Phase 1.3 COMPLETED - Configuration Management
 - 2025-10-23: ✅ Implemented /config get, reset, set-path, show-paths commands
 - 2025-10-23: ✅ Added default paths to ConfigManager (prompts, tools, agents, logs, data)
@@ -343,5 +416,5 @@
 
 ---
 
-**Last Updated**: 2025-10-23
-**Next Phase**: Phase 1.4 - Tool Management or Phase 1.5 - YAML Agent Definitions
+**Last Updated**: 2025-10-25
+**Next Phase**: Phase 1.5 - YAML Agent Definitions or Phase 2 - Next set of features

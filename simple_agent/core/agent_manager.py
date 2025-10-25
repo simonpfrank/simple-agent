@@ -6,7 +6,7 @@ Provides separation between business logic and CLI/REPL interface.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from simple_agent.agents.simple_agent import SimpleAgent
 
@@ -31,6 +31,9 @@ class AgentManager:
         self.last_response: Optional[str] = None
         self.last_agent: Optional[str] = None
 
+        # Tool manager (set by app.py after initialization)
+        self.tool_manager = None
+
         logger.info("AgentManager initialized")
 
         # Auto-load agents from config
@@ -42,6 +45,7 @@ class AgentManager:
         provider: Optional[str] = None,
         role: Optional[str] = None,
         template: Optional[str] = None,
+        tools: Optional[List[str]] = None,
     ) -> SimpleAgent:
         """
         Create and register a new agent.
@@ -51,13 +55,14 @@ class AgentManager:
             provider: LLM provider (defaults to config)
             role: Agent role/persona (defaults to config)
             template: Template name to load from config/prompts/
+            tools: List of tool names to attach to agent
 
         Returns:
             Created SimpleAgent instance
         """
         logger.debug(
             f"Creating agent '{name}' - provider: {provider}, "
-            f"role: {role}, template: {template}"
+            f"role: {role}, template: {template}, tools: {tools}"
         )
 
         # Get defaults from config if not specified
@@ -80,6 +85,14 @@ class AgentManager:
         # Get debug mode from config
         debug_enabled = self.config.get("debug", {}).get("enabled", False)
 
+        # Convert tool names to tool objects
+        tool_objects = []
+        if tools and self.tool_manager:
+            for tool_name in tools:
+                tool_obj = self.tool_manager.get_tool(tool_name)
+                tool_objects.append(tool_obj)
+            logger.debug(f"Loaded {len(tool_objects)} tools for agent '{name}'")
+
         # Create agent
         agent = SimpleAgent(
             name=name,
@@ -87,6 +100,7 @@ class AgentManager:
             model_config=model_config,
             role=role,
             template=template,
+            tools=tool_objects if tool_objects else None,
             verbosity=verbosity,
             max_steps=max_steps,
             agent_type=agent_type,
@@ -194,3 +208,67 @@ class AgentManager:
                     logger.info(f"Auto-loaded agent '{agent_name}' from config")
                 except Exception as e:
                     logger.error(f"Failed to auto-load agent '{agent_name}': {str(e)}")
+
+    def add_tool_to_agent(self, agent_name: str, tool_name: str) -> None:
+        """
+        Add a tool to an existing agent.
+
+        Args:
+            agent_name: Name of agent to modify
+            tool_name: Name of tool to add
+
+        Raises:
+            KeyError: If agent or tool not found
+        """
+        agent = self.get_agent(agent_name)
+
+        if not self.tool_manager:
+            raise RuntimeError("Tool manager not initialized")
+
+        tool = self.tool_manager.get_tool(tool_name)
+
+        # Add to agent's tools list
+        agent.tools.append(tool)
+
+        # Update underlying SmolAgents agent tools
+        # SmolAgents stores tools as dict, so we need to update it properly
+        agent.agent.tools = agent.tools.copy()
+
+        logger.info(f"Added tool '{tool_name}' to agent '{agent_name}'")
+
+    def remove_tool_from_agent(self, agent_name: str, tool_name: str) -> None:
+        """
+        Remove a tool from an existing agent.
+
+        Args:
+            agent_name: Name of agent to modify
+            tool_name: Name of tool to remove
+
+        Raises:
+            KeyError: If agent not found
+        """
+        agent = self.get_agent(agent_name)
+
+        # Remove from agent's tools list (by name match)
+        agent.tools = [t for t in agent.tools if t.name != tool_name]
+
+        # Update underlying SmolAgents agent tools
+        agent.agent.tools = agent.tools.copy()
+
+        logger.info(f"Removed tool '{tool_name}' from agent '{agent_name}'")
+
+    def get_agent_tools(self, agent_name: str) -> List[str]:
+        """
+        Get list of tool names for an agent.
+
+        Args:
+            agent_name: Name of agent
+
+        Returns:
+            List of tool name strings
+
+        Raises:
+            KeyError: If agent not found
+        """
+        agent = self.get_agent(agent_name)
+        return [tool.name for tool in agent.tools]
