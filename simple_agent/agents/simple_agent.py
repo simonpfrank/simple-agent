@@ -91,6 +91,7 @@ class SimpleAgent:
         )
 
         # Create appropriate agent type
+        # SmolAgents accepts tools as a list during initialization
         if agent_type == "tool_calling":
             self.agent = ToolCallingAgent(
                 tools=tools or [],

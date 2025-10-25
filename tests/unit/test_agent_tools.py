@@ -155,3 +155,114 @@ class TestAgentManagerToolSupport:
 
         with pytest.raises(KeyError, match="Agent 'missing' not found"):
             manager.remove_tool_from_agent("missing", "add")
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_add_tool_preserves_builtin_tools(self, mock_simple_agent: MagicMock) -> None:
+        """Test that adding a tool preserves SmolAgents built-in tools like final_answer."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        # Mock agent with underlying SmolAgents agent that has final_answer
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.tools = []
+
+        # Mock the underlying SmolAgents agent with final_answer tool
+        mock_final_answer = MagicMock()
+        mock_final_answer.name = "final_answer"
+        mock_agent_instance.agent.tools = {"final_answer": mock_final_answer}
+
+        mock_simple_agent.return_value = mock_agent_instance
+
+        # Setup tool manager
+        tool_manager = MagicMock()
+        mock_add_tool = MagicMock()
+        mock_add_tool.name = "add"
+        tool_manager.get_tool.return_value = mock_add_tool
+
+        manager = AgentManager(config)
+        manager.tool_manager = tool_manager
+        manager.create_agent("test_agent")
+
+        # Add tool to agent
+        manager.add_tool_to_agent("test_agent", "add")
+
+        # Verify final_answer is still present in agent.agent.tools
+        agent = manager.get_agent("test_agent")
+        assert "final_answer" in agent.agent.tools
+        assert "add" in agent.agent.tools
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_remove_tool_preserves_builtin_tools(self, mock_simple_agent: MagicMock) -> None:
+        """Test that removing a tool preserves SmolAgents built-in tools like final_answer."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        # Mock agent with tools
+        mock_agent_instance = MagicMock()
+        mock_add_tool = MagicMock()
+        mock_add_tool.name = "add"
+        mock_agent_instance.tools = [mock_add_tool]
+
+        # Mock the underlying SmolAgents agent with final_answer and add
+        mock_final_answer = MagicMock()
+        mock_final_answer.name = "final_answer"
+        mock_agent_instance.agent.tools = {
+            "final_answer": mock_final_answer,
+            "add": mock_add_tool
+        }
+
+        mock_simple_agent.return_value = mock_agent_instance
+
+        manager = AgentManager(config)
+        manager.create_agent("test_agent")
+
+        # Remove add tool
+        manager.remove_tool_from_agent("test_agent", "add")
+
+        # Verify final_answer is still present, add is removed
+        agent = manager.get_agent("test_agent")
+        assert "final_answer" in agent.agent.tools
+        assert "add" not in agent.agent.tools
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_add_duplicate_tool_prevented(self, mock_simple_agent: MagicMock) -> None:
+        """Test that adding a duplicate tool is prevented."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        # Mock agent with a tool already added
+        mock_agent_instance = MagicMock()
+        mock_add_tool = MagicMock()
+        mock_add_tool.name = "add"
+        mock_agent_instance.tools = [mock_add_tool]
+        mock_agent_instance.agent.tools = {"add": mock_add_tool}
+
+        mock_simple_agent.return_value = mock_agent_instance
+
+        # Setup tool manager
+        tool_manager = MagicMock()
+        tool_manager.get_tool.return_value = mock_add_tool
+
+        manager = AgentManager(config)
+        manager.tool_manager = tool_manager
+        manager.create_agent("test_agent")
+
+        # Try to add same tool again - should not add duplicate
+        manager.add_tool_to_agent("test_agent", "add")
+
+        # Verify tool list still has only one "add"
+        agent = manager.get_agent("test_agent")
+        add_count = sum(1 for t in agent.tools if t.name == "add")
+        assert add_count == 1

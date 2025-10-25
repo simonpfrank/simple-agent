@@ -65,7 +65,7 @@ def debug(ctx, level: str | None):
         # Suppress LiteLLM INFO logs
         logging.getLogger("litellm").setLevel(logging.WARNING)
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-        console.print(f"\n[green]✓[/green] Debug level set to [bold]off[/bold] (minimal output)")
+        console.print("\n[green]✓[/green] Debug level set to [bold]off[/bold] (minimal output)")
     elif level == "info":
         log_level = logging.INFO
         # Reset LiteLLM to INFO
@@ -77,7 +77,7 @@ def debug(ctx, level: str | None):
             litellm.set_verbose = False
         except ImportError:
             pass
-        console.print(f"\n[green]✓[/green] Debug level set to [bold]info[/bold] (normal output)")
+        console.print("\n[green]✓[/green] Debug level set to [bold]info[/bold] (normal output)")
     elif level == "debug":
         log_level = logging.DEBUG
         # Enable LiteLLM debug mode
@@ -88,7 +88,7 @@ def debug(ctx, level: str | None):
             pass
         logging.getLogger("litellm").setLevel(logging.DEBUG)
         logging.getLogger("LiteLLM").setLevel(logging.DEBUG)
-        console.print(f"\n[green]✓[/green] Debug level set to [bold]debug[/bold] (full debug mode)")
+        console.print("\n[green]✓[/green] Debug level set to [bold]debug[/bold] (full debug mode)")
 
     # Update root logger level
     logging.getLogger().setLevel(log_level)

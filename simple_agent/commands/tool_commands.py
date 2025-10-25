@@ -8,7 +8,6 @@ import click
 import logging
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
 
 from simple_agent.ui.styles import APP_THEME
 
@@ -74,7 +73,7 @@ def tool_list(ctx):
     console.print(table)
     console.print()
     console.print(f"[dim]Total: {len(tools)} tools[/dim]")
-    console.print(f"[dim]Use [cyan]/tool info --name <tool>[/cyan] for details[/dim]\n")
+    console.print("[dim]Use [cyan]/tool info --name <tool>[/cyan] for details[/dim]\n")
 
 
 @tool.command("info")
@@ -105,14 +104,14 @@ def tool_info(ctx, name: str):
         console.print()
         console.print(f"[bold cyan]Tool:[/bold cyan] {info['name']}")
         console.print()
-        console.print(f"[bold]Description:[/bold]")
+        console.print("[bold]Description:[/bold]")
         console.print(f"  {info.get('description', 'No description')}")
         console.print()
 
         # Show inputs
         inputs = info.get("inputs", {})
         if inputs:
-            console.print(f"[bold]Inputs:[/bold]")
+            console.print("[bold]Inputs:[/bold]")
             for param_name, param_type in inputs.items():
                 console.print(f"  • {param_name}: {param_type}")
             console.print()
@@ -126,4 +125,4 @@ def tool_info(ctx, name: str):
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
-        console.print(f"[dim]Use [cyan]/tool list[/cyan] to see available tools[/dim]\n")
+        console.print("[dim]Use [cyan]/tool list[/cyan] to see available tools[/dim]\n")

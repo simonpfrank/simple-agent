@@ -227,12 +227,17 @@ class AgentManager:
 
         tool = self.tool_manager.get_tool(tool_name)
 
+        # Check for duplicates
+        if tool_name in [t.name for t in agent.tools]:
+            logger.warning(f"Tool '{tool_name}' already exists on agent '{agent_name}', skipping")
+            return
+
         # Add to agent's tools list
         agent.tools.append(tool)
 
         # Update underlying SmolAgents agent tools
-        # SmolAgents expects tools as dict: {tool_name: tool_object}
-        agent.agent.tools = {t.name: t for t in agent.tools}
+        # IMPORTANT: Add to dict instead of replacing to preserve built-in tools like final_answer
+        agent.agent.tools[tool.name] = tool
 
         logger.info(f"Added tool '{tool_name}' to agent '{agent_name}'")
 
@@ -253,8 +258,9 @@ class AgentManager:
         agent.tools = [t for t in agent.tools if t.name != tool_name]
 
         # Update underlying SmolAgents agent tools
-        # SmolAgents expects tools as dict: {tool_name: tool_object}
-        agent.agent.tools = {t.name: t for t in agent.tools}
+        # IMPORTANT: Delete from dict instead of replacing to preserve built-in tools like final_answer
+        if tool_name in agent.agent.tools:
+            del agent.agent.tools[tool_name]
 
         logger.info(f"Removed tool '{tool_name}' from agent '{agent_name}'")
 

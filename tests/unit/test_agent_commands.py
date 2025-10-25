@@ -219,3 +219,63 @@ class TestAgentRemoveToolCommand:
         assert result.exit_code == 0
         call_args = str(console.print.call_args_list)
         assert "not found" in call_args.lower() or "error" in call_args.lower()
+
+
+class TestAgentShowPromptCommand:
+    """Test /agent show-prompt command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Create Click test runner."""
+        return CliRunner()
+
+    @pytest.fixture
+    def mock_context(self) -> dict:
+        """Create mock context object."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+
+        # Mock agent with system prompt
+        mock_agent = MagicMock()
+        mock_agent.agent.system_prompt = "You are a helpful AI assistant with tools."
+        agent_manager.get_agent.return_value = mock_agent
+
+        return {"console": console, "agent_manager": agent_manager}
+
+    def test_show_prompt_command_exists(
+        self, runner: CliRunner, mock_context: dict
+    ) -> None:
+        """Test that /agent show-prompt command exists."""
+        result = runner.invoke(agent, ["show-prompt", "--help"], obj=mock_context)
+        assert result.exit_code == 0
+
+    def test_show_prompt_displays_system_prompt(
+        self, runner: CliRunner, mock_context: dict
+    ) -> None:
+        """Test that show-prompt displays the agent's system prompt."""
+        result = runner.invoke(agent, ["show-prompt", "test_agent"], obj=mock_context)
+
+        assert result.exit_code == 0
+
+        # Verify agent was retrieved
+        mock_context["agent_manager"].get_agent.assert_called_once_with("test_agent")
+
+        # Verify console.print was called with a Panel
+        assert mock_context["console"].print.called
+        # Check that at least one call included a Panel with the system prompt
+        calls = mock_context["console"].print.call_args_list
+        assert len(calls) >= 1
+
+    def test_show_prompt_handles_nonexistent_agent(self, runner: CliRunner) -> None:
+        """Test show-prompt with non-existent agent."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        agent_manager.get_agent.side_effect = KeyError("Agent 'missing' not found")
+
+        mock_context = {"console": console, "agent_manager": agent_manager}
+
+        result = runner.invoke(agent, ["show-prompt", "missing"], obj=mock_context)
+
+        assert result.exit_code == 0
+        call_args = str(console.print.call_args_list)
+        assert "not found" in call_args.lower() or "error" in call_args.lower()

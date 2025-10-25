@@ -10,7 +10,6 @@ from datetime import datetime
 
 import click
 from rich.console import Console
-from rich.panel import Panel
 from rich.table import Table
 
 
@@ -121,7 +120,7 @@ def show(ctx, limit: int):
     console.print(table)
     console.print()
     console.print(f"[dim]Total steps in memory: {len(memory_steps)}[/dim]")
-    console.print(f"[dim]Use [cyan]/history clear[/cyan] to reset history[/dim]\n")
+    console.print("[dim]Use [cyan]/history clear[/cyan] to reset history[/dim]\n")
 
 
 @history.command()

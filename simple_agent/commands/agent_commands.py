@@ -5,7 +5,6 @@ Provides /agent command group with create, run, list, and chat subcommands.
 NO business logic - all logic delegated to AgentManager.
 """
 
-import sys
 import click
 from rich.console import Console
 from rich.panel import Panel
@@ -152,7 +151,7 @@ def chat(ctx, name: str):
         while True:
             try:
                 # Get user input
-                user_input = session.prompt(f"Chat> ")
+                user_input = session.prompt("Chat> ")
 
                 # Check for exit command
                 if user_input.strip().lower() == "/exit":
@@ -214,7 +213,7 @@ def tools(ctx, name: str):
         console.print()
         console.print(f"[dim]Total: {len(tool_names)} tools[/dim]")
         console.print(
-            f"[dim]Use [cyan]/tool info --name <tool>[/cyan] for tool details[/dim]\n"
+            "[dim]Use [cyan]/tool info --name <tool>[/cyan] for tool details[/dim]\n"
         )
 
     except KeyError as e:
@@ -276,4 +275,51 @@ def remove_tool(ctx, name: str, tool: str):
     except KeyError as e:
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
+        console.print()
+
+
+@agent.command("show-prompt")
+@click.argument("name")
+@click.pass_context
+def show_prompt(ctx, name: str):
+    """
+    Show the system prompt used by an agent.
+
+    Displays the actual system prompt that the agent is using, including
+    tool instructions and any customizations from SmolAgents.
+
+    Examples:
+        /agent show-prompt default
+        /agent show-prompt my_agent
+    """
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    try:
+        # Get agent
+        agent = agent_manager.get_agent(name)
+
+        # Get system prompt from underlying SmolAgents agent
+        system_prompt = agent.agent.system_prompt
+
+        # Display in a panel
+        console.print()
+        console.print(
+            Panel(
+                system_prompt,
+                title=f"System Prompt for '{name}'",
+                border_style="cyan",
+            )
+        )
+        console.print()
+
+    except KeyError as e:
+        console.print()
+        console.print(f"[red]Error:[/red] {str(e)}")
+        console.print()
+    except AttributeError:
+        console.print()
+        console.print(
+            f"[yellow]Warning:[/yellow] Agent '{name}' does not have a system_prompt attribute"
+        )
         console.print()
