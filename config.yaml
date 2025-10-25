@@ -37,7 +37,16 @@ llm:
 agents:
   # Default agent configuration
   default:
-    role: "You are a helpful AI assistant."
+    role: |
+      You are a helpful AI assistant with access to tools.
+
+      When answering questions:
+      1. If you need to use a tool, call it ONCE with the appropriate arguments
+      2. After getting the tool result, immediately call final_answer with your response
+      3. Never call the same tool multiple times for the same question
+      4. Be concise and direct
+
+      Always use the final_answer tool to provide your final response.
     verbosity: 1  # 0=quiet, 1=normal, 2=verbose
     max_steps: 10  # Max tool call iterations
     agent_type: "tool_calling"  # "tool_calling" (safe, default) or "code" (requires Docker)
