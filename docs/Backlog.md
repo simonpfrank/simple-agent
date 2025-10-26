@@ -4,6 +4,77 @@ Future enhancements and feature ideas, organized by category.
 
 ---
 
+## RAG Enhancements (Post Phase 2.3)
+
+### PDF Support for RAG
+**Priority:** Medium
+**Complexity:** Medium (2-3 hours)
+**Phase:** Post-2.3
+
+Add PDF document support to RAG system.
+
+**Implementation:**
+- Use `PyPDF2` or `pdfplumber` for PDF text extraction
+- Handle multi-page PDFs
+- Extract text while preserving structure
+- Support scanned PDFs with OCR (optional, complex)
+
+**Related Code:**
+- `simple_agent/rag/document_loader.py` - Add PDF loader
+- Update tests for PDF ingestion
+
+---
+
+### HTML/Web Scraping for RAG
+**Priority:** Medium
+**Complexity:** Medium (2-3 hours)
+**Phase:** Post-2.3
+
+Add HTML document and web page support to RAG system.
+
+**Implementation:**
+- Use `BeautifulSoup4` for HTML parsing
+- Extract main content (remove nav, ads, etc.)
+- Support local HTML files
+- Support web URLs (fetch and parse)
+- Handle JavaScript-rendered pages with `playwright` (optional)
+
+**Related Code:**
+- `simple_agent/rag/document_loader.py` - Add HTML loader
+- Consider: `trafilatura` for better content extraction
+
+---
+
+### Multimodal RAG (Images, Audio)
+**Priority:** Low
+**Complexity:** High (8-10 hours)
+**Phase:** Phase 3+
+
+Add support for non-text modalities in RAG.
+
+**Image Support:**
+- Use vision models for image embeddings
+- OCR for text in images (`pytesseract`)
+- Image description generation
+- Visual Q&A
+
+**Audio Support:**
+- Transcription with `whisper` or cloud APIs
+- Audio embeddings
+- Speaker diarization (who said what)
+
+**Implementation Challenges:**
+- Multimodal embeddings (different vector spaces)
+- Large storage requirements
+- Processing time for images/audio
+- Model compatibility
+
+**Related Code:**
+- `simple_agent/rag/multimodal_loader.py` - New module
+- `simple_agent/rag/embeddings.py` - Support multiple embedding types
+
+---
+
 ## Configuration & CLI Enhancements
 
 ### CLI --set Flag for Config Overrides

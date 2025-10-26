@@ -1,7 +1,7 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 1 Complete!
+**Current Phase**: Phase 2 - Enhanced Features (Planning Complete)
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
@@ -11,22 +11,89 @@
 **Phase 1.5 Completed**: 2025-10-25
 **Phase 1.6 Completed**: 2025-10-26
 **Phase 1.7 Completed**: 2025-10-26
+**Phase 2 Planning**: 2025-10-26
 
 ---
 
 ## Quick Navigation
 
+### Completed Phases
 - **Phase 0**: Foundation (✅ Completed) - See below
 - **Phase 0.5**: Security Fix & Agent Type Architecture (✅ Completed) - See below
 - **Phase 0.6**: Debug Mode (✅ Completed) - Integrated into Phase 1.1
-- **Phase 1.1**: Inspection & Chat Features (✅ Completed) - See below
-- **Phase 1.2**: History & Memory Management (✅ Completed) - See below
-- **Phase 1.3**: Configuration Management (✅ Completed) - See below
-- **Phase 1.4**: Tool Management (✅ Completed) - See below
-- **Phase 1.5**: YAML Agent Definitions (✅ Completed) - See below
-- **Phase 1.6**: Simplify Prompts & Add User Prompt Templates (✅ Completed) - See below
-- **Phase 1.7**: Jinja2 Template Support (✅ Completed) - See below
 - **Phase 1**: Interactive & Inspection Features (✅ COMPLETE) - See `docs/phases/PHASE_1.md`
+  - **Phase 1.1**: Inspection & Chat Features (✅ Completed) - See below
+  - **Phase 1.2**: History & Memory Management (✅ Completed) - See below
+  - **Phase 1.3**: Configuration Management (✅ Completed) - See below
+  - **Phase 1.4**: Tool Management (✅ Completed) - See below
+  - **Phase 1.5**: YAML Agent Definitions (✅ Completed) - See below
+  - **Phase 1.6**: Simplify Prompts & Add User Prompt Templates (✅ Completed) - See below
+  - **Phase 1.7**: Jinja2 Template Support (✅ Completed) - See below
+
+### Current Phase
+- **Phase 2**: Enhanced Features (📋 Planning Complete) - See `docs/phases/PHASE_2.md`
+  - **Phase 2.1**: Guardrails (🔴 Not Started) - Input/output validation
+  - **Phase 2.2**: Human-in-the-Loop (🔴 Not Started) - Approval gates
+  - **Phase 2.3**: RAG Foundation (🔴 Not Started) - Document retrieval
+  - **Phase 2.4**: Multi-Agent Orchestration (🔴 Not Started) - Agent workflows
+
+### Future Phases
+- **Phase 3**: Advanced Features (🔴 Not Started) - See `docs/SPECIFICATION.md`
+- **Phase 4**: Raspberry Pi (🔴 Not Started) - See `docs/SPECIFICATION.md`
+
+---
+
+## Phase 2: Enhanced Features 📋 PLANNING COMPLETE
+
+**Status**: Planning Complete on 2025-10-26
+**Total Tests**: 205 (168 unit + 37 integration from Phase 1)
+**Architecture**: Safety, control, knowledge, and collaboration features
+
+| Sub-Phase | Status | Estimated Effort | Features |
+|-----------|--------|------------------|----------|
+| **2.1: Guardrails** | 🔴 Not Started | 4-5 hours | Input/output validation, PII detection, profanity filtering, custom rules |
+| **2.2: Human-in-the-Loop** | 🔴 Not Started | 4-5 hours | Approval gates, interactive prompts, timeout handling |
+| **2.3: RAG Foundation** | 🔴 Not Started | 5-6 hours | Chroma integration, text file ingestion, semantic search |
+| **2.4: Multi-Agent Orchestration** | 🔴 Not Started | 5-6 hours | Sequential flows, conditional routing, agent composition |
+
+### Phase 2 Implementation Order
+
+1. **Guardrails First** - Foundation for safety before other features
+2. **HITL Second** - Builds on guardrails, enables safe autonomy
+3. **RAG Third** - Powerful feature but not blocking
+4. **Multi-Agent Last** - Most complex, leverages all previous features
+
+### Phase 2 Planning Summary
+
+**Documents Created:**
+- `docs/phases/PHASE_2.md` - Comprehensive specification for all 4 sub-phases
+  - Detailed architecture for each sub-phase
+  - YAML configuration examples
+  - REPL command specifications
+  - TDD test strategy
+  - Success criteria
+  - Estimated effort
+
+**Backlog Updated:**
+- Added RAG format enhancements (PDF, HTML, images) for future phases
+
+**SPECIFICATION Updated:**
+- Phase 1 marked as complete
+- Phase 2 broken into 4 sub-phases
+- MCP moved to Phase 3
+
+**Key Decisions:**
+- ✅ Guardrails use simple wrapper pattern (not complex framework)
+- ✅ HITL approval workflow integrated into REPL
+- ✅ RAG starts with text files only (.txt, .md)
+- ✅ Multi-agent flows use YAML definition (Python flows in Phase 3)
+- ✅ MCP integration deferred to Phase 3
+
+**Next Steps:**
+1. Review PHASE_2.md specification
+2. Begin Phase 2.1 (Guardrails) implementation
+3. Follow TDD methodology for each sub-phase
+4. Update Progress_Tracker after each sub-phase completion
 
 ---
 
