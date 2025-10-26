@@ -1,7 +1,7 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 2 - Enhanced Features (Planning Complete)
+**Current Phase**: Phase 2 - Enhanced Features (2.1 Complete, 2.2+ Pending)
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
@@ -12,6 +12,7 @@
 **Phase 1.6 Completed**: 2025-10-26
 **Phase 1.7 Completed**: 2025-10-26
 **Phase 2 Planning**: 2025-10-26
+**Phase 2.1 Completed**: 2025-10-26
 
 ---
 
@@ -31,8 +32,8 @@
   - **Phase 1.7**: Jinja2 Template Support (✅ Completed) - See below
 
 ### Current Phase
-- **Phase 2**: Enhanced Features (📋 Planning Complete) - See `docs/phases/PHASE_2.md`
-  - **Phase 2.1**: Guardrails (🔴 Not Started) - Input/output validation
+- **Phase 2**: Enhanced Features (🟡 2.1 Complete, 2.2+ In Progress) - See `docs/phases/PHASE_2.md`
+  - **Phase 2.1**: Guardrails (✅ Completed) - Input validation with PII detection
   - **Phase 2.2**: Human-in-the-Loop (🔴 Not Started) - Approval gates
   - **Phase 2.3**: RAG Foundation (🔴 Not Started) - Document retrieval
   - **Phase 2.4**: Multi-Agent Orchestration (🔴 Not Started) - Agent workflows
@@ -43,7 +44,94 @@
 
 ---
 
-## Phase 2: Enhanced Features 📋 PLANNING COMPLETE
+## Phase 2.1: Guardrails ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-26
+**Total Tests**: 57 (45 unit + 12 integration, all passing)
+**Architecture**: Input validation with guardrail wrapper pattern, no ABC
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **PII Detection** | | | | | |
+| PIIDetector class | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (10/10) | ✅ Pass (1/1) |
+| Email detection | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| Phone detection | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| SSN detection | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (1/1) |
+| Redaction mode | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (5/5) | ✅ Pass (1/1) |
+| Rejection mode | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (1/1) |
+| **Custom Rules** | | | | | |
+| CustomRuleGuardrail | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (8/8) | ✅ Pass (2/2) |
+| Function wrapping | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| Complex validation | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (1/1) |
+| **GuardrailAgent Wrapper** | | | | | |
+| Agent wrapping | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (11/11) | ✅ Pass (4/4) |
+| Input guardrails | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (4/4) | ✅ Pass (2/2) |
+| Multiple guardrails | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (3/3) | ✅ Pass (1/1) |
+| Error handling | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (2/2) |
+| **YAML Configuration** | | | | | |
+| load_guardrails_from_yaml | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (7/7) | ✅ Pass (1/1) |
+| PII config loading | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| Custom rule config | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (1/1) |
+| **REPL Commands** | | | | | |
+| GuardrailCommands class | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (9/9) | ✅ Pass (1/1) |
+| test_guardrail command | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (3/3) | ✅ Pass (1/1) |
+| list_guardrails command | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| add_guardrail command | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| remove_guardrail command | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (1/1) | ✅ Pass (1/1) |
+
+### Phase 2.1 Implementation Summary
+
+**Features Implemented:**
+1. **PIIDetector**: Regex-based PII detection for emails, phone numbers, SSNs
+2. **Redaction vs Rejection**: Two modes - redact sensitive data or reject input
+3. **CustomRuleGuardrail**: Wrapper for user-defined validation functions
+4. **GuardrailAgent**: Wrapper pattern applying guardrails before LLM execution
+5. **YAML Configuration**: Load guardrail configs from YAML files
+6. **REPL Commands**: `/guardrail` command group for testing and management
+
+**Architecture Decisions:**
+- ✅ No ABC (kept it simple, duck typing instead)
+- ✅ Lightweight regex patterns (no external PII library)
+- ✅ Simple wrapper pattern for GuardrailAgent
+- ✅ Input-focused MVP (output guardrails deferred to Phase 2.2+)
+- ✅ Guardrails applied in sequence (order matters)
+
+**Files Created:**
+- `simple_agent/guardrails/__init__.py`
+- `simple_agent/guardrails/exceptions.py` (GuardrailViolation)
+- `simple_agent/guardrails/input_validators.py` (PIIDetector)
+- `simple_agent/guardrails/custom_rule.py` (CustomRuleGuardrail)
+- `simple_agent/guardrails/guardrail_agent.py` (GuardrailAgent)
+- `simple_agent/guardrails/yaml_loader.py` (YAML configuration loader)
+- `simple_agent/commands/guardrail_commands.py` (REPL commands)
+- `tests/unit/test_guardrails.py` (10 tests)
+- `tests/unit/test_custom_rule_guardrail.py` (8 tests)
+- `tests/unit/test_guardrail_agent.py` (11 tests)
+- `tests/unit/test_guardrail_yaml.py` (7 tests)
+- `tests/unit/test_guardrail_commands.py` (9 tests)
+- `tests/integration/test_phase_2_1.py` (12 tests)
+
+**Test Results:**
+- Unit tests: 45/45 passing ✅
+- Integration tests: 12/12 passing ✅
+- Total Phase 2.1 tests: 57/57 passing ✅
+- Total project tests: 262/262 passing ✅ (205 Phase 1 + 57 Phase 2.1)
+
+**Code Metrics:**
+- Total lines added: ~800 (including tests)
+- Core code: ~300 lines (guardrails + commands)
+- Test code: ~500 lines
+- All classes < 100 lines (CLAUDE.md compliance)
+
+**Backlog Items:**
+- Prompt injection detection (defer to Phase 2.2+)
+- Output guardrails/filters (defer to Phase 2.2+)
+- Advanced PII detection with Presidio (defer to Phase 3+)
+- Integration with AgentManager for agent creation
+
+---
+
+## Phase 2: Enhanced Features 📋 2.1 COMPLETE
 
 **Status**: Planning Complete on 2025-10-26
 **Total Tests**: 205 (168 unit + 37 integration from Phase 1)
