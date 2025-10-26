@@ -68,10 +68,10 @@ Step-by-step agent creation with optional YAML save
 /agent tools <name>
 List guardrails on agent
 
-/agent add-tool <name> --tool <tool>
+/agent add-tool <name> <tool>
 Add tool to agent
 
-/agent remove-tool <name> --tool <tool>
+/agent remove-tool <name> <tool>
 Remove tool from agent
 ```
 

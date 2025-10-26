@@ -220,15 +220,15 @@ def tools(ctx, name: str):
 
 @agent.command("add-tool")
 @click.argument("name")
-@click.option("--tool", "-t", required=True, help="Tool name to add")
+@click.argument("tool")
 @click.pass_context
 def add_tool(ctx, name: str, tool: str):
     """
     Add a tool to an existing agent.
 
     Examples:
-        /agent add-tool my_agent --tool calculator
-        /agent add-tool default -t add
+        /agent add-tool my_agent calculator
+        /agent add-tool default add
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
@@ -248,15 +248,15 @@ def add_tool(ctx, name: str, tool: str):
 
 @agent.command("remove-tool")
 @click.argument("name")
-@click.option("--tool", "-t", required=True, help="Tool name to remove")
+@click.argument("tool")
 @click.pass_context
 def remove_tool(ctx, name: str, tool: str):
     """
     Remove a tool from an existing agent.
 
     Examples:
-        /agent remove-tool my_agent --tool calculator
-        /agent remove-tool default -t add
+        /agent remove-tool my_agent calculator
+        /agent remove-tool default add
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]

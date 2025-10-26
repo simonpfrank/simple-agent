@@ -113,7 +113,7 @@ class TestAgentAddToolCommand:
     ) -> None:
         """Test that add-tool adds a tool to an agent."""
         result = runner.invoke(
-            agent, ["add-tool", "test_agent", "--tool", "add"], obj=mock_context
+            agent, ["add-tool", "test_agent", "add"], obj=mock_context
         )
 
         assert result.exit_code == 0
@@ -138,7 +138,7 @@ class TestAgentAddToolCommand:
         mock_context = {"console": console, "agent_manager": agent_manager}
 
         result = runner.invoke(
-            agent, ["add-tool", "missing", "--tool", "add"], obj=mock_context
+            agent, ["add-tool", "missing", "add"], obj=mock_context
         )
 
         assert result.exit_code == 0
@@ -156,7 +156,7 @@ class TestAgentAddToolCommand:
         mock_context = {"console": console, "agent_manager": agent_manager}
 
         result = runner.invoke(
-            agent, ["add-tool", "test_agent", "--tool", "missing"], obj=mock_context
+            agent, ["add-tool", "test_agent", "missing"], obj=mock_context
         )
 
         assert result.exit_code == 0
@@ -192,7 +192,7 @@ class TestAgentRemoveToolCommand:
     ) -> None:
         """Test that remove-tool removes a tool from an agent."""
         result = runner.invoke(
-            agent, ["remove-tool", "test_agent", "--tool", "add"], obj=mock_context
+            agent, ["remove-tool", "test_agent", "add"], obj=mock_context
         )
 
         assert result.exit_code == 0
@@ -217,7 +217,7 @@ class TestAgentRemoveToolCommand:
         mock_context = {"console": console, "agent_manager": agent_manager}
 
         result = runner.invoke(
-            agent, ["remove-tool", "missing", "--tool", "add"], obj=mock_context
+            agent, ["remove-tool", "missing", "add"], obj=mock_context
         )
 
         assert result.exit_code == 0
