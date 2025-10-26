@@ -42,6 +42,119 @@ In the REPL:
 > /agent chat researcher
 ```
 
+## CLI Reference
+
+### Agent Commands
+
+```
+/agent create <name> --role "description" [--model <model>] [--provider <provider>]
+Create a new agent
+
+/agent run <name> "prompt"
+Run agent and get response
+
+/agent chat <name>
+Interactive chat mode with agent (type 'exit' to quit)
+
+/agent list
+List all agents
+
+/agent save <name> [--path <path>]
+Save agent config to YAML
+
+/agent create-wizard
+Step-by-step agent creation with optional YAML save
+
+/agent tools <name>
+List guardrails on agent
+
+/agent add-tool <name> --tool <tool>
+Add tool to agent
+
+/agent remove-tool <name> --tool <tool>
+Remove tool from agent
+```
+
+### Tool Commands
+
+```
+/tool list
+List all available tools
+
+/tool info --name <tool>
+Show tool description and parameters
+```
+
+### Guardrail Commands
+
+```
+/guardrail test <guardrail_type> "sample text"
+Test guardrail on sample input
+
+/guardrail list <agent_name>
+List guardrails attached to agent
+
+/guardrail add <agent_name> --type <type> [--options]
+Add guardrail to agent
+
+/guardrail remove <agent_name> <index>
+Remove guardrail from agent
+```
+
+### Config Commands
+
+```
+/config show [--resolve]
+Display current config (--resolve shows actual values instead of ${VAR})
+
+/config get <key>
+Get specific config value
+
+/config set <key> <value>
+Set config value
+
+/config reset <key>
+Reset config value to default
+
+/config set-path <type> <path>
+Set path (agents, tools, data, logs, prompts)
+
+/config show-paths
+Show all configured paths
+
+/config load <file>
+Load config from file
+
+/config save [--file <file>]
+Save current config to file
+```
+
+### History Commands
+
+```
+/history show [--limit N]
+Show conversation history (N most recent, default 10)
+
+/history clear
+Clear all conversation history
+
+/history save <file>
+Export conversation history to JSON
+```
+
+### Utility Commands
+
+```
+/debug [level]
+Toggle debug mode (0=off, 1=info, 2=debug)
+
+/help
+Show available commands
+
+/exit
+Exit REPL
+```
+
 ## Examples
 
 ### Basic Agent
@@ -197,6 +310,71 @@ paths:
 ```
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-...
+```
+
+## Configuration Hierarchy
+
+Settings are resolved in priority order (highest to lowest):
+
+1. **CLI Flags** (highest priority)
+   - Override everything else
+   - Example: `/agent create test --provider anthropic --model claude-3-5-sonnet`
+   - Overrides: config.yaml, .env, code defaults
+
+2. **Environment Variables** (.env file)
+   - Used for secrets and API keys
+   - Syntax: `${VARIABLE_NAME}` in config.yaml
+   - Example: `api_key: "${OPENAI_API_KEY}"`
+   - Overrides: config.yaml values, code defaults
+   - **Never** stored in config.yaml for security
+
+3. **config.yaml Settings**
+   - File-based configuration
+   - Location: `config.yaml` in project root
+   - Overrides: code defaults
+   - Cannot override CLI flags
+
+4. **Code Defaults** (lowest priority)
+   - Built-in defaults in ConfigManager
+   - Example defaults:
+     - Provider: `openai`
+     - Model: `gpt-4o-mini`
+     - Debug level: `1` (info)
+     - Max memory: `20` messages
+   - Used only if not set elsewhere
+
+### Configuration Examples
+
+**Example 1: Override provider via CLI**
+```bash
+> /agent create researcher --provider anthropic
+# Uses Anthropic even if config.yaml says openai
+```
+
+**Example 2: Set API key from .env**
+```
+# .env file
+OPENAI_API_KEY=sk-12345...
+
+# config.yaml
+model:
+  provider: openai
+  api_key: "${OPENAI_API_KEY}"  # Resolved at runtime
+```
+
+**Example 3: Change default model in config**
+```yaml
+# config.yaml - applies to all agents using this config
+model:
+  provider: ollama
+  model: llama2
+```
+
+**Example 4: CLI overrides config**
+```bash
+# config.yaml says: provider: openai, model: gpt-4o-mini
+> /agent create test --provider ollama
+# This agent uses ollama (CLI overrides config)
 ```
 
 See `docs/` for detailed configuration docs.
