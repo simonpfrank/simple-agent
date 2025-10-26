@@ -2,6 +2,22 @@
 
 Future enhancements and feature ideas, organized by category.
 
+## Planned Phases
+
+### Phase 1.6: Simplify Prompts & Add User Prompt Templates
+**Status:** 📋 Planned - See `docs/phases/PHASE_1.6.md` for full specification
+**Priority:** High
+**Complexity:** Medium (3-4 hours)
+
+Remove over-engineered template feature and replace with user prompt templates for consistent prompt engineering.
+
+**Quick Summary:**
+- Remove: `simple_agent/config/prompts/` directory and template feature
+- Add: `user_prompt_template` field in agent YAML for wrapping user input
+- Benefit: Simpler architecture + more powerful prompt engineering
+
+---
+
 ## Agent Inspection & Visibility
 
 ### /agent show-prompt Enhancements
