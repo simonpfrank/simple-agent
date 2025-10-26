@@ -6,8 +6,10 @@ Supports ToolCallingAgent (default, safe), CodeAgent (with Docker), and MultiSte
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, Literal, Optional
 
+from jinja2 import Environment, BaseLoader, TemplateError
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
 from smolagents.monitoring import LogLevel
 
@@ -71,8 +73,15 @@ class SimpleAgent:
         self.agent_type = agent_type
         self.debug_enabled = debug_enabled
         self.tools = tools or []  # Store tools list for access
-        self.role = role
+        self.verbosity = verbosity
+        self.max_steps = max_steps
         self.user_prompt_template = user_prompt_template
+
+        # Render role template if it contains Jinja2 syntax
+        if role:
+            self.role = self._render_template(role, user_input=None)
+        else:
+            self.role = role
 
         # Create LiteLLM model instance
         self.model = self._create_model(model_provider, model_config)
@@ -109,6 +118,77 @@ class SimpleAgent:
                 f"Created CodeAgent: {self.name} ({model_provider}) "
                 f"with {executor_type} executor"
             )
+
+    def _build_context(self, user_input: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Build Jinja2 template context with all available variables.
+
+        Args:
+            user_input: Optional user input for user_prompt_template rendering
+
+        Returns:
+            Dict with context variables for template rendering
+        """
+        context = {
+            "agent_name": self.name,
+            "current_time": datetime.now(),
+            "current_date": datetime.now().date(),
+            "verbosity": self.verbosity,
+            "max_steps": self.max_steps,
+            "model_provider": self.model_provider,
+            "tools": [getattr(t, "name", str(t)) for t in self.tools] if self.tools else [],
+        }
+
+        # Add user_input if provided (for user_prompt_template)
+        if user_input is not None:
+            context["user_input"] = user_input
+
+        return context
+
+    def _render_template(self, template: str, user_input: Optional[str] = None) -> str:
+        """
+        Render template with Jinja2 or simple format string.
+
+        Auto-detects template type based on syntax:
+        - Jinja2: {{ }}, {% %}, or {# #}
+        - Format string: {variable_name}
+
+        Args:
+            template: Template string to render
+            user_input: Optional user input for context
+
+        Returns:
+            Rendered template string
+
+        Raises:
+            ValueError: If Jinja2 template has invalid syntax
+        """
+        # Build context
+        context = self._build_context(user_input)
+
+        # Auto-detect template type
+        if "{{" in template or "{%" in template or "{#" in template:
+            # Jinja2 template detected
+            try:
+                jinja_env = Environment(
+                    loader=BaseLoader(),
+                    autoescape=False,  # Not rendering HTML
+                    trim_blocks=True,
+                    lstrip_blocks=True,
+                )
+                jinja_template = jinja_env.from_string(template)
+                rendered = jinja_template.render(**context)
+                # Strip trailing whitespace (templates often have trailing newlines)
+                return rendered.rstrip()
+            except TemplateError as e:
+                raise ValueError(f"Jinja2 template error: {e}")
+        else:
+            # Simple format string (backward compatibility)
+            try:
+                return template.format(**context)
+            except KeyError:
+                # If format() fails due to missing keys, just return template as-is
+                return template
 
     def _create_model(self, provider: str, config: Dict[str, Any]) -> LiteLLMModel:
         """
@@ -196,7 +276,7 @@ class SimpleAgent:
         """
         # Apply user_prompt_template if set
         if self.user_prompt_template:
-            formatted_prompt = self.user_prompt_template.format(user_input=prompt)
+            formatted_prompt = self._render_template(self.user_prompt_template, user_input=prompt)
             logger.debug(
                 f"Applied user_prompt_template to agent '{self.name}': "
                 f"{prompt[:30]}... -> {formatted_prompt[:50]}..."

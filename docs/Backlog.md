@@ -2,19 +2,54 @@
 
 Future enhancements and feature ideas, organized by category.
 
-## Planned Phases
+---
 
-### Phase 1.6: Simplify Prompts & Add User Prompt Templates
-**Status:** 📋 Planned - See `docs/phases/PHASE_1.6.md` for full specification
-**Priority:** High
-**Complexity:** Medium (3-4 hours)
+## Configuration & CLI Enhancements
 
-Remove over-engineered template feature and replace with user prompt templates for consistent prompt engineering.
+### CLI --set Flag for Config Overrides
+**Priority:** Low
+**Complexity:** Low (2-3 hours)
 
-**Quick Summary:**
-- Remove: `simple_agent/config/prompts/` directory and template feature
-- Add: `user_prompt_template` field in agent YAML for wrapping user input
-- Benefit: Simpler architecture + more powerful prompt engineering
+Add `--set` flag to CLI for temporary config overrides at launch time.
+
+**Problem:**
+Currently, config changes require either:
+1. Editing `config.yaml` directly (permanent)
+2. Using `/config set` in REPL (session-only, requires interactive mode)
+3. Using command-specific flags like `--provider` (limited scope)
+
+**Proposed Solution:**
+```bash
+# Override config values when launching app
+python -m simple_agent.app --set llm.temperature=0.9 --set agents.default.max_steps=20
+
+# Use in REPL mode
+python -m simple_agent.app --set llm.model=gpt-4o
+
+# Use in CLI mode (single command)
+python -m simple_agent.app --set llm.temperature=0.9 agent run test "Hello"
+```
+
+**Use Cases:**
+- Testing with different configurations without modifying files
+- Scripts that need temporary config overrides
+- CI/CD pipelines with environment-specific settings
+- Quick experiments with different LLM settings
+
+**Implementation Notes:**
+- Parse `--set key=value` pairs before loading config
+- Apply overrides after loading `config.yaml`
+- Support nested keys with dot notation: `llm.openai.temperature`
+- Support multiple `--set` flags
+- Validate key paths before applying
+- These are temporary (not saved to config.yaml)
+
+**Related Code:**
+- `simple_agent/app.py` - Add `--set` option to CLI
+- `simple_agent/core/config_manager.py` - Add method to apply overrides
+
+**Alternative Considered:**
+Could use environment variables, but `--set` is more explicit and discoverable.
 
 ---
 

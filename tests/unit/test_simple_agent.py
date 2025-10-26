@@ -435,3 +435,268 @@ Let's think through this step by step:
         assert mock_agent_instance.run.call_count == 2
         mock_agent_instance.run.assert_any_call("First question (Be brief)", reset=False)
         mock_agent_instance.run.assert_any_call("Second question (Be brief)", reset=False)
+
+
+class TestSimpleAgentJinja2:
+    """Test Jinja2 template rendering in SimpleAgent."""
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_role_with_variables(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test Jinja2 template rendering in role field with agent_name variable."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Role with Jinja2 template
+        role_template = "You are {{ agent_name }}, a helpful assistant."
+
+        agent = SimpleAgent(
+            name="TestBot",
+            model_provider="openai",
+            model_config=model_config,
+            role=role_template,
+        )
+
+        # Verify role was rendered with agent_name
+        assert agent.role == "You are TestBot, a helpful assistant."
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_user_prompt_template_with_conditionals(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test Jinja2 conditionals in user_prompt_template."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template with conditional based on verbosity
+        template = """{{ user_input }}
+
+{% if verbosity >= 2 %}
+Please provide detailed step-by-step reasoning.
+{% else %}
+Please be concise.
+{% endif %}"""
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template=template,
+            verbosity=2,  # High verbosity
+        )
+
+        agent.run("What is 2+2?")
+
+        # Verify conditional rendered correctly (verbosity >= 2)
+        expected = """What is 2+2?
+
+Please provide detailed step-by-step reasoning."""
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_with_loops(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test Jinja2 loops over tools list."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock tools
+        mock_tool1 = Mock()
+        mock_tool1.name = "calculator"
+        mock_tool2 = Mock()
+        mock_tool2.name = "web_search"
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template with loop
+        template = """{{ user_input }}
+
+{% if tools %}
+Available tools:
+{% for tool in tools %}
+- {{ tool }}
+{% endfor %}
+{% endif %}"""
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template=template,
+            tools=[mock_tool1, mock_tool2],
+        )
+
+        agent.run("Help me")
+
+        # Verify loop rendered tool names
+        expected = """Help me
+
+Available tools:
+- calculator
+- web_search"""
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_with_filters(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test Jinja2 filters like upper, lower."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template with filter
+        template = "Agent: {{ agent_name | upper }} - {{ user_input }}"
+
+        agent = SimpleAgent(
+            name="mybot",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template=template,
+        )
+
+        agent.run("Hello")
+
+        # Verify filter applied (agent_name uppercased)
+        expected = "Agent: MYBOT - Hello"
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_with_date_formatting(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test Jinja2 with current_time and current_date variables."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Role template with date formatting
+        role_template = "You are {{ agent_name }}. Today is {{ current_date.strftime('%Y-%m-%d') }}."
+
+        agent = SimpleAgent(
+            name="TestBot",
+            model_provider="openai",
+            model_config=model_config,
+            role=role_template,
+        )
+
+        # Verify role contains rendered date (format: YYYY-MM-DD)
+        assert agent.role.startswith("You are TestBot. Today is ")
+        assert len(agent.role.split("Today is ")[1]) == 11  # YYYY-MM-DD + period = 11 chars
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_backward_compatibility_format_string(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that old-style {user_input} format strings still work."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Old-style format string (no {{ }})
+        template = "{user_input}\n\nPlease be concise."
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template=template,
+        )
+
+        agent.run("What is AI?")
+
+        # Verify old format still works
+        expected = "What is AI?\n\nPlease be concise."
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_error_handling(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test error handling for invalid Jinja2 syntax."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Invalid Jinja2 syntax (unclosed tag)
+        role_template = "You are {{ agent_name"
+
+        # Should raise ValueError with helpful message
+        try:
+            agent = SimpleAgent(
+                name="TestBot",
+                model_provider="openai",
+                model_config=model_config,
+                role=role_template,
+            )
+            assert False, "Should have raised ValueError for invalid Jinja2"
+        except ValueError as e:
+            assert "jinja2" in str(e).lower() or "template" in str(e).lower()
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_jinja2_context_variables(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that all context variables are available in templates."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template using multiple context variables
+        template = """Agent: {{ agent_name }}
+Provider: {{ model_provider }}
+Verbosity: {{ verbosity }}
+Max Steps: {{ max_steps }}
+{{ user_input }}"""
+
+        agent = SimpleAgent(
+            name="TestBot",
+            model_provider="openai",
+            model_config=model_config,
+            role="Test",
+            user_prompt_template=template,
+            verbosity=2,
+            max_steps=15,
+        )
+
+        agent.run("Help")
+
+        # Verify all variables rendered
+        expected = """Agent: TestBot
+Provider: openai
+Verbosity: 2
+Max Steps: 15
+Help"""
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
