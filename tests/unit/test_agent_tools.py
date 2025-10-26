@@ -45,7 +45,7 @@ class TestAgentManagerToolSupport:
         manager.tool_manager = tool_manager
 
         # Create agent with tools
-        agent = manager.create_agent("test_agent", tools=["add", "multiply"])
+        manager.create_agent("test_agent", tools=["add", "multiply"])
 
         # Verify SimpleAgent was called with the correct tools
         call_kwargs = mock_simple_agent.call_args.kwargs
@@ -157,7 +157,9 @@ class TestAgentManagerToolSupport:
             manager.remove_tool_from_agent("missing", "add")
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
-    def test_add_tool_preserves_builtin_tools(self, mock_simple_agent: MagicMock) -> None:
+    def test_add_tool_preserves_builtin_tools(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
         """Test that adding a tool preserves SmolAgents built-in tools like final_answer."""
         config = {
             "llm": {
@@ -196,7 +198,9 @@ class TestAgentManagerToolSupport:
         assert "add" in agent.agent.tools
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
-    def test_remove_tool_preserves_builtin_tools(self, mock_simple_agent: MagicMock) -> None:
+    def test_remove_tool_preserves_builtin_tools(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
         """Test that removing a tool preserves SmolAgents built-in tools like final_answer."""
         config = {
             "llm": {
@@ -216,7 +220,7 @@ class TestAgentManagerToolSupport:
         mock_final_answer.name = "final_answer"
         mock_agent_instance.agent.tools = {
             "final_answer": mock_final_answer,
-            "add": mock_add_tool
+            "add": mock_add_tool,
         }
 
         mock_simple_agent.return_value = mock_agent_instance

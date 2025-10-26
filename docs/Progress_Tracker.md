@@ -1,13 +1,14 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 1.4 - Tool Management
+**Current Phase**: Phase 1.5 - YAML Agent Definitions
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
 **Phase 1.2 Completed**: 2025-10-23
 **Phase 1.3 Completed**: 2025-10-23
 **Phase 1.4 Completed**: 2025-10-25
+**Phase 1.5 Completed**: 2025-10-25
 
 ---
 
@@ -20,7 +21,89 @@
 - **Phase 1.2**: History & Memory Management (✅ Completed) - See below
 - **Phase 1.3**: Configuration Management (✅ Completed) - See below
 - **Phase 1.4**: Tool Management (✅ Completed) - See below
+- **Phase 1.5**: YAML Agent Definitions (✅ Completed) - See below
 - **Phase 1**: Interactive & Inspection Features (🟡 In Progress) - See `docs/phases/PHASE_1.md`
+
+---
+
+## Phase 1.5: YAML Agent Definitions ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-25
+**Total Tests**: 191 (157 unit + 34 integration, all passing)
+**Architecture**: YAML-based agent configuration with auto-loading and persistence
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **Core YAML Management** | | | | | |
+| load_agent_from_yaml() | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (5/5) | ✅ Pass (4/4) |
+| save_agent_to_yaml() | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (2/2) | ✅ Pass (4/4) |
+| load_agents_from_directory() | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (3/3) | ✅ Pass (4/4) |
+| **Agent Commands** | | | | | |
+| /agent save [--path] | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (4/4) | ⏭️ N/A |
+| /agent create-wizard | ✅ Done | ✅ Done | ⏭️ N/A | ⏭️ Manual Test | ⏭️ N/A |
+| **Auto-loading** | | | | | |
+| Auto-load from config/agents/ | ⏭️ N/A | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (4/4) |
+| **Example YAML** | | | | | |
+| config/agents/researcher.yaml | ⏭️ N/A | ✅ Done | ⏭️ N/A | ⏭️ N/A | ⏭️ N/A |
+
+### Phase 1.5 Implementation Summary
+
+**Features Implemented:**
+1. **YAML Agent Loading**: Load agent definitions from YAML files with full config support
+2. **YAML Agent Saving**: Save agent configurations to YAML files for persistence
+3. **Directory Auto-loading**: Scan config/agents/ and auto-load all agent YAMLs on startup
+4. **Agent Save Command**: `/agent save [--path]` to export agent configurations
+5. **Interactive Wizard**: `/agent create-wizard` for step-by-step agent creation with optional YAML save
+
+**Architecture Decisions:**
+- ✅ YAML format supports: name, role, template, tools, model settings, metadata
+- ✅ Configuration hierarchy: YAML > config.yaml > code defaults
+- ✅ Auto-load from config/agents/ directory on app startup
+- ✅ Graceful error handling for invalid YAML files
+- ✅ Tools specified by name in YAML, resolved via ToolManager
+- ✅ Model settings in YAML can override provider defaults
+
+**YAML Format:**
+```yaml
+name: "agent_name"
+agent_type: "tool_calling"
+role: "Agent system prompt..."
+tools:
+  - tool1
+  - tool2
+model:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3
+settings:
+  verbosity: 2
+  max_steps: 15
+metadata:
+  description: "Agent description"
+  version: "1.0.0"
+```
+
+**Files Created:**
+- `config/agents/researcher.yaml` (example agent)
+- `docs/phases/PHASE_1.5_PLAN.md` (implementation plan)
+- `tests/unit/test_agent_yaml.py` (300 lines, 10 tests)
+- `tests/integration/test_phase_1_5.py` (234 lines, 4 tests)
+
+**Files Modified:**
+- `simple_agent/core/agent_manager.py` - Added 3 YAML methods (165 lines added)
+  - load_agent_from_yaml()
+  - save_agent_to_yaml()
+  - load_agents_from_directory()
+- `simple_agent/commands/agent_commands.py` - Added 2 commands (156 lines added)
+  - /agent save
+  - /agent create-wizard
+- `simple_agent/app.py` - Added auto-load from config/agents/
+- `simple_agent/commands/debug_commands.py` - Fixed ^J display formatting
+
+**Test Results:**
+- Unit tests: 14/14 new tests passing ✅ (10 YAML tests + 4 command tests)
+- Integration tests: 4/4 passing ✅
+- Total: 191 tests passing (157 unit + 34 integration)
 
 ---
 
@@ -370,6 +453,15 @@
 - None currently - ready to start Phase 0.5
 
 ### Recent Changes
+- 2025-10-25: ✅ Phase 1.5 COMPLETED - YAML Agent Definitions
+- 2025-10-25: ✅ Implemented YAML agent loading (load_agent_from_yaml)
+- 2025-10-25: ✅ Implemented YAML agent saving (save_agent_to_yaml)
+- 2025-10-25: ✅ Implemented directory auto-loading (load_agents_from_directory)
+- 2025-10-25: ✅ Implemented /agent save and /agent create-wizard commands
+- 2025-10-25: ✅ Added auto-load from config/agents/ on startup
+- 2025-10-25: ✅ Fixed debug command ^J display issue
+- 2025-10-25: ✅ Created example researcher.yaml agent
+- 2025-10-25: ✅ All 191 tests passing (157 unit + 34 integration)
 - 2025-10-25: ✅ Phase 1.4 COMPLETED - Tool Management
 - 2025-10-25: ✅ Implemented ToolManager with built-in calculator tools
 - 2025-10-25: ✅ Implemented /tool list and /tool info commands
@@ -417,4 +509,4 @@
 ---
 
 **Last Updated**: 2025-10-25
-**Next Phase**: Phase 1.5 - YAML Agent Definitions or Phase 2 - Next set of features
+**Next Phase**: Phase 2 - Next set of features (TBD)

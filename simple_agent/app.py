@@ -2,10 +2,12 @@
 Main entry point for REPL/CLI application.
 """
 
-import click
 import logging
+import os
 import sys
 from pathlib import Path
+
+import click
 
 from click_repl import repl
 from prompt_toolkit.history import FileHistory
@@ -30,6 +32,8 @@ from simple_agent.commands.debug_commands import debug
 from simple_agent.commands.history_commands import history
 from simple_agent.commands.tool_commands import tool
 
+logger = logging.getLogger(__name__)
+
 # Initialize console
 console = Console(theme=APP_THEME)
 
@@ -46,10 +50,13 @@ CONSOLE_LOG_LEVEL = logging.WARNING  # Log level for console in CLI mode
 @click.group(invoke_without_command=True)
 @click.option("--config", "-c", default=DEFAULT_CONFIG, help="Path to config file")
 @click.option("--repl-mode", is_flag=True, default=False, help="Start in REPL mode")
-@click.option("--debug", "-d",
-              type=click.Choice(['off', 'info', 'debug'], case_sensitive=False),
-              default=None,
-              help="Debug level: off (minimal), info (normal), debug (verbose). Overrides config setting.")
+@click.option(
+    "--debug",
+    "-d",
+    type=click.Choice(["off", "info", "debug"], case_sensitive=False),
+    default=None,
+    help="Debug level: off (minimal), info (normal), debug (verbose). Overrides config setting.",
+)
 @click.pass_context
 def cli(context, config, repl_mode, debug):
     """
@@ -116,6 +123,7 @@ def cli(context, config, repl_mode, debug):
 
     # Control LiteLLM logging based on debug level
     import logging as std_logging
+
     if debug_level == "off":
         # Suppress LiteLLM INFO logs
         std_logging.getLogger("litellm").setLevel(std_logging.WARNING)
@@ -124,6 +132,7 @@ def cli(context, config, repl_mode, debug):
         # Enable LiteLLM debug mode
         try:
             import litellm
+
             litellm.set_verbose = True
         except ImportError:
             pass  # LiteLLM not directly imported, managed by smolagents
@@ -142,6 +151,13 @@ def cli(context, config, repl_mode, debug):
         agent_manager = AgentManager(config_dict)
         agent_manager.tool_manager = context.obj["tool_manager"]
         context.obj["agent_manager"] = agent_manager
+
+        # Auto-load agents from config/agents/ directory
+        agents_dir = "config/agents"
+        if os.path.exists(agents_dir):
+            count = agent_manager.load_agents_from_directory(agents_dir)
+            if count > 0:
+                logger.info(f"Auto-loaded {count} agents from {agents_dir}")
 
     # If no subcommand provided, start REPL mode
     if context.invoked_subcommand is None or repl_mode:

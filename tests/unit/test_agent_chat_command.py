@@ -68,9 +68,7 @@ class TestAgentChatCommand:
 
         # Note: Chat is interactive, so we need to provide input or it will hang
         # We'll test the verification part only
-        result = runner.invoke(
-            agent, ["chat", "test_agent"], obj=mock_context, input="\n"
-        )
+        runner.invoke(agent, ["chat", "test_agent"], obj=mock_context, input="\n")
 
         # Verify get_agent was called (verifying agent exists)
         mock_context["agent_manager"].get_agent.assert_called_once_with("test_agent")

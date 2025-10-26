@@ -6,7 +6,10 @@ Provides separation between business logic and CLI/REPL interface.
 """
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
+
+import yaml
 
 from simple_agent.agents.simple_agent import SimpleAgent
 
@@ -159,7 +162,9 @@ class AgentManager:
             KeyError: If agent doesn't exist
         """
         agent = self.get_agent(name)
-        logger.debug(f"Running agent '{name}' with prompt: {prompt[:50]}... (reset={reset})")
+        logger.debug(
+            f"Running agent '{name}' with prompt: {prompt[:50]}... (reset={reset})"
+        )
 
         # Store prompt for inspection
         self.last_prompt = prompt
@@ -229,7 +234,9 @@ class AgentManager:
 
         # Check for duplicates
         if tool_name in [t.name for t in agent.tools]:
-            logger.warning(f"Tool '{tool_name}' already exists on agent '{agent_name}', skipping")
+            logger.warning(
+                f"Tool '{tool_name}' already exists on agent '{agent_name}', skipping"
+            )
             return
 
         # Add to agent's tools list
@@ -279,3 +286,164 @@ class AgentManager:
         """
         agent = self.get_agent(agent_name)
         return [tool.name for tool in agent.tools]
+
+    def load_agent_from_yaml(self, yaml_path: str) -> SimpleAgent:
+        """
+        Load agent from YAML file.
+
+        Args:
+            yaml_path: Path to YAML file
+
+        Returns:
+            Created SimpleAgent instance
+
+        Raises:
+            FileNotFoundError: If YAML file not found
+            yaml.YAMLError: If YAML is invalid
+            ValueError: If required fields missing
+        """
+        logger.debug(f"Loading agent from YAML: {yaml_path}")
+
+        # Check file exists
+        if not os.path.exists(yaml_path):
+            raise FileNotFoundError(f"Agent YAML file not found: {yaml_path}")
+
+        # Load YAML
+        with open(yaml_path, "r") as f:
+            agent_data = yaml.safe_load(f)
+
+        # Validate required field: name
+        if not agent_data or "name" not in agent_data:
+            raise ValueError("Agent YAML must contain 'name' field")
+
+        name = agent_data["name"]
+
+        # Extract fields with defaults
+        role = agent_data.get("role")
+        template = agent_data.get("template")
+        tools = agent_data.get("tools", [])
+
+        # Extract model settings (optional, will use config defaults)
+        model_section = agent_data.get("model", {})
+        provider = model_section.get("provider")
+
+        # If model settings provided, merge with config
+        if model_section and provider:
+            # Get base config for provider
+            provider_config = self.config.get("llm", {}).get(provider, {})
+
+            # Override with YAML values
+            for key in ["model", "temperature", "max_tokens"]:
+                if key in model_section:
+                    provider_config[key] = model_section[key]
+
+            # Temporarily update config
+            if "llm" not in self.config:
+                self.config["llm"] = {}
+            if provider not in self.config["llm"]:
+                self.config["llm"][provider] = {}
+            self.config["llm"][provider].update(provider_config)
+
+        # Create agent using existing create_agent logic
+        agent = self.create_agent(
+            name=name,
+            provider=provider,
+            role=role,
+            template=template,
+            tools=tools if tools else None,
+        )
+
+        logger.info(f"Loaded agent '{name}' from YAML: {yaml_path}")
+        return agent
+
+    def save_agent_to_yaml(self, agent_name: str, yaml_path: str) -> None:
+        """
+        Save agent to YAML file.
+
+        Args:
+            agent_name: Name of agent to save
+            yaml_path: Path to save YAML file
+
+        Raises:
+            KeyError: If agent not found
+        """
+        logger.debug(f"Saving agent '{agent_name}' to YAML: {yaml_path}")
+
+        # Get agent
+        agent = self.get_agent(agent_name)
+
+        # Build YAML structure
+        agent_data = {
+            "name": agent.name,
+            "agent_type": agent.agent_type,
+        }
+
+        # Add role if present
+        if agent.role:
+            agent_data["role"] = agent.role
+
+        # Add tools if any
+        if agent.tools:
+            agent_data["tools"] = [tool.name for tool in agent.tools]
+
+        # Add model settings
+        agent_data["model"] = {
+            "provider": agent.model_provider,
+        }
+
+        # Add metadata
+        agent_data["metadata"] = {
+            "description": f"Agent '{agent.name}'",
+            "version": "1.0.0",
+        }
+
+        # Create directory if needed
+        os.makedirs(
+            os.path.dirname(yaml_path) if os.path.dirname(yaml_path) else ".",
+            exist_ok=True,
+        )
+
+        # Write YAML
+        with open(yaml_path, "w") as f:
+            yaml.dump(agent_data, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"Saved agent '{agent_name}' to YAML: {yaml_path}")
+
+    def load_agents_from_directory(self, directory: str) -> int:
+        """
+        Load all agents from YAML files in directory.
+
+        Args:
+            directory: Directory path to scan
+
+        Returns:
+            Number of agents loaded
+        """
+        logger.debug(f"Loading agents from directory: {directory}")
+
+        # Check directory exists
+        if not os.path.exists(directory):
+            logger.warning(f"Agent directory not found: {directory}")
+            return 0
+
+        if not os.path.isdir(directory):
+            logger.warning(f"Path is not a directory: {directory}")
+            return 0
+
+        # Scan for YAML files
+        loaded_count = 0
+        for filename in os.listdir(directory):
+            if not filename.endswith(".yaml") and not filename.endswith(".yml"):
+                continue
+
+            yaml_path = os.path.join(directory, filename)
+
+            try:
+                self.load_agent_from_yaml(yaml_path)
+                loaded_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to load agent from {filename}: {str(e)}")
+                continue
+
+        logger.info(f"Loaded {loaded_count} agents from directory: {directory}")
+        return loaded_count

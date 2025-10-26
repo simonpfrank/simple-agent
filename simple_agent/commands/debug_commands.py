@@ -11,7 +11,11 @@ from rich.console import Console
 
 
 @click.command()
-@click.argument("level", type=click.Choice(['off', 'info', 'debug', 'status'], case_sensitive=False), required=False)
+@click.argument(
+    "level",
+    type=click.Choice(["off", "info", "debug", "status"], case_sensitive=False),
+    required=False,
+)
 @click.pass_context
 def debug(ctx, level: str | None):
     """
@@ -45,8 +49,12 @@ def debug(ctx, level: str | None):
         console.print()
         console.print("[dim]Levels:[/dim]")
         console.print("  [cyan]off[/cyan]   - Minimal output (suppress LiteLLM INFO)")
-        console.print("  [cyan]info[/cyan]  - Normal output (show LiteLLM INFO) [default]")
-        console.print("  [cyan]debug[/cyan] - Full debug mode (verbose + LiteLLM debug)")
+        console.print(
+            "  [cyan]info[/cyan]  - Normal output (show LiteLLM INFO) [default]"
+        )
+        console.print(
+            "  [cyan]debug[/cyan] - Full debug mode (verbose + LiteLLM debug)"
+        )
         console.print()
         console.print("[dim]Change level:[/dim] [cyan]/debug [off|info|debug][/cyan]")
         console.print()
@@ -67,7 +75,9 @@ def debug(ctx, level: str | None):
         # Suppress LiteLLM INFO logs
         logging.getLogger("litellm").setLevel(logging.WARNING)
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
-        console.print("\n[green]✓[/green] Debug level set to [bold]off[/bold] (minimal output)")
+        console.print(
+            "\n[green]✓[/green] Debug level set to [bold]off[/bold] (minimal output)"
+        )
     elif level == "info":
         log_level = logging.INFO
         # Reset LiteLLM to INFO
@@ -76,21 +86,27 @@ def debug(ctx, level: str | None):
         # Disable LiteLLM verbose mode
         try:
             import litellm
+
             litellm.set_verbose = False
         except ImportError:
             pass
-        console.print("\n[green]✓[/green] Debug level set to [bold]info[/bold] (normal output)")
+        console.print(
+            "\n[green]✓[/green] Debug level set to [bold]info[/bold] (normal output)"
+        )
     elif level == "debug":
         log_level = logging.DEBUG
         # Enable LiteLLM debug mode
         try:
             import litellm
+
             litellm.set_verbose = True
         except ImportError:
             pass
         logging.getLogger("litellm").setLevel(logging.DEBUG)
         logging.getLogger("LiteLLM").setLevel(logging.DEBUG)
-        console.print("\n[green]✓[/green] Debug level set to [bold]debug[/bold] (full debug mode)")
+        console.print(
+            "\n[green]✓[/green] Debug level set to [bold]debug[/bold] (full debug mode)"
+        )
 
     # Update root logger level
     logging.getLogger().setLevel(log_level)

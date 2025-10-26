@@ -1,0 +1,29 @@
+# Research Specialist Agent
+# Example agent definition file
+
+name: "researcher"
+agent_type: "tool_calling"
+role: |
+  You are a research specialist. You help users find accurate
+  information, analyze data, and provide well-sourced answers.
+
+  Always cite your sources and explain your reasoning clearly.
+
+tools:
+  - add
+  - multiply
+
+model:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3
+  max_tokens: 2000
+
+settings:
+  verbosity: 2
+  max_steps: 15
+
+metadata:
+  description: "Research and information gathering specialist"
+  author: "system"
+  version: "1.0.0"
