@@ -58,7 +58,9 @@ class TestPromptCommands:
 
         assert result.exit_code == 0
         # Verify console.print was called (Panel will be passed)
-        assert mock_context["console"].print.call_count >= 2  # Empty line + Panel + Empty line
+        assert (
+            mock_context["console"].print.call_count >= 2
+        )  # Empty line + Panel + Empty line
 
     def test_prompt_raw_displays_message_when_no_prompts(
         self, runner: CliRunner, mock_context: dict
@@ -83,7 +85,9 @@ class TestPromptCommands:
 
         assert result.exit_code == 0
         # Verify console.print was called (Panel will be passed)
-        assert mock_context["console"].print.call_count >= 2  # Empty line + Panel + Empty line
+        assert (
+            mock_context["console"].print.call_count >= 2
+        )  # Empty line + Panel + Empty line
 
 
 class TestResponseCommands:
@@ -130,7 +134,9 @@ class TestResponseCommands:
 
         assert result.exit_code == 0
         # Verify console.print was called (Panel will be passed)
-        assert mock_context["console"].print.call_count >= 2  # Empty line + Panel + Empty line
+        assert (
+            mock_context["console"].print.call_count >= 2
+        )  # Empty line + Panel + Empty line
 
     def test_response_raw_displays_message_when_no_responses(
         self, runner: CliRunner, mock_context: dict
@@ -155,4 +161,6 @@ class TestResponseCommands:
 
         assert result.exit_code == 0
         # Verify console.print was called (Panel will be passed)
-        assert mock_context["console"].print.call_count >= 2  # Empty line + Panel + Empty line
+        assert (
+            mock_context["console"].print.call_count >= 2
+        )  # Empty line + Panel + Empty line

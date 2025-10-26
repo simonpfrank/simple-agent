@@ -90,7 +90,10 @@ class TestConfigResetCommand:
         console = MagicMock()
         # Config with overridden value
         config_dict = {
-            "llm": {"provider": "openai", "temperature": 0.9}  # Overridden from default 0.7
+            "llm": {
+                "provider": "openai",
+                "temperature": 0.9,
+            }  # Overridden from default 0.7
         }
         return {"console": console, "config": config_dict}
 
@@ -214,9 +217,7 @@ class TestConfigSetPathCommand:
         call_args = str(mock_context["console"].print.call_args_list)
         assert "invalid" in call_args.lower() or "error" in call_args.lower()
 
-    def test_set_path_initializes_paths_if_missing(
-        self, runner: CliRunner
-    ) -> None:
+    def test_set_path_initializes_paths_if_missing(self, runner: CliRunner) -> None:
         """Test that set-path creates paths section if it doesn't exist."""
         console = MagicMock()
         config_dict = {}  # No paths section
@@ -278,9 +279,7 @@ class TestConfigShowPathsCommand:
         assert "agents" in call_args.lower()
         assert "logs" in call_args.lower()
 
-    def test_show_paths_handles_missing_paths_section(
-        self, runner: CliRunner
-    ) -> None:
+    def test_show_paths_handles_missing_paths_section(self, runner: CliRunner) -> None:
         """Test show-paths when paths section doesn't exist."""
         console = MagicMock()
         config_dict = {}  # No paths section

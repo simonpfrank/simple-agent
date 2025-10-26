@@ -51,9 +51,7 @@ class TestToolManagementIntegration:
     ) -> None:
         """Test creating an agent with tools attached."""
         # Create agent with specific tools
-        agent = agent_manager.create_agent(
-            name="math_agent", tools=["add", "multiply"]
-        )
+        agent = agent_manager.create_agent(name="math_agent", tools=["add", "multiply"])
 
         # Verify agent has tools
         assert len(agent.tools) == 2

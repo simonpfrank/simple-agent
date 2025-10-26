@@ -117,24 +117,6 @@ class TestAgentManagerCreateAgent:
         assert call_kwargs["role"] == custom_role
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
-    def test_create_agent_with_template(self, mock_simple_agent: Mock) -> None:
-        """Test creating agent with template."""
-        config = {
-            "llm": {
-                "provider": "openai",
-                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
-            },
-            "agents": {"default": {"role": "Default", "verbosity": 1, "max_steps": 10}},
-        }
-
-        manager = AgentManager(config)
-        manager.create_agent("researcher", template="researcher")
-
-        # Verify template was passed
-        call_kwargs = mock_simple_agent.call_args.kwargs
-        assert call_kwargs["template"] == "researcher"
-
-    @patch("simple_agent.core.agent_manager.SimpleAgent")
     def test_create_agent_returns_instance(self, mock_simple_agent: Mock) -> None:
         """Test create_agent returns the created agent instance."""
         config = {

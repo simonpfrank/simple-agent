@@ -4,7 +4,7 @@ Unit tests for ToolManager (Phase 1.4).
 Tests the tool management system including registration, retrieval, and listing.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

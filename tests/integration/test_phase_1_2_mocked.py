@@ -102,10 +102,28 @@ class TestPhase1_2HistoryMocked:
 
         # Simulate SmolAgents memory with conversation history
         memory_steps = [
-            {"type": "task", "task": "What is 2+2?", "timestamp": "2025-10-23T10:00:00"},
-            {"type": "action", "name": "final_answer", "result": "4", "timestamp": "2025-10-23T10:00:01"},
-            {"type": "task", "task": "What is the capital of France?", "timestamp": "2025-10-23T10:01:00"},
-            {"type": "action", "name": "final_answer", "result": "Paris", "timestamp": "2025-10-23T10:01:01"},
+            {
+                "type": "task",
+                "task": "What is 2+2?",
+                "timestamp": "2025-10-23T10:00:00",
+            },
+            {
+                "type": "action",
+                "name": "final_answer",
+                "result": "4",
+                "timestamp": "2025-10-23T10:00:01",
+            },
+            {
+                "type": "task",
+                "task": "What is the capital of France?",
+                "timestamp": "2025-10-23T10:01:00",
+            },
+            {
+                "type": "action",
+                "name": "final_answer",
+                "result": "Paris",
+                "timestamp": "2025-10-23T10:01:01",
+            },
         ]
         mock_memory.get_full_steps.return_value = memory_steps
         mock_agent_instance.memory = mock_memory
@@ -256,7 +274,11 @@ class TestPhase1_2HistoryMocked:
         mock_agent2.memory = mock_memory2
 
         # Return different agents on successive calls (default, agent1, agent2)
-        mock_tool_calling_agent.side_effect = [mock_default_agent, mock_agent1, mock_agent2]
+        mock_tool_calling_agent.side_effect = [
+            mock_default_agent,
+            mock_agent1,
+            mock_agent2,
+        ]
 
         # Initialize AgentManager (auto-loads default) and create two more agents
         agent_manager = AgentManager(test_config)

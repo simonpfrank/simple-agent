@@ -37,49 +37,6 @@ class TestSimpleAgentInitialization:
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
-    @patch("simple_agent.agents.simple_agent.ConfigManager")
-    def test_init_with_template(
-        self, mock_config_manager: Mock, mock_tool_calling_agent: Mock, mock_litellm: Mock
-    ) -> None:
-        """Test initialization with template parameter."""
-        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
-        mock_config_manager.load_prompt_template.return_value = {
-            "name": "researcher",
-            "system": "You are a research assistant.",
-        }
-
-        agent = SimpleAgent(
-            name="researcher_agent",
-            model_provider="openai",
-            model_config=model_config,
-            template="researcher",
-        )
-
-        assert agent.name == "researcher_agent"
-        assert agent.role == "You are a research assistant."
-        mock_config_manager.load_prompt_template.assert_called_once_with("researcher")
-
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
-    def test_init_role_overrides_template(
-        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
-    ) -> None:
-        """Test that explicit role overrides template."""
-        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
-        explicit_role = "Explicit role"
-
-        agent = SimpleAgent(
-            name="test_agent",
-            model_provider="openai",
-            model_config=model_config,
-            role=explicit_role,
-            template="researcher",  # Should be ignored
-        )
-
-        assert agent.role == explicit_role
-
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_init_with_custom_verbosity_and_max_steps(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
     ) -> None:
@@ -208,7 +165,9 @@ class TestSimpleAgentRepr:
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
-    def test_repr_format(self, mock_tool_calling_agent: Mock, mock_litellm: Mock) -> None:
+    def test_repr_format(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
         """Test __repr__ returns formatted string."""
         model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
 

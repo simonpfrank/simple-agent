@@ -47,7 +47,6 @@ class AgentManager:
         name: str,
         provider: Optional[str] = None,
         role: Optional[str] = None,
-        template: Optional[str] = None,
         tools: Optional[List[str]] = None,
     ) -> SimpleAgent:
         """
@@ -57,7 +56,6 @@ class AgentManager:
             name: Agent identifier
             provider: LLM provider (defaults to config)
             role: Agent role/persona (defaults to config)
-            template: Template name to load from config/prompts/
             tools: List of tool names to attach to agent
 
         Returns:
@@ -65,14 +63,14 @@ class AgentManager:
         """
         logger.debug(
             f"Creating agent '{name}' - provider: {provider}, "
-            f"role: {role}, template: {template}, tools: {tools}"
+            f"role: {role}, tools: {tools}"
         )
 
         # Get defaults from config if not specified
         provider = provider or self.config.get("llm", {}).get("provider")
 
-        # Get role from config default if not specified and no template
-        if not role and not template:
+        # Get role from config default if not specified
+        if not role:
             role = self.config.get("agents", {}).get("default", {}).get("role")
 
         # Get model config for provider
@@ -102,7 +100,6 @@ class AgentManager:
             model_provider=provider,
             model_config=model_config,
             role=role,
-            template=template,
             tools=tool_objects if tool_objects else None,
             verbosity=verbosity,
             max_steps=max_steps,
@@ -192,7 +189,6 @@ class AgentManager:
             if isinstance(agent_config, dict):
                 # Extract settings from config
                 role = agent_config.get("role")
-                template = agent_config.get("template")
                 provider = agent_config.get("provider")
 
                 # Skip if agent_name already exists (don't overwrite)
@@ -208,7 +204,6 @@ class AgentManager:
                         name=agent_name,
                         provider=provider,
                         role=role,
-                        template=template,
                     )
                     logger.info(f"Auto-loaded agent '{agent_name}' from config")
                 except Exception as e:
@@ -320,7 +315,6 @@ class AgentManager:
 
         # Extract fields with defaults
         role = agent_data.get("role")
-        template = agent_data.get("template")
         tools = agent_data.get("tools", [])
 
         # Extract model settings (optional, will use config defaults)
@@ -349,7 +343,6 @@ class AgentManager:
             name=name,
             provider=provider,
             role=role,
-            template=template,
             tools=tools if tools else None,
         )
 

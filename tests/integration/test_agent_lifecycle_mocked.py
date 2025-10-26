@@ -27,7 +27,10 @@ class TestAgentLifecycleMocked:
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_full_lifecycle_default_agent(
-        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
+        self,
+        mock_tool_calling_agent: MagicMock,
+        mock_litellm: MagicMock,
+        test_config: dict,
     ) -> None:
         """Test creating and running agent with default configuration."""
         # Setup mock agent response
@@ -55,50 +58,11 @@ class TestAgentLifecycleMocked:
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
-    @patch("simple_agent.agents.simple_agent.ConfigManager")
-    def test_full_lifecycle_with_template(
+    def test_multiple_agents(
         self,
-        mock_config_manager: MagicMock,
         mock_tool_calling_agent: MagicMock,
         mock_litellm: MagicMock,
         test_config: dict,
-    ) -> None:
-        """Test creating agent with prompt template."""
-        # Setup mock template loading
-        mock_config_manager.load_prompt_template.return_value = {
-            "name": "researcher",
-            "system": "You are a research assistant.",
-        }
-
-        # Setup mock agent response
-        mock_agent_instance = MagicMock()
-        mock_agent_instance.run.return_value = "Research result"
-        mock_tool_calling_agent.return_value = mock_agent_instance
-
-        # Initialize AgentManager
-        agent_manager = AgentManager(test_config)
-
-        # Create agent with template
-        agent = agent_manager.create_agent("researcher", template="researcher")
-
-        # Verify agent was created
-        assert agent is not None
-        assert agent.name == "researcher"
-
-        # Verify template was loaded
-        mock_config_manager.load_prompt_template.assert_called_once_with("researcher")
-
-        # Run prompt
-        response = agent_manager.run_agent("researcher", "Research AI")
-
-        # Verify
-        assert response == "Research result"
-        mock_agent_instance.run.assert_called_once_with("Research AI", reset=True)
-
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
-    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
-    def test_multiple_agents(
-        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
     ) -> None:
         """Test managing multiple agents."""
         # Setup mocks
@@ -130,7 +94,10 @@ class TestAgentLifecycleMocked:
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_config_loading_and_defaults(
-        self, mock_tool_calling_agent: MagicMock, mock_litellm: MagicMock, test_config: dict
+        self,
+        mock_tool_calling_agent: MagicMock,
+        mock_litellm: MagicMock,
+        test_config: dict,
     ) -> None:
         """Test that configuration loads correctly and defaults are applied."""
         # Setup mocks

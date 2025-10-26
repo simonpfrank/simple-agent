@@ -149,54 +149,6 @@ class TestConfigManagerLoadEnv:
             os.chdir(original_cwd)
 
 
-class TestConfigManagerLoadPromptTemplate:
-    """Test prompt template loading from config/prompts/ directory."""
-
-    def test_load_prompt_template_default(self, tmp_path: Path) -> None:
-        """Test loading default.yaml prompt template."""
-        prompts_dir = tmp_path / "config" / "prompts"
-        prompts_dir.mkdir(parents=True)
-        template_file = prompts_dir / "default.yaml"
-        template_data = {
-            "name": "default",
-            "system": "You are a helpful AI assistant.\nAnswer questions clearly.",
-        }
-        template_file.write_text(yaml.dump(template_data))
-
-        result = ConfigManager.load_prompt_template("default", str(tmp_path))
-
-        assert result["name"] == "default"
-        assert "helpful AI assistant" in result["system"]
-
-    def test_load_prompt_template_researcher(self, tmp_path: Path) -> None:
-        """Test loading researcher.yaml prompt template."""
-        prompts_dir = tmp_path / "config" / "prompts"
-        prompts_dir.mkdir(parents=True)
-        template_file = prompts_dir / "researcher.yaml"
-        template_data = {
-            "name": "researcher",
-            "system": "You are a research assistant.\nProvide detailed answers.",
-        }
-        template_file.write_text(yaml.dump(template_data))
-
-        result = ConfigManager.load_prompt_template("researcher", str(tmp_path))
-
-        assert result["name"] == "researcher"
-        assert "research assistant" in result["system"]
-
-    def test_load_prompt_template_not_found(self, tmp_path: Path) -> None:
-        """Test loading non-existent template raises FileNotFoundError."""
-        with pytest.raises(FileNotFoundError):
-            ConfigManager.load_prompt_template("nonexistent", str(tmp_path))
-
-    def test_load_prompt_template_default_base_path(self) -> None:
-        """Test load_prompt_template uses current directory by default."""
-        # This will fail initially since we don't have the template
-        # but tests the default path behavior
-        with pytest.raises(FileNotFoundError):
-            ConfigManager.load_prompt_template("default")
-
-
 class TestConfigManagerMergeWithDefaults:
     """Test merging config with default values."""
 

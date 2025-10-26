@@ -240,9 +240,7 @@ def config_get(context, key):
 
 
 @config.command("reset")
-@click.option(
-    "--key", "-k", required=True, help="Config key to reset to default"
-)
+@click.option("--key", "-k", required=True, help="Config key to reset to default")
 @click.pass_context
 def config_reset(context, key):
     """Reset a configuration value to its default."""

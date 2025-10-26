@@ -252,46 +252,6 @@ class ConfigManager:
         return deep_merge(defaults, config)
 
     @staticmethod
-    def load_prompt_template(
-        template_name: str, base_path: str = "."
-    ) -> Dict[str, Any]:
-        """
-        Load prompt template from config/prompts/{template_name}.yaml
-
-        Args:
-            template_name: Name of template (without .yaml extension)
-            base_path: Base directory path (defaults to current directory)
-
-        Returns:
-            Dictionary containing template data
-
-        Raises:
-            FileNotFoundError: If template file doesn't exist
-            ValueError: If template YAML is invalid
-        """
-        template_path = Path(base_path) / "config" / "prompts" / f"{template_name}.yaml"
-
-        if not template_path.exists():
-            logger.error(f"Prompt template not found: {template_path}")
-            raise FileNotFoundError(f"Prompt template not found: {template_path}")
-
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_data = yaml.safe_load(f)
-
-            if not isinstance(template_data, dict):
-                raise ValueError(
-                    f"Prompt template must be a dictionary, got {type(template_data).__name__}"
-                )
-
-            logger.info(f"Loaded prompt template: {template_name}")
-            return template_data
-
-        except yaml.YAMLError as e:
-            logger.exception(f"Invalid YAML in template: {template_path}")
-            raise ValueError(f"Invalid YAML in template: {template_path}") from e
-
-    @staticmethod
     def resolve_env_var(value: str) -> str:
         """
         Resolve a single environment variable placeholder to its actual value.

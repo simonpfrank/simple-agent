@@ -25,7 +25,6 @@ class SimpleAgent:
         model_provider: str,
         model_config: Dict[str, Any],
         role: Optional[str] = None,
-        template: Optional[str] = None,
         tools: Optional[list] = None,
         verbosity: int = 1,
         max_steps: int = 10,
@@ -40,8 +39,7 @@ class SimpleAgent:
             name: Agent identifier
             model_provider: "openai", "ollama", etc.
             model_config: Dict with model settings
-            role: Optional system prompt/persona (overrides template)
-            template: Optional template name to load from config/prompts/
+            role: Optional system prompt/persona
             tools: List of tool instances
             verbosity: 0=quiet, 1=normal, 2=verbose (DEPRECATED - use debug_enabled)
             max_steps: Max tool call iterations
@@ -71,12 +69,6 @@ class SimpleAgent:
         self.agent_type = agent_type
         self.debug_enabled = debug_enabled
         self.tools = tools or []  # Store tools list for access
-
-        # Load template if specified and no explicit role
-        if template and not role:
-            template_data = ConfigManager.load_prompt_template(template)
-            role = template_data.get("system", "")
-
         self.role = role
 
         # Create LiteLLM model instance
@@ -199,7 +191,9 @@ class SimpleAgent:
         Returns:
             Agent response string
         """
-        logger.debug(f"Running prompt for agent '{self.name}': {prompt[:50]}... (reset={reset})")
+        logger.debug(
+            f"Running prompt for agent '{self.name}': {prompt[:50]}... (reset={reset})"
+        )
         result = self.agent.run(prompt, reset=reset)
         return str(result)
 

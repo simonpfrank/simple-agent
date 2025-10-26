@@ -25,19 +25,15 @@ def agent(ctx):
     "--provider", "-p", default=None, help="LLM provider (openai, ollama, etc.)"
 )
 @click.option(
-    "--template", "-t", default=None, help="Prompt template name (default, researcher)"
-)
-@click.option(
-    "--role", "-r", default=None, help="Agent role/persona (overrides template)"
+    "--role", "-r", default=None, help="Agent role/persona"
 )
 @click.pass_context
-def create(ctx, name: str, provider: str, template: str, role: str):
+def create(ctx, name: str, provider: str, role: str):
     """
     Create a new agent.
 
     Examples:
         /agent create my_agent
-        /agent create researcher --template researcher
         /agent create custom --role "You are a code reviewer"
         /agent create local_agent --provider ollama
     """
@@ -47,7 +43,7 @@ def create(ctx, name: str, provider: str, template: str, role: str):
     try:
         # Business logic in agent_manager, not here
         agent = agent_manager.create_agent(
-            name=name, provider=provider, role=role, template=template
+            name=name, provider=provider, role=role
         )
         console.print(f"[green]✓[/green] Created agent: {agent}")
     except FileNotFoundError as e:

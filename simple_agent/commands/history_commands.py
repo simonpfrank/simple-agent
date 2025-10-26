@@ -68,7 +68,9 @@ def show(ctx, limit: int):
     display_steps = memory_steps[-limit:] if limit > 0 else memory_steps
 
     # Create a table for better formatting
-    table = Table(title=f"History for '{agent_manager.last_agent}' (last {len(display_steps)} steps)")
+    table = Table(
+        title=f"History for '{agent_manager.last_agent}' (last {len(display_steps)} steps)"
+    )
     table.add_column("#", style="dim", width=4)
     table.add_column("Type", style="cyan")
     table.add_column("Content", style="white")
@@ -193,9 +195,7 @@ def save(ctx, file: str):
     memory_steps = agent_wrapper.agent.memory.get_full_steps()
 
     if not memory_steps:
-        console.print(
-            "[yellow]No history to save.[/yellow] Memory is empty.\n"
-        )
+        console.print("[yellow]No history to save.[/yellow] Memory is empty.\n")
         return
 
     # Save to JSON file

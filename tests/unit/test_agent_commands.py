@@ -72,7 +72,9 @@ class TestAgentToolsCommand:
         """Test tools command with non-existent agent."""
         console = MagicMock()
         agent_manager = MagicMock()
-        agent_manager.get_agent_tools.side_effect = KeyError("Agent 'missing' not found")
+        agent_manager.get_agent_tools.side_effect = KeyError(
+            "Agent 'missing' not found"
+        )
 
         mock_context = {"console": console, "agent_manager": agent_manager}
 
@@ -147,7 +149,9 @@ class TestAgentAddToolCommand:
         """Test add-tool with non-existent tool."""
         console = MagicMock()
         agent_manager = MagicMock()
-        agent_manager.add_tool_to_agent.side_effect = KeyError("Tool 'missing' not found")
+        agent_manager.add_tool_to_agent.side_effect = KeyError(
+            "Tool 'missing' not found"
+        )
 
         mock_context = {"console": console, "agent_manager": agent_manager}
 
@@ -275,6 +279,75 @@ class TestAgentShowPromptCommand:
         mock_context = {"console": console, "agent_manager": agent_manager}
 
         result = runner.invoke(agent, ["show-prompt", "missing"], obj=mock_context)
+
+        assert result.exit_code == 0
+        call_args = str(console.print.call_args_list)
+        assert "not found" in call_args.lower() or "error" in call_args.lower()
+
+
+class TestAgentSaveCommand:
+    """Test /agent save command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Create Click test runner."""
+        return CliRunner()
+
+    @pytest.fixture
+    def mock_context(self) -> dict:
+        """Create mock context object."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        return {"console": console, "agent_manager": agent_manager}
+
+    def test_save_command_exists(self, runner: CliRunner, mock_context: dict) -> None:
+        """Test that /agent save command exists."""
+        result = runner.invoke(agent, ["save", "--help"], obj=mock_context)
+        assert result.exit_code == 0
+
+    def test_save_saves_agent_to_yaml(
+        self, runner: CliRunner, mock_context: dict
+    ) -> None:
+        """Test that save command saves agent to YAML file."""
+        result = runner.invoke(agent, ["save", "test_agent"], obj=mock_context)
+
+        assert result.exit_code == 0
+
+        # Verify save_agent_to_yaml was called
+        mock_context["agent_manager"].save_agent_to_yaml.assert_called_once()
+        call_args = mock_context["agent_manager"].save_agent_to_yaml.call_args
+        assert call_args[0][0] == "test_agent"  # agent name
+        assert "config/agents/test_agent.yaml" in call_args[0][1]  # path
+
+        # Verify success message
+        call_args_str = str(mock_context["console"].print.call_args_list)
+        assert "saved" in call_args_str.lower()
+
+    def test_save_with_custom_path(self, runner: CliRunner, mock_context: dict) -> None:
+        """Test save with custom path option."""
+        result = runner.invoke(
+            agent,
+            ["save", "test_agent", "--path", "custom/path.yaml"],
+            obj=mock_context,
+        )
+
+        assert result.exit_code == 0
+
+        # Verify custom path was used
+        call_args = mock_context["agent_manager"].save_agent_to_yaml.call_args
+        assert call_args[0][1] == "custom/path.yaml"
+
+    def test_save_handles_nonexistent_agent(self, runner: CliRunner) -> None:
+        """Test save with non-existent agent."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        agent_manager.save_agent_to_yaml.side_effect = KeyError(
+            "Agent 'missing' not found"
+        )
+
+        mock_context = {"console": console, "agent_manager": agent_manager}
+
+        result = runner.invoke(agent, ["save", "missing"], obj=mock_context)
 
         assert result.exit_code == 0
         call_args = str(console.print.call_args_list)

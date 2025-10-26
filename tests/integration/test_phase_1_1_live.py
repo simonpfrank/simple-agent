@@ -127,9 +127,7 @@ class TestPhase1_1InspectionLive:
         # Verify responses are different
         assert response1 != response2
 
-    def test_auto_loaded_agent_tracking_with_real_llm(
-        self, test_config: dict
-    ) -> None:
+    def test_auto_loaded_agent_tracking_with_real_llm(self, test_config: dict) -> None:
         """
         Test that tracking works with auto-loaded agents and REAL LLM.
 

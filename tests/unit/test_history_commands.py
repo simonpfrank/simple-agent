@@ -5,7 +5,6 @@ Tests the history management commands.
 """
 
 from unittest.mock import MagicMock, mock_open, patch
-from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -270,9 +269,7 @@ class TestHistorySaveCommand:
     ) -> None:
         """Test that save shows confirmation message."""
         with patch("builtins.open", mock_open()), patch("json.dump"):
-            result = runner.invoke(
-                history, ["save", "test.json"], obj=mock_context
-            )
+            result = runner.invoke(history, ["save", "test.json"], obj=mock_context)
 
         assert result.exit_code == 0
         call_args = str(mock_context["console"].print.call_args_list)
