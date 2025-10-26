@@ -302,3 +302,136 @@ class TestSimpleAgentTypes:
         except ValueError as e:
             assert "agent_type" in str(e).lower()
             assert "invalid_type" in str(e)
+
+
+class TestSimpleAgentUserPromptTemplate:
+    """Test user_prompt_template functionality."""
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_user_prompt_template_formats_input(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that user_prompt_template formats user input correctly."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent BEFORE creating SimpleAgent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Create agent with user_prompt_template
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template="{user_input}\n\nPlease answer concisely.",
+        )
+
+        # Run with user input
+        agent.run("What is 2+2?")
+
+        # Verify the template was applied
+        mock_agent_instance.run.assert_called_once_with(
+            "What is 2+2?\n\nPlease answer concisely.", reset=True
+        )
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_user_prompt_template_none_uses_direct_input(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that no template means direct pass-through of user input."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent BEFORE creating SimpleAgent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Create agent WITHOUT user_prompt_template
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+        )
+
+        # Run with user input
+        agent.run("What is 2+2?")
+
+        # Verify the input was passed directly (no formatting)
+        mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_user_prompt_template_multiline(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that multi-line templates work correctly."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        template = """
+{user_input}
+
+Let's think through this step by step:
+1. First, understand the question
+2. Then, provide a clear answer
+"""
+
+        # Mock the underlying agent BEFORE creating SimpleAgent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a logical assistant.",
+            user_prompt_template=template,
+        )
+
+        # Run with user input
+        agent.run("Explain quantum computing")
+
+        # Verify the multi-line template was applied
+        expected = """
+Explain quantum computing
+
+Let's think through this step by step:
+1. First, understand the question
+2. Then, provide a clear answer
+"""
+        mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_user_prompt_template_with_chat_mode(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that template persists across chat turns (reset=False)."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        # Mock the underlying agent BEFORE creating SimpleAgent
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="You are a helpful assistant.",
+            user_prompt_template="{user_input} (Be brief)",
+        )
+
+        # Multiple turns with reset=False (chat mode)
+        agent.run("First question", reset=False)
+        agent.run("Second question", reset=False)
+
+        # Verify template was applied to both
+        assert mock_agent_instance.run.call_count == 2
+        mock_agent_instance.run.assert_any_call("First question (Be brief)", reset=False)
+        mock_agent_instance.run.assert_any_call("Second question (Be brief)", reset=False)

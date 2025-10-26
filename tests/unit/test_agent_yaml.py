@@ -154,6 +154,79 @@ role: "You are an agent without a name."
         # Cleanup
         os.unlink(yaml_file)
 
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_load_agent_from_yaml_with_user_prompt_template(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
+        """Test loading agent from YAML with user_prompt_template field."""
+        content = """
+name: "template_agent"
+role: "You are a test assistant"
+user_prompt_template: "{user_input}\\n\\nPlease answer concisely."
+model:
+  provider: "openai"
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(content)
+            yaml_file = f.name
+
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.tools = []
+        mock_simple_agent.return_value = mock_agent_instance
+
+        manager = AgentManager(config)
+        manager.load_agent_from_yaml(yaml_file)
+
+        # Verify user_prompt_template was passed to create_agent -> SimpleAgent
+        call_kwargs = mock_simple_agent.call_args.kwargs
+        assert call_kwargs["user_prompt_template"] == "{user_input}\n\nPlease answer concisely."
+
+        # Cleanup
+        os.unlink(yaml_file)
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_load_agent_from_yaml_without_user_prompt_template(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
+        """Test loading agent from YAML without user_prompt_template (should be None)."""
+        content = """
+name: "no_template_agent"
+role: "You are a test assistant"
+model:
+  provider: "openai"
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write(content)
+            yaml_file = f.name
+
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.tools = []
+        mock_simple_agent.return_value = mock_agent_instance
+
+        manager = AgentManager(config)
+        manager.load_agent_from_yaml(yaml_file)
+
+        # Verify user_prompt_template was None (not specified in YAML)
+        call_kwargs = mock_simple_agent.call_args.kwargs
+        assert call_kwargs.get("user_prompt_template") is None
+
+        # Cleanup
+        os.unlink(yaml_file)
+
 
 class TestSaveAgentToYAML:
     """Test saving agent to YAML file."""
@@ -173,6 +246,7 @@ class TestSaveAgentToYAML:
         mock_agent_instance.name = "test_agent"
         mock_agent_instance.agent_type = "tool_calling"
         mock_agent_instance.role = "You are a test agent."
+        mock_agent_instance.user_prompt_template = None
         mock_agent_instance.tools = []
         mock_agent_instance.model_provider = "openai"
         mock_simple_agent.return_value = mock_agent_instance
@@ -208,6 +282,92 @@ class TestSaveAgentToYAML:
 
         with pytest.raises(KeyError, match="not found"):
             manager.save_agent_to_yaml("nonexistent", yaml_file)
+
+        # Cleanup
+        os.unlink(yaml_file)
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_save_agent_to_yaml_with_user_prompt_template(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
+        """Test saving agent with user_prompt_template to YAML file."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        # Create mock agent with user_prompt_template
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.name = "template_agent"
+        mock_agent_instance.agent_type = "tool_calling"
+        mock_agent_instance.role = "You are a test agent."
+        mock_agent_instance.user_prompt_template = "{user_input}\n\nBe concise."
+        mock_agent_instance.tools = []
+        mock_agent_instance.model_provider = "openai"
+        mock_simple_agent.return_value = mock_agent_instance
+
+        manager = AgentManager(config)
+        manager.create_agent("template_agent", role="You are a test agent.")
+
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml_file = f.name
+
+        manager.save_agent_to_yaml("template_agent", yaml_file)
+
+        # Verify file contains user_prompt_template
+        assert os.path.exists(yaml_file)
+
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        assert data["name"] == "template_agent"
+        assert data["user_prompt_template"] == "{user_input}\n\nBe concise."
+
+        # Cleanup
+        os.unlink(yaml_file)
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_save_agent_to_yaml_without_user_prompt_template(
+        self, mock_simple_agent: MagicMock
+    ) -> None:
+        """Test saving agent without user_prompt_template to YAML (field should not exist)."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            }
+        }
+
+        # Create mock agent without user_prompt_template
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.name = "no_template_agent"
+        mock_agent_instance.agent_type = "tool_calling"
+        mock_agent_instance.role = "You are a test agent."
+        mock_agent_instance.user_prompt_template = None
+        mock_agent_instance.tools = []
+        mock_agent_instance.model_provider = "openai"
+        mock_simple_agent.return_value = mock_agent_instance
+
+        manager = AgentManager(config)
+        manager.create_agent("no_template_agent", role="You are a test agent.")
+
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml_file = f.name
+
+        manager.save_agent_to_yaml("no_template_agent", yaml_file)
+
+        # Verify file does NOT contain user_prompt_template field
+        assert os.path.exists(yaml_file)
+
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        assert data["name"] == "no_template_agent"
+        assert "user_prompt_template" not in data
 
         # Cleanup
         os.unlink(yaml_file)

@@ -129,3 +129,38 @@ class TestAgentLifecycleMocked:
         # Try to run non-existent agent
         with pytest.raises(KeyError, match="Agent 'missing' not found"):
             agent_manager.run_agent("missing", "test")
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_user_prompt_template_integration(
+        self,
+        mock_tool_calling_agent: MagicMock,
+        mock_litellm: MagicMock,
+        test_config: dict,
+    ) -> None:
+        """Test user_prompt_template end-to-end (create, run, save, load)."""
+        # Setup mock agent response
+        mock_agent_instance = MagicMock()
+        mock_agent_instance.run.return_value = "The answer is 4"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Initialize AgentManager
+        agent_manager = AgentManager(test_config)
+
+        # Create agent with user_prompt_template
+        template = "{user_input}\n\nPlease be concise."
+        agent = agent_manager.create_agent(
+            "template_agent", user_prompt_template=template
+        )
+
+        # Verify agent was created with template
+        assert agent is not None
+        assert agent.user_prompt_template == template
+
+        # Run prompt through agent
+        agent_manager.run_agent("template_agent", "What is 2+2?")
+
+        # Verify the template was applied to the input
+        mock_agent_instance.run.assert_called_once_with(
+            "What is 2+2?\n\nPlease be concise.", reset=True
+        )

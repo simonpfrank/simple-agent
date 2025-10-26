@@ -1,7 +1,7 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 1.5 - YAML Agent Definitions
+**Current Phase**: Phase 1.6 - Simplify Prompts & Add User Prompt Templates
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
@@ -9,6 +9,7 @@
 **Phase 1.3 Completed**: 2025-10-23
 **Phase 1.4 Completed**: 2025-10-25
 **Phase 1.5 Completed**: 2025-10-25
+**Phase 1.6 Completed**: 2025-10-26
 
 ---
 
@@ -22,7 +23,114 @@
 - **Phase 1.3**: Configuration Management (✅ Completed) - See below
 - **Phase 1.4**: Tool Management (✅ Completed) - See below
 - **Phase 1.5**: YAML Agent Definitions (✅ Completed) - See below
+- **Phase 1.6**: Simplify Prompts & Add User Prompt Templates (✅ Completed) - See below
 - **Phase 1**: Interactive & Inspection Features (🟡 In Progress) - See `docs/phases/PHASE_1.md`
+
+---
+
+## Phase 1.6: Simplify Prompts & Add User Prompt Templates ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-26
+**Total Tests**: 194 (160 unit + 34 integration, all passing)
+**Architecture**: User prompt templates with YAML integration, removed over-engineered template system
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **Part 1: Template Removal** | | | | | |
+| Removed prompt template system | ✅ Done | ✅ Done | ✅ Done | ✅ Pass | ✅ Pass |
+| ConfigManager.load_prompt_template() | ✅ Removed | ✅ Removed | ⏭️ N/A | ⏭️ N/A | ⏭️ N/A |
+| SimpleAgent template parameter | ✅ Removed | ✅ Removed | ✅ Removed | ⏭️ N/A | ⏭️ N/A |
+| AgentManager template parameter | ✅ Removed | ✅ Removed | ✅ Removed | ⏭️ N/A | ⏭️ N/A |
+| /agent create --template option | ✅ Removed | ✅ Removed | ⏭️ N/A | ⏭️ N/A | ⏭️ N/A |
+| **Part 2: User Prompt Template** | | | | | |
+| SimpleAgent.user_prompt_template | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (4/4) | ✅ Pass (1/1) |
+| AgentManager user_prompt_template | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (2/2) | ✅ Pass (1/1) |
+| YAML user_prompt_template support | ✅ Done | ✅ Done | ⏭️ N/A | ✅ Pass (4/4) | ⏭️ N/A |
+
+### Phase 1.6 Implementation Summary
+
+**Part 1: Template Removal (Breaking Change)**
+- Removed entire `simple_agent/config/prompts/` directory and template files
+- Removed `ConfigManager.load_prompt_template()` method (40 lines)
+- Removed `template` parameter from `SimpleAgent.__init__()`
+- Removed `template` parameter from `AgentManager.create_agent()` (3 locations)
+- Removed `--template` option from `/agent create` command
+- Removed 7 template-related tests (4 ConfigManager + 2 SimpleAgent + 1 integration)
+- Fixed duplicate `@patch` decorator bug in `test_agent_lifecycle_mocked.py`
+- Result: 183 tests passing (down from 191)
+
+**Part 2: User Prompt Template (New Feature)**
+1. **SimpleAgent user_prompt_template**: Optional parameter to wrap user input before sending to LLM
+2. **AgentManager integration**: Pass user_prompt_template to created agents
+3. **YAML support**: Save and load user_prompt_template in agent YAML files
+4. **Template formatting**: Uses `{user_input}` placeholder with Python `.format()`
+5. **Chat mode support**: Template persists across chat turns (reset=False)
+
+**Architecture Decisions:**
+- ✅ Removed unused, over-engineered prompt template system
+- ✅ YAML already handles multi-line strings beautifully with `|` syntax
+- ✅ User prompt templates wrap user input, not system prompts
+- ✅ Optional feature - when None, user input passes through directly
+- ✅ Template applied consistently to all user input (run + chat)
+- ✅ Breaking change justified - no agents were actually using template feature
+
+**Use Cases:**
+```yaml
+# Chain-of-thought prompting
+user_prompt_template: |
+  {user_input}
+
+  Let's think through this step by step:
+  1. First, understand the question
+  2. Then, provide a clear answer
+
+# Concise responses
+user_prompt_template: "{user_input}\n\nPlease answer in 2-3 sentences maximum."
+
+# Code review focus
+user_prompt_template: |
+  Code Review Request:
+  {user_input}
+
+  Please review for:
+  - Security issues
+  - Performance concerns
+  - Code style
+```
+
+**Files Deleted:**
+- `simple_agent/config/prompts/default.yaml`
+- `simple_agent/config/prompts/researcher.yaml`
+- Entire `simple_agent/config/prompts/` directory
+
+**Files Modified (Part 1):**
+- `simple_agent/core/config_manager.py` - Removed load_prompt_template() (40 lines removed)
+- `simple_agent/agents/simple_agent.py` - Removed template parameter
+- `simple_agent/core/agent_manager.py` - Removed template parameter (3 locations)
+- `simple_agent/commands/agent_commands.py` - Removed --template option
+- `tests/unit/test_config_manager.py` - Removed 4 template tests
+- `tests/unit/test_simple_agent.py` - Removed 2 template tests
+- `tests/unit/test_agent_manager.py` - Removed 1 template test
+- `tests/integration/test_agent_lifecycle_mocked.py` - Removed 1 test, fixed duplicate decorator
+
+**Files Modified (Part 2):**
+- `simple_agent/agents/simple_agent.py` - Added user_prompt_template parameter and formatting logic
+- `simple_agent/core/agent_manager.py` - Added user_prompt_template parameter to create_agent() and YAML methods
+- `tests/unit/test_simple_agent.py` - Added 4 new user_prompt_template tests
+- `tests/unit/test_agent_manager.py` - Added 2 new user_prompt_template tests
+- `tests/unit/test_agent_yaml.py` - Added 4 new YAML tests (2 load + 2 save)
+- `tests/integration/test_agent_lifecycle_mocked.py` - Added 1 integration test
+
+**Test Results:**
+- Part 1: 183 tests passing (191 - 8 removed tests)
+- Part 2 additions: 11 new tests (4 SimpleAgent + 2 AgentManager + 4 YAML + 1 integration)
+- Final: 194 tests passing (160 unit + 34 integration) ✅
+
+**Migration Guide:**
+- **Breaking**: `template` parameter removed from all APIs
+- **Migration**: Use `role` field in YAML or `--role` in CLI for system prompts
+- **New feature**: Use `user_prompt_template` to wrap user input (not system prompts)
+- **YAML multi-line**: Use `|` syntax for long prompts directly in `role:` field
 
 ---
 
@@ -453,6 +561,10 @@ metadata:
 - None currently - ready to start Phase 0.5
 
 ### Recent Changes
+- 2025-10-26: ✅ Phase 1.6 COMPLETED - Simplify Prompts & Add User Prompt Templates
+- 2025-10-26: ✅ Part 2: Added user_prompt_template feature (11 new tests)
+- 2025-10-26: ✅ Part 1: Removed over-engineered prompt template system (8 tests removed)
+- 2025-10-26: ✅ All 194 tests passing (160 unit + 34 integration)
 - 2025-10-25: ✅ Phase 1.5 COMPLETED - YAML Agent Definitions
 - 2025-10-25: ✅ Implemented YAML agent loading (load_agent_from_yaml)
 - 2025-10-25: ✅ Implemented YAML agent saving (save_agent_to_yaml)
@@ -508,5 +620,5 @@ metadata:
 
 ---
 
-**Last Updated**: 2025-10-25
+**Last Updated**: 2025-10-26
 **Next Phase**: Phase 2 - Next set of features (TBD)

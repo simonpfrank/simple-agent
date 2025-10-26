@@ -55,6 +55,7 @@ class TestPhase1_5YAMLAgents:
         mock_agent_instance.name = "test_agent"
         mock_agent_instance.agent_type = "tool_calling"
         mock_agent_instance.role = "You are a test agent."
+        mock_agent_instance.user_prompt_template = None
         mock_agent_instance.tools = []
         mock_agent_instance.model_provider = "openai"
         mock_simple_agent.return_value = mock_agent_instance
@@ -156,6 +157,7 @@ role: "Agent 2"
         mock_agent_instance.name = "math_agent"
         mock_agent_instance.agent_type = "tool_calling"
         mock_agent_instance.role = "You are a math agent."
+        mock_agent_instance.user_prompt_template = None
         mock_agent_instance.tools = [mock_tool1, mock_tool2]
         mock_agent_instance.model_provider = "openai"
         mock_simple_agent.return_value = mock_agent_instance

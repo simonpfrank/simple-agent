@@ -31,6 +31,7 @@ class SimpleAgent:
         agent_type: Literal["tool_calling", "code"] = "tool_calling",
         executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker",
         debug_enabled: bool = False,
+        user_prompt_template: Optional[str] = None,
     ):
         """
         Initialize agent.
@@ -46,6 +47,7 @@ class SimpleAgent:
             agent_type: Agent type - "tool_calling" (safe, default) or "code" (requires Docker)
             executor_type: Executor for code agent - "docker" (default), "e2b", "modal", "wasm"
             debug_enabled: Enable debug mode (verbose output and logging)
+            user_prompt_template: Optional template to wrap user input. Use {user_input} placeholder.
 
         Raises:
             ValueError: If invalid agent_type or attempting to use unsafe executor
@@ -70,6 +72,7 @@ class SimpleAgent:
         self.debug_enabled = debug_enabled
         self.tools = tools or []  # Store tools list for access
         self.role = role
+        self.user_prompt_template = user_prompt_template
 
         # Create LiteLLM model instance
         self.model = self._create_model(model_provider, model_config)
@@ -191,10 +194,20 @@ class SimpleAgent:
         Returns:
             Agent response string
         """
+        # Apply user_prompt_template if set
+        if self.user_prompt_template:
+            formatted_prompt = self.user_prompt_template.format(user_input=prompt)
+            logger.debug(
+                f"Applied user_prompt_template to agent '{self.name}': "
+                f"{prompt[:30]}... -> {formatted_prompt[:50]}..."
+            )
+        else:
+            formatted_prompt = prompt
+
         logger.debug(
-            f"Running prompt for agent '{self.name}': {prompt[:50]}... (reset={reset})"
+            f"Running prompt for agent '{self.name}': {formatted_prompt[:50]}... (reset={reset})"
         )
-        result = self.agent.run(prompt, reset=reset)
+        result = self.agent.run(formatted_prompt, reset=reset)
         return str(result)
 
     def __repr__(self) -> str:

@@ -48,6 +48,7 @@ class AgentManager:
         provider: Optional[str] = None,
         role: Optional[str] = None,
         tools: Optional[List[str]] = None,
+        user_prompt_template: Optional[str] = None,
     ) -> SimpleAgent:
         """
         Create and register a new agent.
@@ -57,6 +58,7 @@ class AgentManager:
             provider: LLM provider (defaults to config)
             role: Agent role/persona (defaults to config)
             tools: List of tool names to attach to agent
+            user_prompt_template: Optional template to wrap user input. Use {user_input} placeholder.
 
         Returns:
             Created SimpleAgent instance
@@ -106,6 +108,7 @@ class AgentManager:
             agent_type=agent_type,
             executor_type=executor_type,
             debug_enabled=debug_enabled,
+            user_prompt_template=user_prompt_template,
         )
 
         # Register
@@ -316,6 +319,7 @@ class AgentManager:
         # Extract fields with defaults
         role = agent_data.get("role")
         tools = agent_data.get("tools", [])
+        user_prompt_template = agent_data.get("user_prompt_template")
 
         # Extract model settings (optional, will use config defaults)
         model_section = agent_data.get("model", {})
@@ -344,6 +348,7 @@ class AgentManager:
             provider=provider,
             role=role,
             tools=tools if tools else None,
+            user_prompt_template=user_prompt_template,
         )
 
         logger.info(f"Loaded agent '{name}' from YAML: {yaml_path}")
@@ -374,6 +379,10 @@ class AgentManager:
         # Add role if present
         if agent.role:
             agent_data["role"] = agent.role
+
+        # Add user_prompt_template if present
+        if agent.user_prompt_template:
+            agent_data["user_prompt_template"] = agent.user_prompt_template
 
         # Add tools if any
         if agent.tools:

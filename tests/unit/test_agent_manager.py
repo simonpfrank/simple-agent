@@ -135,6 +135,47 @@ class TestAgentManagerCreateAgent:
 
         assert result == mock_agent_instance
 
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_create_agent_with_user_prompt_template(
+        self, mock_simple_agent: Mock
+    ) -> None:
+        """Test creating agent with user_prompt_template parameter."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            },
+            "agents": {"default": {"role": "Test"}},
+        }
+
+        manager = AgentManager(config)
+        template = "{user_input}\n\nPlease answer concisely."
+        manager.create_agent("test_agent", user_prompt_template=template)
+
+        # Verify user_prompt_template was passed to SimpleAgent
+        call_kwargs = mock_simple_agent.call_args.kwargs
+        assert call_kwargs["user_prompt_template"] == template
+
+    @patch("simple_agent.core.agent_manager.SimpleAgent")
+    def test_create_agent_without_user_prompt_template(
+        self, mock_simple_agent: Mock
+    ) -> None:
+        """Test creating agent without user_prompt_template (should be None)."""
+        config = {
+            "llm": {
+                "provider": "openai",
+                "openai": {"model": "gpt-4o-mini", "api_key": "sk-test"},
+            },
+            "agents": {"default": {"role": "Test"}},
+        }
+
+        manager = AgentManager(config)
+        manager.create_agent("test_agent")
+
+        # Verify user_prompt_template was None (not specified)
+        call_kwargs = mock_simple_agent.call_args.kwargs
+        assert call_kwargs.get("user_prompt_template") is None
+
 
 class TestAgentManagerGetAgent:
     """Test agent retrieval functionality."""
