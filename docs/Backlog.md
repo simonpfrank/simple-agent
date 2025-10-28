@@ -75,6 +75,87 @@ Add support for non-text modalities in RAG.
 
 ---
 
+## Multi-Agent Workflow Enhancements (Post Phase 2.4)
+
+### Option C: Reasoning-Driven Graph Workflows
+**Priority:** Medium
+**Complexity:** High (8-10 hours)
+**Phase:** Phase 3+
+**Status:** Backlog (Phase 2.4 uses Option B instead)
+
+Advanced workflow system where the orchestrator reasons about the optimal path through a directed graph of agents.
+
+**Problem Solved:**
+- Phase 2.4 Option B uses Orchestrator Agent for sequential, intelligent routing
+- Option C enables complex branching workflows with dynamic path optimization
+- Useful for applications requiring sophisticated multi-path decision trees
+
+**Architecture:**
+```
+Agent Graph:
+┌─────────────┐
+│ Orchestrator│ (Meta-reasoning about paths)
+└──────┬──────┘
+       ├─→ Research Agent
+       │   └─→ ├─→ Analyzer (confidence check)
+       │       │   └─→ Writer (if high confidence)
+       │       └─→ Quality Checker (if low confidence)
+       │
+       ├─→ Data Extraction Agent
+       │   └─→ Validation Agent
+       │
+       └─→ Reporter Agent
+```
+
+**Key Features:**
+- Graph-based workflow definition (DAG - Directed Acyclic Graph)
+- Orchestrator reasons about which path to take based on:
+  - Agent output quality scores
+  - Complexity of request
+  - Available agents and their specialties
+  - Previous success patterns
+- Dynamic path selection (not hard-coded conditionals)
+- Support for parallel agent execution (if safe)
+- Automatic fallback paths if agent fails
+
+**Implementation Approach:**
+1. Graph definition in YAML or Python
+2. State machine for workflow execution
+3. Visualization of workflow execution paths
+4. Metadata tracking (which path was chosen and why)
+5. Learning from execution patterns (future enhancement)
+
+**When to Implement:**
+- After Phase 2.4 (Orchestrator Agent) is proven effective
+- When users request more complex, branching workflows
+- When workflow patterns emerge that need optimization
+
+**Related Components:**
+- `simple_agent/flows/graph_manager.py` - Graph-based flow management
+- `simple_agent/flows/path_optimizer.py` - Reasoning about optimal paths
+- `simple_agent/commands/flow_commands.py` - Enhanced `/flow show` with visualization
+
+**Example Use Case:**
+```
+User Query: "Analyze this dataset and write a comprehensive report"
+
+Orchestrator reasons:
+- "Dataset size is large" → parallel extraction agents
+- "Data quality is uncertain" → add validation agents
+- "High confidence in analysis" → skip re-analysis
+- "Need professional report" → add formatting agent
+
+Execution: Extract (parallel) → Validate → Analyze → Format → Report
+```
+
+**Dependencies with Phase 2.4:**
+- Phase 2.4 lays foundation with Orchestrator Agent pattern
+- Option C builds on Option B's infrastructure
+- Same agent composition and tool-calling mechanisms
+- Enhanced with graph reasoning layer
+
+---
+
 ## Configuration & CLI Enhancements
 
 ### CLI --set Flag for Config Overrides

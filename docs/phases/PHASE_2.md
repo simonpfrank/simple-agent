@@ -22,6 +22,30 @@ Phase 2 adds critical enhanced features that enable safer, more powerful, and kn
 
 ---
 
+## Foundation: SmolAgents MultiStepAgent & ReAct Framework
+
+**Important Context for Phase 2 Design:**
+
+All agents in Simple Agent use `ToolCallingAgent`, which extends SmolAgents' base `MultiStepAgent` class. This foundational class implements the **ReAct (Reasoning + Acting)** framework—a powerful capability that enables intelligent iteration *within each agent's execution*.
+
+### What This Means for Phase 2
+
+**MultiStepAgent provides:**
+1. **Iterative Reasoning** - Each step: reason about state → act (call tools) → reason about results
+2. **Built-in Fallback** - Agents automatically retry with different strategies if first attempt fails
+3. **Dynamic Tool Selection** - Agents choose tools based on intermediate reasoning
+4. **Memory Across Steps** - Agent recalls lessons from previous steps during current step
+
+**Implications for Phase 2 Sub-Phases:**
+- **2.1 Guardrails** - Built atop agent iteration; can validate at each step
+- **2.2 HITL** - Approval requests informed by agent reasoning
+- **2.3 RAG** - Context injected early so agent reasoning incorporates knowledge
+- **2.4 Multi-Agent** - Orchestrator leverages each agent's internal iteration + reasoning
+
+**Phase 2.4 Advantage:** Refinement loops, quality checks, and error recovery are more powerful because each agent is already iterating internally. Workflows coordinate *between* agents while each agent handles *within*-step refinement.
+
+---
+
 ## Phase 2.1: Guardrails 🛡️
 
 **Goal:** Add input/output validation for safety, compliance, and quality control
@@ -616,57 +640,86 @@ We'll use **Option 1** for cleaner separation.
 
 ## Phase 2.4: Multi-Agent Orchestration 🤝
 
-**Goal:** Enable agents to work together in workflows
+**Goal:** Enable agents to work together in workflows, leveraging ReAct iteration for intelligent refinement
 
 **Priority:** Medium (powerful but most complex)
 **Estimated Effort:** 5-6 hours
 
 ### Problem Statement
 
-Single agents are limited in scope. Complex tasks require breaking down into subtasks handled by specialized agents. Need coordination, result passing, and conditional routing.
+Single agents are limited in scope. Complex tasks require breaking down into subtasks handled by specialized agents. Need coordination, result passing, and conditional routing. Additionally, agents need ability to refine outputs and adapt strategies based on intermediate results.
 
 **Use Cases:**
-- Research → Summarize → Write report
-- Code generation → Code review → Fix issues
-- Data extraction → Data analysis → Visualization
-- Question → Search → Refine search → Answer
-- Web scraping → Content analysis → Action
+- Research → Summarize → Write report (with internal refinement at each step)
+- Code generation → Code review → Fix issues (reviewer feedback triggers auto-refinement)
+- Data extraction → Data analysis → Visualization (analyzer validates data quality)
+- Question → Search → Refine search → Answer (automatic retry with different search terms)
+- Web scraping → Content analysis → Action (analyzer requests deeper scraping if needed)
 
 ### Architecture
+
+**Leveraging MultiStepAgent & ReAct:**
+
+All agents in your system use `ToolCallingAgent`, which extends `MultiStepAgent` and implements the **ReAct (Reasoning + Acting)** framework. This means:
+
+1. **Built-in Iteration** - Each agent internally reasons → acts → reasons across multiple steps
+2. **Dynamic Tool Selection** - Agents choose appropriate tools based on intermediate results
+3. **Failure Recovery** - Agents can retry with different approaches without external intervention
+4. **Cross-Step Learning** - Agent memory preserves lessons from earlier steps
+
+**Phase 2.4 Workflows Benefit From:**
+- Agents naturally refine their outputs through multiple internal iterations
+- Orchestrator can check if agent output meets quality threshold (built-in fallback)
+- Agents share context of tool availability and success/failure patterns
+- Refinement loops use agent reasoning, not just string pattern matching
 
 **Flow Types:**
 
 **1. Sequential Flow** (simplest):
 ```
-Agent A → Agent B → Agent C
+Agent A [reason→act→reason→act] → Agent B [reason→act→reason] → Agent C
 ```
 
-**2. Conditional Routing**:
+**2. Conditional Routing with Intelligence**:
 ```
-Agent A → Decision → Agent B (if condition)
-                  → Agent C (otherwise)
-```
-
-**3. Refinement Loop**:
-```
-Agent A → Agent B (reviewer) → Good? → Done
-                             → Bad?  → Agent A (retry with feedback)
+Agent A → Decision (agent reasoning or pattern) → Agent B (if condition)
+                                               → Agent C (otherwise)
 ```
 
-**4. Agent Composition** (agent calls another agent as tool):
+**3. Refinement Loop** (leverages ReAct):
 ```
-Agent A needs help → Call Agent B as tool → Continue with result
+Agent A [researcher] → Internal iteration refinement
+                    ↓ (auto-retries if confidence low)
+Agent B [reviewer] → Quality check
+                    ↓ (if score < 8, feedback loops)
+Agent A [with feedback] → Re-research with guidance
+```
+
+**4. Orchestrator Agent** (new option):
+```
+Orchestrator Agent [reason about which agent to call]
+  ↓
+  Reasons: "Need research, then summarization"
+  ↓
+  Calls Agent A, B, C in sequence with reasoning
+```
+
+**5. Agent Composition** (agent calls another agent as tool):
+```
+Agent A [reason about when help needed] → Calls Agent B as tool → Continue with result
 ```
 
 ### YAML Flow Definition
 
-**Option 1: YAML-Defined Flows**
+**Option 1: YAML-Defined Flows** (Recommended for Phase 2.4)
 ```yaml
 name: "research_workflow"
-description: "Research, summarize, and write report"
+description: "Research, summarize, and write report with quality refinement"
 agents:
   - name: "researcher"
     config: "./config/agents/researcher.yaml"
+  - name: "quality_checker"
+    config: "./config/agents/quality_checker.yaml"
   - name: "summarizer"
     config: "./config/agents/summarizer.yaml"
   - name: "writer"
@@ -677,6 +730,23 @@ flow:
     agent: "researcher"
     input: "{user_query}"
     output_var: "research_results"
+    note: "Agent iterates internally (ReAct) until confident in findings"
+
+  - step: "quality_check"
+    agent: "quality_checker"
+    input: "Check quality of research: {research_results}"
+    output_var: "quality_assessment"
+    note: "Validates research quality before proceeding"
+
+  - step: "check_research_quality"
+    condition: "quality_assessment.score >= 8"
+    if_false:
+      # Leverage agent's internal refinement capability
+      - agent: "researcher"
+        input: "Improve research based on feedback: {quality_assessment.feedback}"
+        output_var: "research_results"
+        max_iterations: 2
+        note: "Agent's ReAct loop refines approach"
 
   - step: "summarize"
     agent: "summarizer"
@@ -704,6 +774,12 @@ def research_step(context):
     results = researcher.run(context.input)
     return {"research_results": results}
 
+@flow.step("quality_check")
+def quality_check_step(context):
+    checker = context.get_agent("quality_checker")
+    assessment = checker.run(f"Check quality: {context.research_results}")
+    return {"quality_assessment": assessment}
+
 @flow.step("summarize")
 def summarize_step(context):
     summarizer = context.get_agent("summarizer")
@@ -717,7 +793,64 @@ def write_report_step(context):
     return {"final_report": report}
 ```
 
-**Decision:** Start with **YAML flows** (simpler), add Python flows in Phase 3.
+**Decision:** **Phase 2.4 Primary Approach: Option B** - Smart Routing with Orchestrator Agent (below)
+
+### Orchestrator Agent Pattern (PRIMARY APPROACH for Phase 2.4 - Option B)
+
+**Phase 2.4 will implement Option B:** A smart routing system where an **Orchestrator Agent** reasons about which agents to call and in what order. This leverages each agent's ReAct iteration while adding intelligent, adaptive orchestration at the workflow level.
+
+The Orchestrator Agent:
+
+```yaml
+name: "smart_orchestrator"
+description: "Meta-agent that decides workflow execution"
+role: |
+  You are a workflow orchestrator. Your tools are other agents.
+  Based on the user's request, decide which agents to call and in what order.
+  Reason about whether intermediate results meet quality thresholds.
+
+tools:
+  - agent: "researcher"
+    description: "Research a topic and return detailed findings"
+  - agent: "analyzer"
+    description: "Analyze data or findings for quality and insights"
+  - agent: "writer"
+    description: "Write polished reports based on findings"
+
+instructions: |
+  1. Analyze the user request
+  2. Decide which agents to call (you may skip some based on request type)
+  3. Call agents in logical order (reasoning before each call)
+  4. Evaluate quality of intermediate results
+  5. If quality is poor, ask agent to refine or try different approach
+  6. Provide final response with reasoning
+```
+
+This pattern leverages each agent's internal ReAct iteration for intelligent, adaptive workflows.
+
+### Approaches Not in Phase 2.4 (Backlog)
+
+**Option A: Simple Enhancement** (Deferred - Too basic for complex workflows)
+- Keep YAML-based sequential flows
+- Rely on aggressive agent iteration within steps
+- No intelligent routing between agents
+- **Decision:** Insufficient for multi-agent complexity; moving to Phase 3 if needed
+
+**Option C: Full Leverage / Reasoning-Driven Graph** (Backlog for Phase 3+)
+- Workflow as directed graph with multiple paths
+- Orchestrator reasons about optimal path through agent graph
+- Full ReAct at orchestration level (meta-reasoning about meta-reasoning)
+- Complex parsing, state management, visualization
+- **Decision:** Deferred to Phase 3+ when workflows become more complex
+- **When to Use:** After Phase 2.4 gains adoption and patterns emerge
+
+**Why Option B (Orchestrator Agent)?**
+- Leverages ReAct iteration at both levels (agents + orchestrator)
+- Simple to understand: "meta-agent coordinates other agents"
+- Flexible routing based on agent reasoning, not hard-coded rules
+- Agents can skip unnecessary steps (orchestrator decides)
+- Quality checks integrated naturally into reasoning
+- Foundation for future Options A or C if needed
 
 ### Conditional Routing
 
@@ -836,6 +969,65 @@ main_agent = agent_manager.create_agent(
 main_agent.run("Research quantum computing and summarize findings")
 ```
 
+### Leveraging MultiStepAgent Features in Phase 2.4
+
+To maximize the power of ReAct iteration, Phase 2.4 should:
+
+**1. Enable Longer Iteration Chains**
+```yaml
+# In agent YAML config
+settings:
+  max_steps: 15  # Allow agents to iterate more (default often 10)
+  verbosity: 2   # Show reasoning steps for debugging
+```
+
+**2. Use Quality Checks as Feedback**
+```yaml
+# Reviewer agent provides structured feedback
+- step: "review"
+  agent: "quality_reviewer"
+  input: |
+    Review this work: {previous_output}
+    Provide:
+    - score (1-10)
+    - feedback for improvement
+    - confidence level
+  output_var: "review"
+```
+
+**3. Conditional Retry with Context**
+```yaml
+- condition: "review.score < 8"
+  if_false:
+    - agent: "original_agent"
+      input: |
+        {original_input}
+
+        Previous attempt feedback:
+        {review.feedback}
+
+        Please improve based on this feedback.
+        Confidence level needed: {review.confidence}
+      output_var: "refined_output"
+      max_iterations: 2  # Limit retry attempts
+```
+
+**4. Monitor Tool Usage Across Steps**
+Each agent's history tracks which tools succeeded/failed. Use this to inform downstream agents:
+```yaml
+- step: "next_agent"
+  agent: "analyzer"
+  input: |
+    {previous_output}
+
+    Tools that were used: [research_web, search_api]
+    Success rate: {tools.success_rate}
+
+    Avoid tools that failed previously.
+```
+
+**Key Insight:** Agents already iterate internally via ReAct. Phase 2.4 focuses on orchestrating *between* agents while leveraging each agent's *internal* iteration for quality and refinement.
+
 ### REPL Commands
 
 ```bash
@@ -895,6 +1087,10 @@ main_agent.run("Research quantum computing and summarize findings")
 - [ ] REPL commands for flow management work
 - [ ] Error handling for failed agents
 - [ ] Flow execution is cancelable
+- [ ] **ReAct iteration leveraged** - Agents iterate internally within steps
+- [ ] **Quality feedback loops work** - Can pass reviewer feedback back to agents
+- [ ] **Orchestrator agent pattern documented** - For Phase 2.4+ advanced use cases
+- [ ] **Agent tool calls working** - Agents can call other agents as tools
 - [ ] All tests pass (unit + integration)
 - [ ] Documentation with examples
 
