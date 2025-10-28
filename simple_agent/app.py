@@ -31,6 +31,7 @@ from simple_agent.commands.inspection_commands import prompt, response
 from simple_agent.commands.debug_commands import debug
 from simple_agent.commands.history_commands import history
 from simple_agent.commands.tool_commands import tool
+from simple_agent.commands.collection_commands import collection
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +159,13 @@ def cli(context, config, repl_mode, debug):
             count = agent_manager.load_agents_from_directory(agents_dir)
             if count > 0:
                 logger.info(f"Auto-loaded {count} agents from {agents_dir}")
+
+    # Initialize CollectionManager (RAG)
+    if "collection_manager" not in context.obj:
+        from simple_agent.rag.collection_manager import CollectionManager
+        collections_dir = ConfigManager.get(config_dict, "rag.collections_dir", "./chroma_db")
+        collection_manager = CollectionManager(collections_dir)
+        context.obj["collection_manager"] = collection_manager
 
     # If no subcommand provided, start REPL mode
     if context.invoked_subcommand is None or repl_mode:
@@ -390,6 +398,7 @@ cli.add_command(response, name="response")
 cli.add_command(debug, name="debug")
 cli.add_command(history, name="history")
 cli.add_command(tool, name="tool")
+cli.add_command(collection, name="collection")
 
 
 def main():

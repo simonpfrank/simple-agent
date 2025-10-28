@@ -1,0 +1,13 @@
+name: maths
+agent_type: tool_calling
+role: You are a helpful maths agent
+tools:
+- add
+- subtract
+- multiply
+- divide
+model:
+  provider: openai
+metadata:
+  description: Agent 'maths'
+  version: 1.0.0

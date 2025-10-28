@@ -9,7 +9,7 @@ Usage: python count_project_lines.py
 
 from pathlib import Path
 
-SRC_DIR = Path().parent.parent / "column_matcher"
+SRC_DIR = Path().parent.parent / "simple_agent"
 TESTS_DIR = Path().parent.parent / "tests"
 DOCS_DIR = Path().parent.parent / "docs"
 README_PATH = Path().parent.parent / "README.md"

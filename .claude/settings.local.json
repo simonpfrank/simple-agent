@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh issue close 5 --repo simonpfrank/simple-agent --comment \"Fixed in commit 8730354. Removed process command registration from app.py.\")"
+      "Bash(gh issue close 5 --repo simonpfrank/simple-agent --comment \"Fixed in commit 8730354. Removed process command registration from app.py.\")",
+      "Bash(python -m pytest tests/unit/test_tool_manager.py -v)",
+      "Bash(python -m pytest tests/unit/test_tool_commands.py -v)",
+      "Bash(python -m pytest tests/unit/test_agent_tools.py -v)",
+      "Bash(python -m pytest tests/unit/test_agent_commands.py -v)",
+      "Bash(python -m pytest tests/integration/test_tool_integration.py -v)",
+      "Bash(python -m pytest tests/unit/ -v --tb=line)",
+      "Bash(git add docs/Progress_Tracker.md simple_agent/ tests/ tools/)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Implement Phase 1.4 - Tool Management\n\nImplemented comprehensive tool management system with ToolManager, tool \ncommands, and agent tool support following TDD methodology.\n\n## Features\n- ToolManager: Central registry for tool registration and retrieval\n- Tool commands: /tool list, /tool info\n- Agent tool support: create_agent with tools parameter\n- Agent tool commands: /agent tools, /agent add-tool, /agent remove-tool\n- Built-in calculator tools using SmolAgents @tool decorator\n\n## Architecture\n- Tools stored in tools/builtin/ directory\n- Dynamic tool loading with auto_load_builtin parameter\n- Tools attached to agents via SimpleAgent wrapper\n- Add/remove tools dynamically to existing agents\n- Tools synced between SimpleAgent.tools and SmolAgents agent.tools\n\n## Files Created (9)\n- simple_agent/core/tool_manager.py (147 lines)\n- simple_agent/commands/tool_commands.py (130 lines)\n- tools/builtin/calculator.py (4 calculator tools)\n- tests/unit/test_tool_manager.py (14 tests)\n- tests/unit/test_tool_commands.py (6 tests)\n- tests/unit/test_agent_tools.py (6 tests)\n- tests/unit/test_agent_commands.py (11 tests)\n- tests/integration/test_tool_integration.py (10 tests)\n\n## Files Modified (4)\n- simple_agent/core/agent_manager.py - Added tool management methods\n- simple_agent/agents/simple_agent.py - Added tools attribute\n- simple_agent/commands/agent_commands.py - Added tool commands\n- docs/Progress_Tracker.md - Phase 1.4 completion\n\n## Tests\n- Unit: 37 new tests (147 total, all passing)\n- Integration: 10 tests (all passing)\n- TDD: All tests written before implementation\nEOF\n)\")",
+      "Bash(python -m pytest tests/unit/test_agent_yaml.py -v)"
     ],
     "deny": [],
     "ask": []
