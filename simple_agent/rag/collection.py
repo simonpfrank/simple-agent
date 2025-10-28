@@ -33,8 +33,14 @@ class Collection:
         ids = [doc["id"] for doc in documents]
         texts = [doc["content"] for doc in documents]
 
+        # Filter out None values from metadata (Chroma doesn't accept them)
+        filtered_metadata = []
+        for metadata in metadata_list:
+            filtered = {k: v for k, v in metadata.items() if v is not None}
+            filtered_metadata.append(filtered)
+
         # Add to Chroma collection
-        self.chroma_collection.add(ids=ids, documents=texts, metadatas=metadata_list)
+        self.chroma_collection.add(ids=ids, documents=texts, metadatas=filtered_metadata)
 
         # Update collection document count
         self.metadata["document_count"] = len(documents)
