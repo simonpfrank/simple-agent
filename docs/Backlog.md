@@ -75,6 +75,179 @@ Add support for non-text modalities in RAG.
 
 ---
 
+## Agent-to-Agent Protocols (Future Architecture Support)
+
+### Agent Protocol Interface
+**Priority:** Medium
+**Complexity:** High (8-10 hours)
+**Phase:** Phase 3+ (after Phase 2.4 orchestration proven)
+**Status:** Backlog (enables future architecture migrations)
+
+**Problem Solved:**
+- Phase 2.4 orchestrates agents tightly coupled to SimpleAgent
+- If you switch to different agent architecture (e.g., LangGraph, Claude Subagents, AutoGen), current code breaks
+- Need standardized protocol for agent-to-agent communication
+- Allows "legacy" agents (Phase 2.4 SimpleAgent-based) to work with new agent types
+
+**Architecture:**
+
+Define a standardized **AgentProtocol** interface that any agent system can implement:
+
+```python
+# simple_agent/orchestration/agent_protocol.py
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
+
+class AgentProtocol(ABC):
+    """Standard interface for agent communication."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Agent identifier."""
+        pass
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """What this agent does (for orchestrator)."""
+        pass
+
+    @abstractmethod
+    def run(self, prompt: str) -> str:
+        """Execute agent with prompt."""
+        pass
+
+    @abstractmethod
+    def get_metadata(self) -> Dict[str, Any]:
+        """
+        Return execution metadata.
+
+        {
+            "execution_time": float,
+            "tool_calls": int,
+            "steps": int,
+            "success": bool,
+            "error": Optional[str]
+        }
+        """
+        pass
+
+class SimpleAgentAdapter(AgentProtocol):
+    """Adapter: wraps SimpleAgent to conform to AgentProtocol."""
+    def __init__(self, simple_agent: SimpleAgent):
+        self._agent = simple_agent
+
+    @property
+    def name(self) -> str:
+        return self._agent.name
+
+    def run(self, prompt: str) -> str:
+        return self._agent.run(prompt)
+
+    def get_metadata(self) -> Dict[str, Any]:
+        # Extract from self._agent.memory or agent execution tracking
+        pass
+```
+
+**Use Cases:**
+
+1. **Switching Agent Libraries:**
+   ```python
+   # Old: SimpleAgent-based orchestration
+   agents = [SimpleAgentAdapter(agent1), SimpleAgentAdapter(agent2)]
+
+   # New: Switch to LangGraph agents
+   agents = [LangGraphAgentAdapter(graph_agent1), LangGraphAgentAdapter(graph_agent2)]
+
+   # Orchestrator still works: it only knows AgentProtocol
+   orchestrator.run(agents)  # No code changes!
+   ```
+
+2. **Hybrid Architectures:**
+   ```python
+   # Mix different agent types seamlessly
+   agents = [
+       SimpleAgentAdapter(simple_agent),           # Phase 2.4 legacy
+       LangGraphAgentAdapter(graph_agent),         # New LangGraph agent
+       ClaudeSubagentAdapter(subagent),            # Anthropic Subagent
+   ]
+   # Orchestrator coordinates across all types
+   ```
+
+3. **Testing Without Full Implementation:**
+   ```python
+   class MockAgentAdapter(AgentProtocol):
+       """Mock agent for unit testing."""
+       def run(self, prompt: str) -> str:
+           return "mock response"
+   ```
+
+**Implementation Approach:**
+
+1. Define `AgentProtocol` ABC in `simple_agent/orchestration/agent_protocol.py`
+2. Create `SimpleAgentAdapter(AgentProtocol)` wrapper
+3. Update `OrchestratorAgent` to accept `AgentProtocol[]` instead of specific types
+4. Create adapters for future agent systems as needed
+5. Extensive unit tests for protocol compliance
+
+**Benefits:**
+
+- ✅ **Future-proof:** Switch agent architectures without rewriting orchestration
+- ✅ **Backward compatible:** Legacy Phase 2.4 agents keep working
+- ✅ **Flexible:** Mix different agent types in same workflow
+- ✅ **Testable:** Easy to create mock agents for testing
+- ✅ **Maintainable:** Clear interface contracts
+
+**When to Implement:**
+
+- After Phase 2.4 orchestration is stable and tested
+- When considering switching to new agent architecture
+- When wanting to support multiple agent types simultaneously
+- As "insurance policy" for future flexibility
+
+**Related Components:**
+
+- `simple_agent/orchestration/agent_protocol.py` - Protocol definition
+- `simple_agent/orchestration/adapters/` - Adapter implementations
+  - `simple_agent/orchestration/adapters/simple_agent_adapter.py`
+  - `simple_agent/orchestration/adapters/mock_adapter.py`
+  - `simple_agent/orchestration/adapters/langgraph_adapter.py` (future)
+  - `simple_agent/orchestration/adapters/subagent_adapter.py` (future)
+- `tests/unit/test_agent_protocol.py` - Protocol tests
+- `tests/unit/test_adapters.py` - Adapter tests
+
+**Example: Using with Phase 2.4 (After Implementation)**
+
+```python
+# Instead of:
+orchestrator = OrchestratorAgent(
+    agents=[agent1, agent2, agent3]  # Tightly coupled to SimpleAgent
+)
+
+# With AgentProtocol:
+orchestrator = OrchestratorAgent(
+    agents=[
+        SimpleAgentAdapter(agent1),
+        SimpleAgentAdapter(agent2),
+        SimpleAgentAdapter(agent3),
+    ]
+)
+
+# Later, when switching architectures:
+from simple_agent.orchestration.adapters import LangGraphAgentAdapter
+orchestrator = OrchestratorAgent(
+    agents=[
+        LangGraphAgentAdapter(graph_agent1),
+        LangGraphAgentAdapter(graph_agent2),
+        LangGraphAgentAdapter(graph_agent3),
+    ]
+)
+# Orchestrator code: unchanged!
+```
+
+---
+
 ## Multi-Agent Workflow Enhancements (Post Phase 2.4)
 
 ### Option C: Reasoning-Driven Graph Workflows
