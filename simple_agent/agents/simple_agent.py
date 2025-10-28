@@ -76,6 +76,7 @@ class SimpleAgent:
         self.verbosity = verbosity
         self.max_steps = max_steps
         self.user_prompt_template = user_prompt_template
+        self.rag_collection = None  # Connected RAG collection (set via set_rag_collection)
 
         # Render role template if it contains Jinja2 syntax
         if role:
@@ -262,6 +263,56 @@ class SimpleAgent:
                     max_tokens=max_tokens,
                 )
 
+    def set_rag_collection(self, collection: Optional[Any]) -> None:
+        """Set the RAG collection for this agent.
+
+        Args:
+            collection: Collection instance from CollectionManager or None
+        """
+        self.rag_collection = collection
+
+    def _inject_rag_context(self, prompt: str) -> str:
+        """Inject RAG context into prompt if collection is connected.
+
+        Args:
+            prompt: Original user prompt
+
+        Returns:
+            Prompt with RAG context injected, or original prompt if no collection
+        """
+        if not self.rag_collection:
+            return prompt
+
+        try:
+            # Retrieve relevant chunks from collection
+            retrieved = self.rag_collection.query(prompt, top_k=3)
+            if not retrieved:
+                return prompt
+
+            # Format retrieved context
+            context_parts = []
+            for result in retrieved:
+                context_parts.append(result.get("text", ""))
+
+            context_str = "\n---\n".join(context_parts)
+
+            # Inject into prompt
+            enhanced_prompt = f"""Context from knowledge base:
+---
+{context_str}
+---
+
+User query: {prompt}"""
+            logger.debug(
+                f"Injected RAG context for agent '{self.name}': "
+                f"retrieved {len(retrieved)} chunks"
+            )
+            return enhanced_prompt
+
+        except Exception as e:
+            logger.warning(f"Error retrieving RAG context: {e}")
+            return prompt
+
     def run(self, prompt: str, reset: bool = True) -> str:
         """
         Execute prompt through agent.
@@ -274,15 +325,18 @@ class SimpleAgent:
         Returns:
             Agent response string
         """
+        # Inject RAG context if collection is connected
+        prompt_with_context = self._inject_rag_context(prompt)
+
         # Apply user_prompt_template if set
         if self.user_prompt_template:
-            formatted_prompt = self._render_template(self.user_prompt_template, user_input=prompt)
+            formatted_prompt = self._render_template(self.user_prompt_template, user_input=prompt_with_context)
             logger.debug(
                 f"Applied user_prompt_template to agent '{self.name}': "
                 f"{prompt[:30]}... -> {formatted_prompt[:50]}..."
             )
         else:
-            formatted_prompt = prompt
+            formatted_prompt = prompt_with_context
 
         logger.debug(
             f"Running prompt for agent '{self.name}': {formatted_prompt[:50]}... (reset={reset})"
