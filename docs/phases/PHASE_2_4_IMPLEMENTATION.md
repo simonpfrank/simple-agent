@@ -571,6 +571,18 @@ metadata:
 **Files:**
 - `tests/unit/test_agent_tool.py` (5 tests)
 
+**Human Testing (REPL):**
+Once unit tests pass, you can test in REPL:
+```bash
+# This won't work yet (Phase 2 not finished) but shows the goal:
+
+# Future: Expose AgentTool as callable
+# For now: Just verify imports work and no errors
+python -c "from simple_agent.orchestration.agent_tool import AgentTool; print('✓ AgentTool imports')"
+```
+
+**Note:** Phase 1 is internal infrastructure. Real REPL testing starts in Phase 2.
+
 ---
 
 ### Phase 2: OrchestratorAgent (1 hour)
@@ -590,6 +602,28 @@ metadata:
 
 **Files:**
 - `tests/unit/test_orchestrator_agent.py` (5 tests)
+
+**Human Testing (REPL):**
+Once unit and integration tests pass, you can test in REPL:
+```bash
+# Start REPL
+python -m simple_agent.app
+
+# Create some sub-agents first
+/agent create researcher config/agents/researcher.yaml
+/agent create writer config/agents/writer.yaml
+
+# Create orchestrator agent with sub-agents as tools
+# (Command not added yet - Phase 3)
+# This will work after Phase 3 FlowManager is complete
+```
+
+**What You Can Verify:**
+- ✅ Orchestrator agent created successfully with other agents as tools
+- ✅ Orchestrator can call sub-agents (via `agent.tools` list)
+- ✅ Output from sub-agents is captured in orchestrator's response
+- ✅ Memory is maintained across calls
+- ⚠️ No REPL commands yet (that's Phase 3)
 
 ---
 
@@ -617,6 +651,31 @@ metadata:
 - `tests/unit/test_flow_validator.py` (3 tests)
 - `config/flows/example_research.yaml` (example flow)
 
+**Human Testing (REPL):**
+Once unit and integration tests pass, you can test in REPL:
+```bash
+# Start REPL
+python -m simple_agent.app
+
+# Create agents that will be used in the flow
+/agent create researcher config/agents/researcher.yaml
+/agent create quality_checker config/agents/quality_checker.yaml
+/agent create writer config/agents/writer.yaml
+
+# Load a flow from YAML (Phase 4 commands not added yet)
+# This is tested programmatically for now
+# /flow load research_workflow config/flows/example_research.yaml
+```
+
+**What You Can Verify:**
+- ✅ Flow YAML files load without errors
+- ✅ Flow validator catches invalid configs
+- ✅ Agent references in flows resolve correctly
+- ✅ Orchestrator created from flow with correct sub-agents
+- ✅ Flow Manager lists available flows
+- ⚠️ No REPL commands yet (that's Phase 4)
+- ⚠️ No flow execution yet (that needs orchestrator running)
+
 ---
 
 ### Phase 4: REPL Commands (1 hour)
@@ -639,6 +698,63 @@ metadata:
 - `simple_agent/commands/flow_commands.py`
 - `tests/unit/test_flow_commands.py` (6 tests)
 
+**Human Testing (REPL):**
+Once unit and integration tests pass, you can test in REPL:
+```bash
+# Start REPL
+python -m simple_agent.app
+
+# List available flows
+/flow list
+# Output:
+#   research_workflow  - Research, summarize, and write report
+
+# Show flow definition
+/flow show research_workflow
+# Output: (YAML formatted, shows agents and orchestrator config)
+
+# Run a flow with input
+/flow run research_workflow "Tell me about quantum computing"
+# Output: Orchestrator reasoning + final result
+
+# Debug flow execution step-by-step
+/flow debug research_workflow "quantum computing"
+# Output: Each step shown with reasoning, agent calls, outputs
+
+# Create a new flow from template (if implemented)
+/flow create my_workflow --template research
+```
+
+**What You Can Do:**
+- ✅ List all available flows
+- ✅ Show flow definition in readable format
+- ✅ Run flows with natural language input
+- ✅ See orchestrator's reasoning about which agents to call
+- ✅ See sub-agent outputs as they're called
+- ✅ Debug flows step-by-step to understand execution
+- ✅ Full multi-agent orchestration in REPL!
+
+**Demonstration Workflow:**
+```bash
+# 1. Create researcher and writer agents
+/agent create researcher config/agents/researcher.yaml
+/agent create writer config/agents/writer.yaml
+
+# 2. List available flows
+/flow list
+
+# 3. Run research workflow
+/flow run research_workflow "What is artificial intelligence?"
+
+# Expected output:
+# [Orchestrator reasoning about calling agents]
+# Calling researcher agent...
+# [Researcher finds info, returns results]
+# Calling writer agent...
+# [Writer creates article from research]
+# Final result: [Complete article]
+```
+
 ---
 
 ### Phase 5: Integration Tests & E2E (1 hour)
@@ -654,6 +770,38 @@ metadata:
 
 **Files:**
 - `tests/integration/test_phase_2_4.py` (7 tests)
+
+**Human Testing (REPL):**
+This phase is purely testing. All REPL functionality is already available from Phase 4.
+
+**Advanced Scenarios You Can Test:**
+```bash
+# Test with RAG-enabled researcher
+/agent create researcher config/agents/researcher.yaml  # with RAG
+/flow run research_workflow "What's in my documents?"
+
+# Test with approval gates (Phase 2.2 integration)
+# Writer agent might ask for approval on sensitive outputs
+/approve
+# or
+/reject
+
+# Test with guardrails (Phase 2.1 integration)
+# Try input with PII - guardrails should block it
+/flow run research_workflow "Contact john@example.com about project"
+# [Guardrails block PII, returns error]
+
+# Test orchestrator error recovery
+/flow run research_workflow "Research X" --verbose
+# See orchestrator reasoning about handling failures
+```
+
+**Integration Points Verified:**
+- ✅ Phase 2.1 Guardrails: Applied to orchestrator + sub-agents
+- ✅ Phase 2.2 HITL: Approval gates work for sensitive operations
+- ✅ Phase 2.3 RAG: Researcher can access documents
+- ✅ Error handling: Orchestrator recovers gracefully from failures
+- ✅ Memory: Agents maintain history across calls
 
 ---
 
