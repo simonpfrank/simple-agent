@@ -31,6 +31,7 @@ from simple_agent.commands.inspection_commands import prompt, response
 from simple_agent.commands.debug_commands import debug
 from simple_agent.commands.history_commands import history
 from simple_agent.commands.tool_commands import tool
+from simple_agent.commands.token_stats_commands import token
 from simple_agent.commands.collection_commands import collection
 from simple_agent.commands.flow_commands_cli import flow
 
@@ -404,6 +405,7 @@ cli.add_command(response, name="response")
 cli.add_command(debug, name="debug")
 cli.add_command(history, name="history")
 cli.add_command(tool, name="tool")
+cli.add_command(token, name="token")
 cli.add_command(collection, name="collection")
 cli.add_command(flow, name="flow")
 

@@ -76,6 +76,34 @@ class TokenTrackerManager:
             "model": model,
         })
 
+    def set_token_budget(self, agent_name: str, budget: int) -> None:
+        """Set token budget for an agent.
+
+        Args:
+            agent_name: Name of the agent
+            budget: Token budget (must be > 0)
+
+        Raises:
+            ValueError: If budget <= 0
+        """
+        if budget <= 0:
+            raise ValueError("Budget must be greater than 0")
+
+        if budget > 1_000_000_000:
+            raise ValueError("Budget cannot exceed 1 billion tokens")
+
+        if agent_name not in self._agent_stats:
+            self._agent_stats[agent_name] = {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+                "cost": 0.0,
+                "executions": [],
+                "token_budget": budget,
+            }
+        else:
+            self._agent_stats[agent_name]["token_budget"] = budget
+
     def get_agent_stats(self, agent_name: str) -> Optional[Dict]:
         """Get aggregated stats for an agent.
 
