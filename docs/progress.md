@@ -43,7 +43,7 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 | 3.2 | Token tracking | ✅ Done | 72/72 | 26/26 | f4b487c | ✅ | ❌ |
 | 3.3 | Token stats CLI | 🔴 Not started | 0/? | 0/? | — | — | — |
 | 3.4 | MCP integration | 🔴 Backlog | 0/? | 0/? | — | — | — |
-| 3.5 | Agent-to-agent | 🔴 Backlog | 0/? | 0/? | — | — | — |
+| 3.5 | Agent composition | 🔴 Backlog | 0/? | 0/? | — | — | — |
 | 3.6 | Python code tool | 🔴 Backlog | 0/? | 0/? | — | — | — |
 | 3.7 | Flow conditionals | 🔴 Backlog | 0/? | 0/? | — | — | — |
 
@@ -114,9 +114,11 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 ### Phase 3.3-3.7 Backlog Details:
 - **3.3 Token Stats CLI**: Commands for viewing/exporting token usage
 - **3.4 MCP Integration**: Model Context Protocol support (complex)
-- **3.5 Agent-to-Agent**: Agents calling other agents as tools
+- **3.5 Agent Composition**: Agents calling other agents as tools (see backlog.md for Agent Protocols, which is separate)
 - **3.6 Python Code Tool**: Sandboxed code execution
 - **3.7 Flow Conditionals**: If/else routing in orchestration flows
+
+**Note**: Agent Protocols (standardizing interfaces for different agent architectures) is in backlog.md and remains separate from Phase 3.5.
 
 See `phase_3_extensions.md` for full specs.
 

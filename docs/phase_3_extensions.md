@@ -216,22 +216,25 @@ dict_data = result.to_dict()    # Serialize to dict
 
 ---
 
-## Phase 3.5: Agent-to-Agent Communication 🔴 BACKLOG
+## Phase 3.5: Agent Composition (Agent as Tool) 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 6-10 hours
 
 ### Planned Features:
-1. **Agent Calling Agent**: One agent can call another agent as a tool
-2. **Message Passing**: Structured communication between agents
-3. **Agent Composition**: Chain agents together with results flowing through
-4. **Context Sharing**: Agents can share memory/history with called agents
+1. **Agent as Tool**: Expose agent as a callable tool for other agents
+2. **Tool-based Composition**: Chain agents together via tool calls
+3. **Context Injection**: Pass context and history between agent calls
+4. **Error Handling**: Graceful failure handling in agent chains
 
 ### Architecture:
-- Agent wrapper that exposes agent as callable tool
-- Message format for inter-agent communication
-- Context inheritance between agent calls
-- Error handling and timeout management
+- SimpleAgent wrapper that exposes agent as callable
+- Tool registration for inter-agent communication
+- Context/memory flow between agents
+- Timeout and error boundary management
+
+### Note:
+This is different from **Agent Protocols** (architectural adapter pattern in backlog.md). Agent Composition focuses on agents calling each other as tools within orchestration. Agent Protocols focuses on standardizing agent interfaces for switching between different agent architectures (SimpleAgent, LangGraph, Subagents, etc.)
 
 ---
 
