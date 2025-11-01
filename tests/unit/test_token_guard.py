@@ -26,7 +26,7 @@ class TestTokenGuardBasic:
             result = agent.run("test prompt")
 
             # Should execute normally
-            assert result == "Response"
+            assert str(result) == "Response"
             agent.agent.run.assert_called_once()
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
@@ -75,7 +75,7 @@ class TestTokenGuardBasic:
                 # Should log warning
                 mock_logger.warning.assert_called()
                 # But should still execute
-                assert result == "Response"
+                assert str(result) == "Response"
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     def test_token_guard_no_warning_without_threshold(self, mock_model: Mock) -> None:
@@ -99,7 +99,7 @@ class TestTokenGuardBasic:
                 # Should not log warning
                 assert not mock_logger.warning.called
                 # Should execute normally
-                assert result == "Response"
+                assert str(result) == "Response"
 
 
 class TestTokenGuardDefaultBehavior:
@@ -123,7 +123,7 @@ class TestTokenGuardDefaultBehavior:
             result = agent.run("test prompt")
 
             # Should execute normally (no guard active)
-            assert result == "Response"
+            assert str(result) == "Response"
             agent.agent.run.assert_called_once()
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
@@ -145,7 +145,7 @@ class TestTokenGuardDefaultBehavior:
             result = agent.run("test prompt")
 
             # Should execute without error
-            assert result == "Response"
+            assert str(result) == "Response"
 
 
 class TestTokenGuardPromptFormatting:
@@ -198,8 +198,10 @@ class TestTokenGuardPromptFormatting:
 
             agent.run("test prompt")
 
-            # estimate_tokens must be called before agent.run
-            assert call_order == ["estimate", "agent_run"]
+            # estimate_tokens called first for input (token guard), then agent.run, then estimate for output
+            assert call_order == ["estimate", "agent_run", "estimate"]
+            # Verify input estimate happens before agent run
+            assert call_order.index("estimate") < call_order.index("agent_run")
 
 
 class TestTokenGuardEdgeCases:
@@ -223,7 +225,7 @@ class TestTokenGuardEdgeCases:
             result = agent.run("test prompt")
 
             # Should be accepted
-            assert result == "Response"
+            assert str(result) == "Response"
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     def test_token_guard_one_over_budget(self, mock_model: Mock) -> None:
@@ -260,7 +262,7 @@ class TestTokenGuardEdgeCases:
             result = agent.run("")
 
             # Should execute
-            assert result == "Response"
+            assert str(result) == "Response"
             mock_estimate.assert_called()
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
@@ -280,7 +282,7 @@ class TestTokenGuardEdgeCases:
 
             # Should NOT raise - exactly at budget is OK
             result = agent.run("test prompt")
-            assert result == "Response"
+            assert str(result) == "Response"
 
 
 class TestTokenGuardWithRealTokenEstimation:
@@ -328,5 +330,5 @@ class TestTokenGuardWithRealTokenEstimation:
         result = agent.run("hello")
 
         # Should pass and execute
-        assert result == "Test response"
+        assert str(result) == "Test response"
         agent.agent.run.assert_called_once()

@@ -15,6 +15,9 @@ from smolagents.monitoring import LogLevel
 
 from simple_agent.core.config_manager import ConfigManager
 from simple_agent.tools.helpers.token_counter import estimate_tokens
+from simple_agent.tools.helpers.model_pricing import calculate_cost
+from simple_agent.core.agent_result import AgentResult
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,7 @@ class SimpleAgent:
 
         self.name = name
         self.model_provider = model_provider
+        self.model_config = model_config  # Store model config for token tracking
         self.agent_type = agent_type
         self.debug_enabled = debug_enabled
         self.tools = tools or []  # Store tools list for access
@@ -320,17 +324,18 @@ User query: {prompt}"""
             logger.warning(f"Error retrieving RAG context: {e}")
             return prompt
 
-    def run(self, prompt: str, reset: bool = True) -> str:
+    def run(self, prompt: str, reset: bool = True, track_tokens: bool = True) -> AgentResult:
         """
-        Execute prompt through agent with optional token budget protection.
+        Execute prompt through agent with optional token budget protection and tracking.
 
         Args:
             prompt: User input
             reset: If True, reset memory before running. If False, preserve memory
                    for multi-turn conversations. Default True for backwards compatibility.
+            track_tokens: If True, track and return token statistics. Default True.
 
         Returns:
-            Agent response string
+            AgentResult with response and token statistics
 
         Raises:
             ValueError: If prompt exceeds token budget
@@ -348,33 +353,52 @@ User query: {prompt}"""
         else:
             formatted_prompt = prompt_with_context
 
-        # Token budget guard: check prompt size before sending to LLM
-        # Include system role + user prompt in token count
-        if self.token_budget is not None:
+        # Estimate input tokens
+        input_tokens = 0
+        if track_tokens:
             # Build full prompt including system role for accurate token counting
             full_prompt_for_counting = formatted_prompt
             if self.role:
                 full_prompt_for_counting = self.role + "\n" + formatted_prompt
+            input_tokens = estimate_tokens(full_prompt_for_counting)
 
-            prompt_tokens = estimate_tokens(full_prompt_for_counting)
-
-            if prompt_tokens > self.token_budget:
+        # Token budget guard: check prompt size before sending to LLM
+        if self.token_budget is not None:
+            if input_tokens > self.token_budget:
                 raise ValueError(
-                    f"Token budget exceeded: prompt has {prompt_tokens} tokens "
+                    f"Token budget exceeded: prompt has {input_tokens} tokens "
                     f"but budget is {self.token_budget}"
                 )
 
-            if self.token_warning_threshold is not None and prompt_tokens > self.token_warning_threshold:
+            if self.token_warning_threshold is not None and input_tokens > self.token_warning_threshold:
                 logger.warning(
                     f"Agent '{self.name}' approaching token limit: "
-                    f"{prompt_tokens}/{self.token_budget} tokens used"
+                    f"{input_tokens}/{self.token_budget} tokens used"
                 )
 
         logger.debug(
             f"Running prompt for agent '{self.name}': {formatted_prompt[:50]}... (reset={reset})"
         )
-        result = self.agent.run(formatted_prompt, reset=reset)
-        return str(result)
+        response = self.agent.run(formatted_prompt, reset=reset)
+        response_str = str(response)
+
+        # Estimate output tokens and calculate cost
+        output_tokens = 0
+        cost = Decimal("0")
+        if track_tokens:
+            output_tokens = estimate_tokens(response_str)
+            # Calculate cost based on model provider
+            model_name = self.model_config.get("model", "unknown")
+            cost = calculate_cost(model_name, input_tokens, output_tokens)
+
+        # Return AgentResult with backward compatibility (works as string)
+        return AgentResult.from_response(
+            response=response_str,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost=cost,
+            model=self.model_config.get("model", "unknown"),
+        )
 
     def __repr__(self) -> str:
         """Return string representation of agent."""

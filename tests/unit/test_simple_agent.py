@@ -132,7 +132,8 @@ class TestSimpleAgentRun:
 
         result = agent.run("What is 2+2?")
 
-        assert result == "This is the agent response"
+        # AgentResult should work as string (backward compatibility)
+        assert str(result) == "This is the agent response"
         mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
@@ -156,8 +157,11 @@ class TestSimpleAgentRun:
 
         result = agent.run("Test prompt")
 
-        assert isinstance(result, str)
-        assert "response" in result or "data" in result
+        # Result should be AgentResult, which contains the dict response
+        from simple_agent.core.agent_result import AgentResult
+        assert isinstance(result, AgentResult)
+        # Response should be dict that was converted to string
+        assert "response" in str(result) or "data" in str(result)
 
 
 class TestSimpleAgentRepr:
