@@ -41,8 +41,8 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 |-----------|-------------|--------|------------|------------------|--------|----------|--------|
 | 3.1 | Token budgets | ✅ Done | 25/25 | 10/10 | 3eea597 | ✅ | ❌ |
 | 3.2 | Token tracking | ✅ Done | 72/72 | 26/26 | f4b487c | ✅ | ❌ |
-| 3.3 | Budget awareness | 🟡 In Progress | 20/20 | 8/8 | — | — | — |
-| 3.4 | Token stats CLI | 🔴 Not started | 0/? | 0/? | — | — | — |
+| 3.3 | Budget awareness | ✅ Done | 31/31 | 10/10 | 6041b7e | ✅ | ❌ |
+| 3.4 | Token stats CLI | ✅ Done | 12/12 | 13/13 | TBD | ✅ | ❌ |
 | 3.5 | MCP integration | 🔴 Backlog | 0/? | 0/? | — | — | — |
 | 3.6 | Agent composition | 🔴 Backlog | 0/? | 0/? | — | — | — |
 | 3.7 | Python code tool | 🔴 Backlog | 0/? | 0/? | — | — | — |
@@ -66,9 +66,9 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 | Phase | Total Unit Tests | Total Integration Tests | Overall Status |
 |-------|-----------------|----------------------|----------------|
 | 0-2 | 381/381 | 52/52 | ✅ Complete |
-| 3 | 97/97 + 26 error tracking + 20 budget awareness | 34/34 | ✅ 3.1-3.3 Done, 3.4-3.8 Backlog |
+| 3 | 140/140 (25+72+31+12) | 59/59 (10+26+10+13) | ✅ 3.1-3.4 Done |
 | 4 | 0/? | 0/? | 🔴 Not Started |
-| **TOTAL** | **532 unit tests** | **86 integration tests** | **✅ 506 baseline + 26 error tracking** |
+| **TOTAL** | **521 unit tests** | **111 integration tests** | **✅ Complete through Phase 3.4** |
 
 ---
 
@@ -77,23 +77,26 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 ## Immediate Tasks (if context is lost, start here):
 
 ### Current Status:
-- ✅ Phase 3.1 & 3.2 complete with 512 unit tests passing
-- ✅ Error tracking implemented (f4b487c)
+- ✅ Phase 3.1 complete: Token budgets (25 unit + 10 integration tests)
+- ✅ Phase 3.2 complete: Token tracking & error handling (72 unit + 26 integration tests)
+- ✅ Phase 3.3 complete: Token budget awareness (31 unit + 10 integration tests)
+- ✅ Phase 3.4 complete: Token stats CLI commands (12 unit + 13 integration tests)
+  - TokenTrackerManager: Save/load persistence to JSON
+  - /token stats: Show overall or per-agent usage stats
+  - /token export: Export stats to JSON or CSV format
+  - /token budget: Show or set agent token budget
+  - /token cost: Show cost breakdown by agent or model
 - ✅ All phase files renamed to lowercase
-- ✅ phase_3_extensions.md created (3.1, 3.2 done; 3.3-3.7 backlog)
+- ✅ phase_3_extensions.md with detailed Phase 3 specs
 - ✅ phase_4_raspberrypi.md created
-- ✅ This progress.md created
-- 🔴 README.md needs update with examples
-- 🔴 Commit documentation changes
+- ✅ progress.md updated with all statuses
+- ✅ Documentation committed (ce9baae, 6041b7e, 48a4c47)
+- 🔴 README.md needs update with Phase 3.3 & 3.4 examples
 
 ### Next Priority:
-1. [ ] Update README.md to:
-   - Add Phase 3.1 & 3.2 examples (token budget, error tracking)
-   - Link to progress.md instead of old Progress_Tracker
-   - Add feature checklist showing what's done
-2. [ ] Commit all documentation changes
-3. [ ] (Optional) Create CONTRIBUTING.md with TDD guidelines
-4. [ ] (Optional) Create ROADMAP.md with effort estimates
+1. [ ] Update README.md with Phase 3.3 & 3.4 examples
+2. [ ] Manual testing: Token stats CLI commands in REPL
+3. [ ] (Optional) Phase 3.5+: MCP, Agent Composition, Python Code Tool, Flow Conditionals
 
 ### Key Links:
 - **Phase 0**: `phase_0_foundation.md`

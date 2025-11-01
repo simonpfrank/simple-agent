@@ -302,10 +302,10 @@ Total spent: 16,000 / 20,000 (80%)
 
 ---
 
-## Phase 3.4: Token Stats CLI Commands 🟡 IN PROGRESS
+## Phase 3.4: Token Stats CLI Commands ✅ COMPLETED
 
-**Status**: 🟡 In Progress (TDD implementation)
-**Tests**: 12 unit tests + 6 integration tests (estimated)
+**Status**: ✅ Completed on 2025-11-01
+**Tests**: 12 unit tests + 13 integration tests
 **Problem Solved**: Agents and operators need visibility into token usage and costs across executions and agents
 
 ### Features Implemented:
@@ -363,20 +363,20 @@ Total spent: 16,000 / 20,000 (80%)
 /token cost researcher          # Show costs for agent
 ```
 
-### Files to Create:
-- `simple_agent/core/token_tracker_persistence.py` (TokenTrackerManager with save/load)
-- `simple_agent/commands/token_stats_commands.py` (CLI command implementations)
-- `tests/unit/test_token_tracker_persistence.py` (8 tests)
-- `tests/unit/test_token_stats_commands.py` (4 tests)
-- `tests/integration/test_token_stats_integration.py` (6 tests)
+### Files Created:
+- `simple_agent/core/token_tracker_persistence.py` (227 lines, TokenTrackerManager with save/load)
+- `simple_agent/commands/token_stats_commands.py` (380 lines, CLI command implementations)
+- `tests/unit/test_token_tracker_persistence.py` (207 lines, 12 tests)
+- `tests/integration/test_token_stats_integration.py` (307 lines, 13 integration tests)
 
-### Files to Modify:
-- `simple_agent/commands/__init__.py` - Register new token stats commands
-- `docs/phase_3_extensions.md` - This file
+### Files Modified:
+- `docs/phase_3_extensions.md` - This file (Phase 3.4 status update)
+- `docs/progress.md` - Test counts and status updates
 
 ### Test Results:
-- Unit tests: 12/12 passing ✅ (estimated)
-- Integration tests: 6/6 passing ✅ (estimated)
+- Unit tests: 12/12 passing ✅
+- Integration tests: 13/13 passing ✅
+- **Total Phase 3.4**: 25 tests passing (12 + 13)
 
 ---
 
@@ -493,26 +493,28 @@ flows:
 
 ## Next Steps
 
-### Immediate (if context is lost, start here):
-1. ✅ Phase 3.1 & 3.2 complete with 512 tests passing
-2. ✅ Error tracking added (f4b487c commit)
-3. ✅ Documentation reorganized (ce9baae commit)
-4. 🟡 Phase 3.3 specification created - now implementing TDD
-5. 🔴 Phase 3.4-3.8 backlog items
+### Completed:
+1. ✅ Phase 3.1: Token budgets (25 unit + 10 integration tests)
+2. ✅ Phase 3.2: Token tracking & error handling (72 unit + 26 integration tests)
+3. ✅ Phase 3.3: Budget awareness (31 unit + 10 integration tests)
+4. ✅ Phase 3.4: Token stats CLI commands (12 unit + 13 integration tests)
 
-### Phase 3.3 Implementation Plan:
-1. Create TokenBudgetContext dataclass in `simple_agent/core/token_budget_context.py`
-2. Modify SimpleAgent.run() to accept `token_budget_override` and `token_warning_threshold_override`
-3. Inject TokenBudgetContext into system prompt via Jinja2 template context
-4. Add `max_tokens` parameter to `fetch_webpage_markdown` (and `tavily_search` if exists)
-5. Write 20 unit tests + 8 integration tests (TDD)
-6. Verify all tests passing before marking complete
+### Phase 3.4 Implementation Summary:
+- ✅ TokenTrackerManager: Persistent storage of token stats in JSON
+- ✅ /token stats: Show overall or per-agent token usage and costs
+- ✅ /token export: Export stats to JSON or CSV format
+- ✅ /token budget: Display or set agent token budgets
+- ✅ /token cost: Show cost breakdown by agent or model
+- ✅ All tests passing (12 unit + 13 integration)
 
-### Backlog Items for Phase 3.4-3.8:
-- **3.4 Token Stats CLI** - Commands for viewing/exporting token usage
-- **3.5 MCP Integration** - Model Context Protocol support (complex)
-- **3.6 Agent Composition** - Agents calling other agents as tools
-- **3.7 Python Code Tool** - Sandboxed code execution
-- **3.8 Flow Conditionals** - If/else routing in orchestration flows
+### Backlog Items for Phase 3.5-3.8:
+- **3.5 MCP Integration** - Model Context Protocol support (complex, 8-12 hours estimated)
+- **3.6 Agent Composition** - Agents calling other agents as tools (6-10 hours)
+- **3.7 Python Code Tool** - Sandboxed code execution (5-8 hours)
+- **3.8 Flow Conditionals** - If/else routing in orchestration flows (4-6 hours)
 
 All backlog items documented above with estimates and planned architecture.
+
+### Current Status for Phase 3:
+- **Complete**: 3.1, 3.2, 3.3, 3.4 (140 unit tests + 59 integration tests)
+- **Backlog**: 3.5-3.8
