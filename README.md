@@ -7,11 +7,14 @@ A lightweight agent framework built on SmolAgents for rapid experimentation with
 - **Agent Creation**: Define agents in YAML or Python, swap LLM providers instantly
 - **Tool Management**: Built-in calculator tools, custom tools via Python decorators
 - **Guardrails**: Input validation with PII detection and custom rule support
-- **Interactive Chat**: Chat mode with conversation history
-- **Memory Management**: Track agent interactions, save/load history
+- **Interactive Chat**: Chat mode with conversation history and memory management
+- **Memory Management**: Track agent interactions, save/load history via SmolAgents
 - **Agent Inspection**: View prompts, responses, execution history
-- **YAML Agent Definitions**: Persist agent configs with YAML
-- **Jinja2 Templates**: Dynamic prompts with variables, conditionals, filters
+- **YAML Agent Definitions**: Persist agent configs with full YAML support
+- **Jinja2 Templates**: Dynamic prompts with variables, conditionals, loops, filters
+- **Token Budget Protection**: Hard limits to prevent rate limit hits (prevents 30K TPM overages)
+- **RAG Foundation**: Chroma-based document collections with semantic search
+- **Multi-Agent Orchestration**: Orchestrator pattern for agent workflows with ReAct iteration
 - **REPL Interface**: Interactive CLI for agent management and execution
 
 ## Installation
@@ -142,6 +145,47 @@ Clear all conversation history
 Export conversation history to JSON
 ```
 
+### Collection Commands (RAG)
+
+```
+/collection create <name> [--embedding <model>] [--chunk-size N] [--overlap N]
+Create a new document collection with optional custom settings
+
+/collection list
+List all available collections
+
+/collection info <name>
+Show detailed collection statistics
+
+/collection delete <name>
+Delete a collection
+
+/collection connect <name> <agent_name>
+Connect agent to collection for RAG context injection
+
+/collection disconnect <agent_name>
+Disconnect agent from collection
+```
+
+### Flow Commands (Orchestration)
+
+```
+/flow list
+List all available workflows
+
+/flow show <name>
+Display workflow definition
+
+/flow run <name> <input>
+Execute workflow and get result
+
+/flow delete <name>
+Delete a workflow
+
+/flow debug <name> <input>
+Debug workflow execution with detailed output
+```
+
 ### Utility Commands
 
 ```
@@ -243,6 +287,122 @@ assistant> [response...]
 researcher> Tell me more about machine learning
 assistant> [response...]
 researcher> exit
+```
+
+### Token Budget Protection
+
+Prevent rate limit hits by setting hard limits on prompt size:
+
+```python
+agent = agent_mgr.create_agent(
+    name="researcher",
+    role="You are a research specialist",
+    token_budget=20000,              # Hard limit - reject prompts exceeding this
+    token_warning_threshold=18000,   # Soft limit - log warning when exceeded
+)
+
+# Prompt with 25K tokens will raise ValueError
+try:
+    response = agent.run("very long prompt...")
+except ValueError as e:
+    print(f"Token budget exceeded: {e}")
+    # Implement retry logic or use different agent
+```
+
+Or configure in YAML:
+
+```yaml
+agents:
+  researcher:
+    role: "You are a research specialist..."
+    token_budget: 20000
+    token_warning_threshold: 18000
+    tools:
+      - fetch_webpage_markdown
+      - tavily_web_search
+```
+
+**How It Works:**
+- Token count includes system role + user prompt (not just prompt)
+- Uses OpenAI's tiktoken for accurate GPT-4 token estimation
+- Guards prompt BEFORE sending to LLM to prevent rate limit hits
+- Prevents 30K TPM overages on OpenAI's API
+
+### RAG Foundation
+
+Create and query document collections with semantic search:
+
+```python
+from simple_agent.rag import CollectionManager
+
+collection_mgr = CollectionManager()
+
+# Create a collection
+collection = collection_mgr.create_collection(
+    name="knowledge_base",
+    embedding_model="openai",
+    chunk_size=1000,
+    overlap=200
+)
+
+# Add documents
+collection.add_documents(["document1.txt", "document2.md"])
+
+# Connect to agent for automatic RAG context injection
+agent.set_rag_collection(collection)
+
+# Agent will automatically retrieve and inject relevant context
+response = agent.run("What is mentioned in the documents?")
+```
+
+Or use the CLI:
+
+```bash
+> /collection create knowledge --embedding openai
+> /collection connect knowledge researcher
+> /agent run researcher "What is in the documents?"
+# Agent automatically retrieves and includes relevant context
+```
+
+### Multi-Agent Orchestration
+
+Define complex workflows with multiple agents:
+
+```yaml
+# config/flows/research_workflow.yaml
+name: "research_flow"
+agents:
+  - name: "planner"
+    role: "You plan research tasks"
+  - name: "researcher"
+    role: "You perform web research"
+  - name: "summarizer"
+    role: "You summarize findings"
+
+workflow:
+  - step: 1
+    agent: "planner"
+    task: "Create research plan"
+  - step: 2
+    agent: "researcher"
+    task: "Execute research based on plan"
+  - step: 3
+    agent: "summarizer"
+    task: "Summarize and organize findings"
+```
+
+Execute the workflow:
+
+```bash
+> /flow list
+> /flow run research_flow "Investigate AI trends in 2024"
+```
+
+Or in Python:
+
+```python
+flow_mgr = FlowManager(agent_mgr)
+result = flow_mgr.run_flow("research_flow", "Investigate AI trends")
 ```
 
 ### Agent Inspection
@@ -448,15 +608,25 @@ See `CLAUDE.md` in root for development guidelines.
 ## Status
 
 **Phase 1**: ✅ Complete (7 sub-phases)
-- Interactive chat, inspection, memory, config management, tools, YAML agents, templates
+- Interactive chat, inspection, memory, config management, tools, YAML agents, templates, Jinja2
 
 **Phase 2.1**: ✅ Complete
 - Guardrails: PII detection, custom rules, guardrail wrapper
 
-**Phase 2.2+**: 🔄 Planning
-- Human-in-the-loop approval
-- RAG document retrieval
-- Multi-agent orchestration
+**Phase 2.2**: ✅ Complete
+- Human-in-the-loop approval gates
+
+**Phase 2.3**: ✅ Complete
+- RAG Foundation: Chroma-based collections with semantic search
+
+**Phase 2.4**: ✅ Complete
+- Multi-Agent Orchestration: Orchestrator pattern with ReAct iteration
+
+**Phase 3.1**: ✅ Complete
+- Token Budget Protection: Hard limits to prevent rate limit hits (30K TPM overages)
+
+**Phase 3.2+**: 🔄 Planning
+- Advanced token management: cost tracking, model-specific estimation
 
 See `docs/Progress_Tracker.md` for detailed phase status.
 

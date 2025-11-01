@@ -14,6 +14,7 @@ from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
 from smolagents.monitoring import LogLevel
 
 from simple_agent.core.config_manager import ConfigManager
+from simple_agent.tools.helpers.token_counter import estimate_tokens
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,8 @@ class SimpleAgent:
         executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker",
         debug_enabled: bool = False,
         user_prompt_template: Optional[str] = None,
+        token_budget: Optional[int] = None,
+        token_warning_threshold: Optional[int] = None,
     ):
         """
         Initialize agent.
@@ -50,6 +53,8 @@ class SimpleAgent:
             executor_type: Executor for code agent - "docker" (default), "e2b", "modal", "wasm"
             debug_enabled: Enable debug mode (verbose output and logging)
             user_prompt_template: Optional template to wrap user input. Use {user_input} placeholder.
+            token_budget: Hard limit on input prompt size (prevents rate limit hits)
+            token_warning_threshold: Soft warning threshold before token_budget
 
         Raises:
             ValueError: If invalid agent_type or attempting to use unsafe executor
@@ -77,6 +82,8 @@ class SimpleAgent:
         self.max_steps = max_steps
         self.user_prompt_template = user_prompt_template
         self.rag_collection = None  # Connected RAG collection (set via set_rag_collection)
+        self.token_budget = token_budget
+        self.token_warning_threshold = token_warning_threshold
 
         # Render role template if it contains Jinja2 syntax
         if role:
@@ -315,7 +322,7 @@ User query: {prompt}"""
 
     def run(self, prompt: str, reset: bool = True) -> str:
         """
-        Execute prompt through agent.
+        Execute prompt through agent with optional token budget protection.
 
         Args:
             prompt: User input
@@ -324,6 +331,9 @@ User query: {prompt}"""
 
         Returns:
             Agent response string
+
+        Raises:
+            ValueError: If prompt exceeds token budget
         """
         # Inject RAG context if collection is connected
         prompt_with_context = self._inject_rag_context(prompt)
@@ -337,6 +347,28 @@ User query: {prompt}"""
             )
         else:
             formatted_prompt = prompt_with_context
+
+        # Token budget guard: check prompt size before sending to LLM
+        # Include system role + user prompt in token count
+        if self.token_budget is not None:
+            # Build full prompt including system role for accurate token counting
+            full_prompt_for_counting = formatted_prompt
+            if self.role:
+                full_prompt_for_counting = self.role + "\n" + formatted_prompt
+
+            prompt_tokens = estimate_tokens(full_prompt_for_counting)
+
+            if prompt_tokens > self.token_budget:
+                raise ValueError(
+                    f"Token budget exceeded: prompt has {prompt_tokens} tokens "
+                    f"but budget is {self.token_budget}"
+                )
+
+            if self.token_warning_threshold is not None and prompt_tokens > self.token_warning_threshold:
+                logger.warning(
+                    f"Agent '{self.name}' approaching token limit: "
+                    f"{prompt_tokens}/{self.token_budget} tokens used"
+                )
 
         logger.debug(
             f"Running prompt for agent '{self.name}': {formatted_prompt[:50]}... (reset={reset})"

@@ -39,9 +39,6 @@ class AgentManager:
 
         logger.info("AgentManager initialized")
 
-        # Auto-load agents from config
-        self._load_agents_from_config()
-
     def create_agent(
         self,
         name: str,
@@ -49,6 +46,8 @@ class AgentManager:
         role: Optional[str] = None,
         tools: Optional[List[str]] = None,
         user_prompt_template: Optional[str] = None,
+        token_budget: Optional[int] = None,
+        token_warning_threshold: Optional[int] = None,
     ) -> SimpleAgent:
         """
         Create and register a new agent.
@@ -59,6 +58,8 @@ class AgentManager:
             role: Agent role/persona (defaults to config)
             tools: List of tool names to attach to agent
             user_prompt_template: Optional template to wrap user input. Use {user_input} placeholder.
+            token_budget: Hard limit on input prompt size
+            token_warning_threshold: Soft warning threshold before token_budget
 
         Returns:
             Created SimpleAgent instance
@@ -109,6 +110,8 @@ class AgentManager:
             executor_type=executor_type,
             debug_enabled=debug_enabled,
             user_prompt_template=user_prompt_template,
+            token_budget=token_budget,
+            token_warning_threshold=token_warning_threshold,
         )
 
         # Register
@@ -193,6 +196,9 @@ class AgentManager:
                 # Extract settings from config
                 role = agent_config.get("role")
                 provider = agent_config.get("provider")
+                tools = agent_config.get("tools")
+                token_budget = agent_config.get("token_budget")
+                token_warning_threshold = agent_config.get("token_warning_threshold")
 
                 # Skip if agent_name already exists (don't overwrite)
                 if agent_name in self.agents:
@@ -207,6 +213,9 @@ class AgentManager:
                         name=agent_name,
                         provider=provider,
                         role=role,
+                        tools=tools,
+                        token_budget=token_budget,
+                        token_warning_threshold=token_warning_threshold,
                     )
                     logger.info(f"Auto-loaded agent '{agent_name}' from config")
                 except Exception as e:
@@ -325,6 +334,9 @@ class AgentManager:
         model_section = agent_data.get("model", {})
         provider = model_section.get("provider")
 
+        # Extract agent settings (optional, will use config defaults)
+        settings_section = agent_data.get("settings", {})
+
         # If model settings provided, merge with config
         if model_section and provider:
             # Get base config for provider
@@ -341,6 +353,17 @@ class AgentManager:
             if provider not in self.config["llm"]:
                 self.config["llm"][provider] = {}
             self.config["llm"][provider].update(provider_config)
+
+        # If settings provided, merge with config agent defaults
+        if settings_section:
+            if "agents" not in self.config:
+                self.config["agents"] = {}
+            if "default" not in self.config["agents"]:
+                self.config["agents"]["default"] = {}
+            # Override defaults with YAML agent settings
+            for key in ["verbosity", "max_steps", "agent_type"]:
+                if key in settings_section:
+                    self.config["agents"]["default"][key] = settings_section[key]
 
         # Create agent using existing create_agent logic
         agent = self.create_agent(

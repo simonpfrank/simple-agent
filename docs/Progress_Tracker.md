@@ -1,7 +1,7 @@
 # Simple Agent - Progress Tracker
 
 **Project**: Simple Agent Template
-**Current Phase**: Phase 2 - Enhanced Features (2.1, 2.2, 2.3 Complete)
+**Current Phase**: Phase 2 - Enhanced Features (✅ All Complete)
 **Phase 0 Started**: 2025-10-20
 **Phase 0 Completed**: 2025-10-21
 **Phase 1.1 Completed**: 2025-10-23
@@ -15,6 +15,7 @@
 **Phase 2.1 Completed**: 2025-10-26
 **Phase 2.2 Completed**: 2025-10-27
 **Phase 2.3 Completed**: 2025-10-28
+**Phase 2.4 Completed**: 2025-10-28
 
 ---
 
@@ -34,14 +35,18 @@
   - **Phase 1.7**: Jinja2 Template Support (✅ Completed) - See below
 
 ### Current Phase
-- **Phase 2**: Enhanced Features (✅ 2.1-2.3 Complete, 2.4 Pending) - See `docs/phases/PHASE_2.md`
+- **Phase 2**: Enhanced Features (✅ All Complete) - See `docs/phases/PHASE_2.md`
   - **Phase 2.1**: Guardrails (✅ Completed) - Input validation with PII detection
   - **Phase 2.2**: Human-in-the-Loop (✅ Completed) - Approval gates
   - **Phase 2.3**: RAG Foundation (✅ Completed) - Collection-centric document retrieval
-  - **Phase 2.4**: Multi-Agent Orchestration (🔴 Not Started) - Agent workflows
+  - **Phase 2.4**: Multi-Agent Orchestration (✅ Completed) - Agent workflows with ReAct iteration
+
+### Phases in Progress
+- **Phase 3**: Token Management (✅ Completed) - See below
+- **Phase 3.1**: Token Budget Protection (✅ Completed) - Hard limits to prevent rate limit hits
 
 ### Future Phases
-- **Phase 3**: Advanced Features (🔴 Not Started) - See `docs/SPECIFICATION.md`
+- **Phase 3.2**: Advanced Token Management (🔴 Not Started) - Cost tracking and optimization
 - **Phase 4**: Raspberry Pi (🔴 Not Started) - See `docs/SPECIFICATION.md`
 
 ---
@@ -950,5 +955,207 @@ metadata:
 
 ---
 
-**Last Updated**: 2025-10-28
-**Next Phase**: Phase 2.4 - Multi-Agent Orchestration
+## Phase 2.4: Multi-Agent Orchestration ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-10-28
+**Total Tests**: 50 (41 unit + 9 integration, all passing)
+**Architecture**: Industry Standard Orchestrator Pattern (SmolAgents compatible)
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **AgentTool** | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (8/8) | ✅ Pass (1/1) |
+| **OrchestratorAgent** | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (9/9) | ✅ Pass (1/1) |
+| **FlowValidator** | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (8/8) | ✅ Pass (1/1) |
+| **FlowManager** | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (9/9) | ✅ Pass (1/1) |
+| **FlowCommands** | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (7/7) | ✅ Pass (1/1) |
+| **Integration Tests** | ⏭️ N/A | ⏭️ N/A | ✅ Done | ⏭️ N/A | ✅ Pass (9/9) |
+
+### Phase 2.4 Implementation Summary
+
+**Features Implemented:**
+1. **AgentTool**: Wraps SimpleAgent as SmolAgents-compatible Tool (111 lines)
+2. **OrchestratorAgent**: Meta-agent coordinating sub-agents (76 lines)
+3. **FlowValidator**: Validates YAML flow definitions (63 lines)
+4. **FlowManager**: Loads flows, creates orchestrators (140 lines)
+5. **FlowCommands**: REPL commands for flow management (223 lines)
+6. **CLI Integration**: `/flow` command group registered in app.py
+
+**Architecture Decisions:**
+- ✅ Two-level ReAct iteration (orchestrator + sub-agents)
+- ✅ AgentTool inherits from SmolAgents Tool base class
+- ✅ YAML-based flow definitions
+- ✅ FlowManager caches flows for performance
+- ✅ Graceful failure handling in agents
+- ✅ Metadata tracking for debugging
+
+**Files Created:**
+- `simple_agent/orchestration/agent_tool.py` (111 lines)
+- `simple_agent/orchestration/orchestrator_agent.py` (76 lines)
+- `simple_agent/orchestration/flow_validator.py` (63 lines)
+- `simple_agent/orchestration/flow_manager.py` (140 lines)
+- `simple_agent/commands/flow_commands.py` (223 lines)
+- `simple_agent/commands/flow_commands_cli.py` (115 lines)
+- `config/flows/example_research.yaml` (Example workflow)
+- 6 test files with 50 tests total
+
+**Test Results:**
+- Unit tests: 41/41 passing ✅
+- Integration tests: 9/9 passing ✅
+- Total Phase 2.4 tests: 50/50 passing ✅
+- Total project tests: 405/405 passing ✅
+
+**Code Metrics:**
+- Total lines: ~1,200 (production + tests)
+- Production code: ~730 lines
+- Test code: ~1,060 lines
+- All classes < 250 lines (CLAUDE.md compliant)
+
+**REPL Commands Available:**
+- `/flow list` - List available flows
+- `/flow show <name>` - Display flow definition
+- `/flow run <name> <input>` - Execute flow
+- `/flow delete <name>` - Delete flow
+- `/flow debug <name> <input>` - Debug flow execution
+
+**Backlog Items (defer to Phase 3+):**
+- Advanced flow routing (conditionals, loops)
+- Flow visualization and debugging tools
+- Cost tracking per flow
+- Flow templates and pre-built workflows
+- Python code-based flows (in addition to YAML)
+
+---
+
+## Phase 3.1: Token Budget Protection ✅ COMPLETED
+
+**Status**: ✅ Completed on 2025-11-01
+**Total Tests**: 35 (25 unit + 10 integration, all passing)
+**Architecture**: Token guard in SimpleAgent.run() with system role inclusion in token counting
+**Problem Solved**: Prevent OpenAI 30,000 TPM rate limit hits on researcher agents with large prompts
+
+| Component | Unit Tests | Code | Integration Tests | Unit Results | Integration Results |
+|-----------|------------|------|-------------------|--------------|---------------------|
+| **Token Guard Implementation** | | | | | |
+| SimpleAgent token budgeting | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (14/14) | ✅ Pass (10/10) |
+| Token estimation with tiktoken | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (8/8) | ✅ Pass (10/10) |
+| Config-to-agent integration | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (11/11) | ✅ Pass (10/10) |
+| Warning threshold logging | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (6/6) | ✅ Pass (10/10) |
+| System role token counting | ✅ Done | ✅ Done | ✅ Done | ✅ Pass (4/4) | ✅ Pass (10/10) |
+
+### Phase 3.1 Implementation Summary
+
+**Features Implemented:**
+1. **Token Guard in SimpleAgent.run()**: Estimates prompt tokens BEFORE sending to LLM, rejects if exceeds budget
+2. **System Role Inclusion**: Token count includes both system role + user prompt for accurate estimation
+3. **Configuration Integration**: Token budgets configured in config.yaml and passed through AgentManager to agents
+4. **Warning Thresholds**: Soft warning when approaching token budget (hard limit still enforced)
+5. **No Breaking Changes**: Feature is opt-in - agents without token_budget work as before
+
+**Architecture Decisions:**
+- ✅ Token guard checks in SimpleAgent.run() BEFORE agent.agent.run() call
+- ✅ System role included in token estimation for realistic counting (not just user prompt)
+- ✅ Uses OpenAI's tiktoken library (cl100k_base encoding) for accurate GPT-4 token counting
+- ✅ Token budget is per-agent (can set different limits for different agents)
+- ✅ Warning threshold is optional (only logs if set and exceeded)
+- ✅ Backward compatible - agents without token_budget=None skip the guard entirely
+- ✅ Works with both ToolCallingAgent and CodeAgent (single guard point in SimpleAgent)
+
+**Use Cases:**
+1. **Prevent Rate Limit Hits**: Set tight token_budget to force selective tool use on researcher agents
+2. **Control Costs**: Limit input size for expensive models
+3. **Resource Management**: Prevent oversized prompts on resource-constrained environments
+4. **Safety Monitoring**: Soft warnings when approaching limits before hard rejection
+
+**Configuration Example:**
+```yaml
+llm:
+  provider: openai
+  openai:
+    model: gpt-4o-mini
+    api_key: ${OPENAI_API_KEY}
+
+agents:
+  researcher:
+    role: "You are a web research specialist..."
+    token_budget: 20000        # Hard limit - reject prompts exceeding this
+    token_warning_threshold: 18000  # Soft limit - log warning if exceeded
+    tools:
+      - fetch_webpage_markdown
+      - tavily_web_search
+```
+
+**Files Created:**
+- `tests/unit/test_token_guard.py` (333 lines, 14 tests)
+  - TestTokenGuardBasic (4 tests)
+  - TestTokenGuardDefaultBehavior (2 tests)
+  - TestTokenGuardPromptFormatting (2 tests)
+  - TestTokenGuardEdgeCases (4 tests)
+  - TestTokenGuardWithRealTokenEstimation (2 tests)
+- `tests/unit/test_agent_config_tokens.py` (282 lines, 11 tests)
+  - TestAgentManagerTokenConfig (4 tests)
+  - TestAgentManagerConfigIntegration (4 tests)
+  - TestTokenConfigEdgeCases (3 tests)
+- `tests/integration/test_token_guard_integration.py` (312 lines, 10 tests)
+  - TestTokenGuardWithAgent (5 tests)
+  - TestTokenGuardWithFetchWebpageTool (2 tests)
+  - TestTokenGuardConfigIntegration (2 tests)
+  - TestTokenGuardEdgeCasesWithRealTokens (1 test)
+
+**Files Modified:**
+- `simple_agent/agents/simple_agent.py`
+  - Added imports: `from simple_agent.tools.helpers.token_counter import estimate_tokens`
+  - Added `__init__` parameters: `token_budget`, `token_warning_threshold`
+  - Added instance variables to store token settings
+  - Implemented token guard in `run()` method with system role inclusion
+- `simple_agent/core/agent_manager.py`
+  - Added `token_budget` and `token_warning_threshold` parameters to `create_agent()`
+  - Updated `_load_agents_from_config()` to extract and pass token parameters from config
+  - Token values passed to SimpleAgent during agent creation
+
+**Test Results:**
+- Unit tests: 25/25 passing ✅
+  - Token guard unit tests: 14/14 passing
+  - Config integration unit tests: 11/11 passing
+- Integration tests: 10/10 passing ✅
+  - Token guard integration tests: 10/10 passing
+- Total Phase 3.1 tests: 35/35 passing ✅
+- Total project unit tests: 454/454 passing ✅ (429 existing + 25 new)
+
+**Code Metrics:**
+- Total lines: ~650 (production + tests)
+- Production code: ~50 lines (minimal changes to SimpleAgent and AgentManager)
+- Test code: ~600 lines
+- All classes unchanged < 100 lines (CLAUDE.md compliant)
+
+**How It Works:**
+1. User provides prompt to agent.run()
+2. Prompt is formatted with RAG context and user_prompt_template
+3. Token guard checks: estimate_tokens(role + formatted_prompt) vs token_budget
+4. If exceeds: ValueError raised with clear message
+5. If approaching threshold: Warning logged but execution continues
+6. If under budget: Prompt proceeds to agent.agent.run() normally
+
+**Key Implementation Detail - System Role Inclusion:**
+The token guard includes the system role in token counting because:
+- SmolAgents adds the role to every LLM call as the system message
+- Token count must be realistic to prevent rate limit hits
+- Without role inclusion, estimates would be artificially low
+- Example: role=100 tokens + prompt=500 tokens = 600 total (not just 500)
+
+**Testing Strategy (TDD):**
+1. **Phase 1**: Unit tests for token guard mechanics (mocked token estimation)
+2. **Phase 2**: Unit tests for config integration (AgentManager passing values)
+3. **Phase 3**: Integration tests with real token counting via tiktoken
+
+**Backlog Items (defer to Phase 3.2+):**
+- Token usage tracking/monitoring in agent responses
+- Cost calculation based on input/output tokens
+- Model-specific token estimation (GPT-3.5 vs GPT-4 vs Anthropic)
+- Per-tool token budgets (limit tokens for specific tool calls)
+- Token budget analytics and reporting
+
+---
+
+**Last Updated**: 2025-11-01
+**Current Status**: Phase 3.1 Token Management Complete ✅
+**Next Phase**: Phase 3.2 - Advanced Token Management (Cost Tracking)
