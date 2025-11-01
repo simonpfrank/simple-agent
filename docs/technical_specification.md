@@ -5,12 +5,14 @@
 This specification defines the technical architecture, component design, and implementation details for the Simple Agent Template. It translates the PRD requirements into concrete technical decisions and patterns.
 
 **Related Documents:**
-- PRD: `/docs/PRD.md`
-- Progress Tracker: `/docs/Progress_Tracker.md`
+- PRD: `/docs/product_requirements.md`
+- Progress Tracker: `/docs/progress.md`
 - Phase Specifications:
-  - Phase 0: `docs/phases/PHASE_0.md` (✅ Completed)
-  - Phase 0.5: `docs/phases/PHASE_0.5.md` (🔴 Critical Priority)
-  - Phase 1: `docs/phases/PHASE_1.md`
+  - Phase 0: `docs/phase_0_foundation.md` (✅ Completed)
+  - Phase 1: `docs/phase_1_interactive.md` (✅ Completed)
+  - Phase 2: `docs/phase_2_enhanced_features.md` (✅ Completed)
+  - Phase 3: `docs/phase_3_extensions.md` (3.1-3.2 ✅, 3.3-3.7 🔴 Backlog)
+  - Phase 4: `docs/phase_4_raspberrypi.md` (🔴 Not Started)
 
 **Approach:** Build incrementally in phases, with clear functionality approval before each phase.
 
@@ -135,9 +137,9 @@ tests/
     └── test_config.yaml
 
 docs/
-├── PRD.md                      # Product requirements
-├── SPECIFICATION.md            # This file
-└── Progress_Tracker.md         # Development tracking
+├── product_requirements.md     # Product requirements
+├── technical_specification.md  # This file
+└── progress.md                 # Development tracking
 
 config.yaml                     # Main config file
 .env                           # API keys (gitignored)
@@ -625,20 +627,20 @@ This project is built incrementally in phases. Each phase has detailed specifica
 ### Phase Status
 
 - **Phase 0: Foundation** ✅ Completed
-  - See: `docs/phases/PHASE_0.md`
+  - See: `docs/phase_0_foundation.md`
   - ConfigManager, AgentManager, SimpleAgent
   - Basic REPL integration
   - All 54 tests passing
 
 - **Phase 0.5: Security Fix & Agent Type Architecture** 🔴 Not Started (CRITICAL PRIORITY)
-  - See: `docs/phases/PHASE_0.5.md`
+  - See: `docs/phase_0_5_security.md`
   - Switch from CodeAgent to ToolCallingAgent
   - Docker-based Python execution tool
   - Agent type selection architecture
   - Security validation
 
 - **Phase 1: Interactive & Inspection Features** ✅ Completed
-  - See: `docs/phases/PHASE_1.md`
+  - See: `docs/phase_1_interactive.md`
   - Interactive chat mode
   - Prompt/response inspection
   - YAML agent definitions
@@ -648,7 +650,7 @@ This project is built incrementally in phases. Each phase has detailed specifica
   - Jinja2 template support
 
 - **Phase 2: Enhanced Features** 📋 Planned
-  - See: `docs/phases/PHASE_2.md`
+  - See: `docs/phase_2_enhanced_features.md`
   - **2.1: Guardrails** - Input/output validation for safety
   - **2.2: Human-in-the-Loop** - Approval gates and interactive prompts
   - **2.3: RAG Foundation** - Document retrieval (text files initially)
@@ -742,7 +744,7 @@ This project is built incrementally in phases. Each phase has detailed specifica
 ## Next Steps
 
 1. **Get Specification Approval** from stakeholder (you!)
-2. **Create Progress Tracker** in `docs/Progress_Tracker.md`
+2. **Create Progress Tracker** in `docs/progress.md`
 3. **Begin Phase 0 Implementation** with TDD:
    - Write failing tests for ConfigManager
    - Implement ConfigManager
