@@ -12,6 +12,7 @@ class AgentResult:
     """Result of an agent execution with token and cost information.
 
     Provides backward compatibility by supporting both string and dict access.
+    Includes error tracking to indicate if execution was halted by an error.
     """
 
     response: Any  # The actual response from the agent
@@ -20,6 +21,8 @@ class AgentResult:
     total_tokens: int = 0  # Total tokens (input + output)
     cost: Decimal = Decimal("0")  # Cost in USD
     model: str = "unknown"  # Model name used
+    error: Optional[str] = None  # Error message if execution failed
+    error_type: Optional[str] = None  # Error class name (e.g., "ValueError")
 
     def __str__(self) -> str:
         """Return response as string for backward compatibility."""
@@ -36,9 +39,9 @@ class AgentResult:
         """Convert to dictionary for JSON serialization.
 
         Returns:
-            Dict with response and token stats
+            Dict with response, token stats, and error info if applicable
         """
-        return {
+        result = {
             "response": str(self.response),
             "tokens": {
                 "input_tokens": self.input_tokens,
@@ -49,6 +52,16 @@ class AgentResult:
             },
         }
 
+        # Add error information if an error occurred
+        if self.error is not None or self.error_type is not None:
+            result["error"] = {
+                "error_type": self.error_type,
+                "error_message": self.error,
+                "execution_halted": True,
+            }
+
+        return result
+
     @classmethod
     def from_response(
         cls,
@@ -57,6 +70,8 @@ class AgentResult:
         output_tokens: int = 0,
         cost: Decimal = Decimal("0"),
         model: str = "unknown",
+        error: Optional[str] = None,
+        error_type: Optional[str] = None,
     ) -> "AgentResult":
         """Create AgentResult from response and token info.
 
@@ -66,6 +81,8 @@ class AgentResult:
             output_tokens: Tokens in output
             cost: Cost in USD
             model: Model name
+            error: Error message if execution failed
+            error_type: Error class name (e.g., "ValueError")
 
         Returns:
             AgentResult instance
@@ -78,17 +95,25 @@ class AgentResult:
             total_tokens=total_tokens,
             cost=cost,
             model=model,
+            error=error,
+            error_type=error_type,
         )
 
     @classmethod
     def from_token_stats(
-        cls, response: Any, stats: TokenStats
+        cls,
+        response: Any,
+        stats: TokenStats,
+        error: Optional[str] = None,
+        error_type: Optional[str] = None,
     ) -> "AgentResult":
         """Create AgentResult from TokenStats.
 
         Args:
             response: The actual response
             stats: TokenStats object
+            error: Error message if execution failed
+            error_type: Error class name (e.g., "ValueError")
 
         Returns:
             AgentResult instance
@@ -100,4 +125,6 @@ class AgentResult:
             total_tokens=stats.total_tokens,
             cost=stats.cost,
             model=stats.model,
+            error=error,
+            error_type=error_type,
         )

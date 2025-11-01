@@ -1324,14 +1324,80 @@ dict_data = result.to_dict()    # Serialize to dict
 - Works in print: print(result)
 - Maintains existing code that expects strings
 
+### Phase 3.2 Enhancement: Error Tracking (Added 2025-11-01)
+
+After Phase 3.2 completion, implemented error tracking to provide visibility into execution failures:
+
+**Error Tracking Features:**
+1. **Error Capture**: AgentResult now includes error and error_type fields
+2. **Execution Halted Flag**: Indicates in to_dict() that execution was halted by error
+3. **Non-Raising Errors**: LLM execution errors are captured in result, not raised
+4. **Hard Limits Still Raise**: Token budget errors still raise ValueError (hard limit)
+5. **Partial Results**: Can capture partial response + token count even when error occurs
+
+**Error Tracking Implementation:**
+- AgentResult.error: Optional[str] - Error message
+- AgentResult.error_type: Optional[str] - Error class name (e.g., "RuntimeError")
+- to_dict() includes "execution_halted": True when error is present
+- SimpleAgent.run() wraps LLM execution in try-except to capture errors
+
+**Key Design Decision:**
+- Token budget errors RAISE (hard limits that prevent execution)
+- LLM/runtime errors are CAPTURED in result (soft failures that still return AgentResult)
+- This allows workflows to handle errors gracefully without propagating exceptions
+
+**Test Coverage (26 New Tests):**
+- AgentResult error tracking: 16 tests
+- SimpleAgent error handling: 10 tests
+- Token preservation on error
+- Different error types captured
+- Backward compatibility maintained
+
+**Files Added:**
+- tests/unit/test_agent_result_error_tracking.py (220 lines, 16 tests)
+- tests/unit/test_simple_agent_error_handling.py (195 lines, 10 tests)
+
+**Files Modified:**
+- simple_agent/core/agent_result.py - Added error tracking fields
+- simple_agent/agents/simple_agent.py - Wrapped LLM execution in try-except
+- tests/unit/test_simple_agent_error_handling.py - Updated token budget test
+
+**Usage Example:**
+```python
+result = agent.run("What is Python?")
+
+# Check for errors
+if result.error:
+    print(f"Error: {result.error_type}: {result.error}")
+    print(f"Tokens used before error: {result.input_tokens}")
+else:
+    print(f"Success: {result.response}")
+
+# Export with error info
+data = result.to_dict()
+# {
+#     "response": "...",
+#     "tokens": {...},
+#     "error": {
+#         "error_type": "APIError",
+#         "error_message": "Connection timeout",
+#         "execution_halted": True
+#     }
+# }
+```
+
+---
+
 **Next Steps (Future Phases):**
 - Integrate token tracking with Orchestrator for per-step reporting
 - Flow-level soft budgeting with warnings (not hard rejection)
 - Token stats CLI commands (/token stats, /token export)
-- README examples showing token tracking usage
+- Error aggregation across multi-step workflows
+- README examples showing token tracking and error handling
 
 ---
 
 **Last Updated**: 2025-11-01
-**Current Status**: Phase 3.2 Token Management Complete ✅
+**Current Status**: Phase 3.2 Token Management Complete ✅ (with Error Tracking)
+**Total Tests**: 512/512 passing (486 existing + 26 new)
 **Next Phase**: Phase 4 - Raspberry Pi Integration

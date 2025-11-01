@@ -335,11 +335,16 @@ User query: {prompt}"""
             track_tokens: If True, track and return token statistics. Default True.
 
         Returns:
-            AgentResult with response and token statistics
+            AgentResult with response and token statistics. If an error occurs,
+            result.error and result.error_type will be populated.
 
         Raises:
-            ValueError: If prompt exceeds token budget
+            ValueError: If prompt exceeds token budget (hard limit, not caught)
         """
+        input_tokens = 0
+        output_tokens = 0
+        cost = Decimal("0")
+
         # Inject RAG context if collection is connected
         prompt_with_context = self._inject_rag_context(prompt)
 
@@ -354,7 +359,6 @@ User query: {prompt}"""
             formatted_prompt = prompt_with_context
 
         # Estimate input tokens
-        input_tokens = 0
         if track_tokens:
             # Build full prompt including system role for accurate token counting
             full_prompt_for_counting = formatted_prompt
@@ -363,6 +367,7 @@ User query: {prompt}"""
             input_tokens = estimate_tokens(full_prompt_for_counting)
 
         # Token budget guard: check prompt size before sending to LLM
+        # NOTE: Token budget errors RAISE (hard limit), not captured in try-except
         if self.token_budget is not None:
             if input_tokens > self.token_budget:
                 raise ValueError(
@@ -379,26 +384,46 @@ User query: {prompt}"""
         logger.debug(
             f"Running prompt for agent '{self.name}': {formatted_prompt[:50]}... (reset={reset})"
         )
-        response = self.agent.run(formatted_prompt, reset=reset)
-        response_str = str(response)
 
-        # Estimate output tokens and calculate cost
-        output_tokens = 0
-        cost = Decimal("0")
-        if track_tokens:
-            output_tokens = estimate_tokens(response_str)
-            # Calculate cost based on model provider
-            model_name = self.model_config.get("model", "unknown")
-            cost = calculate_cost(model_name, input_tokens, output_tokens)
+        try:
+            response = self.agent.run(formatted_prompt, reset=reset)
+            response_str = str(response)
 
-        # Return AgentResult with backward compatibility (works as string)
-        return AgentResult.from_response(
-            response=response_str,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cost=cost,
-            model=self.model_config.get("model", "unknown"),
-        )
+            # Estimate output tokens and calculate cost
+            if track_tokens:
+                output_tokens = estimate_tokens(response_str)
+                # Calculate cost based on model provider
+                model_name = self.model_config.get("model", "unknown")
+                cost = calculate_cost(model_name, input_tokens, output_tokens)
+
+            # Return AgentResult with backward compatibility (works as string)
+            return AgentResult.from_response(
+                response=response_str,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost=cost,
+                model=self.model_config.get("model", "unknown"),
+            )
+
+        except Exception as e:
+            # Capture error information from LLM execution and other runtime errors
+            # Note: Token budget errors are raised BEFORE try block
+            error_message = str(e)
+            error_type = type(e).__name__
+            logger.error(
+                f"Agent '{self.name}' execution failed with {error_type}: {error_message}"
+            )
+
+            # Return AgentResult with error information
+            return AgentResult.from_response(
+                response="",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost=cost,
+                model=self.model_config.get("model", "unknown"),
+                error=error_message,
+                error_type=error_type,
+            )
 
     def __repr__(self) -> str:
         """Return string representation of agent."""
