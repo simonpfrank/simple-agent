@@ -123,11 +123,11 @@ def _create_stat_table(title: str, stats_dict: Dict[str, Any]) -> Table:
         stats_dict: Dict with input_tokens, output_tokens, total_tokens, cost
 
     Returns:
-        Formatted Rich Table
+        Formatted Rich Table with consistent styling
     """
-    table = Table(title=title)
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
+    table = Table(title=title, style="blue")
+    table.add_column("Metric", style="cyan", no_wrap=True)
+    table.add_column("Value", style="green", justify="right")
 
     table.add_row("Input Tokens", str(_get_stat(stats_dict, "input_tokens")))
     table.add_row("Output Tokens", str(_get_stat(stats_dict, "output_tokens")))
@@ -137,6 +137,56 @@ def _create_stat_table(title: str, stats_dict: Dict[str, Any]) -> Table:
     table.add_row("Cost (USD)", f"${cost:.{CURRENCY_DECIMAL_PLACES}f}")
 
     return table
+
+
+def _validate_budget_input(budget: int) -> Optional[str]:
+    """Validate budget input comprehensively.
+
+    Args:
+        budget: Budget value to validate
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if not isinstance(budget, int):
+        return "Budget must be an integer"
+
+    if budget <= 0:
+        return "Budget must be greater than 0"
+
+    if budget > 1_000_000_000:
+        return "Budget cannot exceed 1 billion tokens"
+
+    return None
+
+
+def _calculate_budget_percentage(used: int, budget: int) -> float:
+    """Calculate percentage of budget used with safe division.
+
+    Args:
+        used: Tokens used
+        budget: Token budget
+
+    Returns:
+        Percentage as float (0-100+)
+    """
+    if budget <= 0:
+        return 0.0
+
+    return (used / budget) * 100
+
+
+def _calculate_remaining_budget(used: int, budget: int) -> int:
+    """Calculate remaining budget tokens.
+
+    Args:
+        used: Tokens used
+        budget: Token budget
+
+    Returns:
+        Remaining tokens (0 if over budget)
+    """
+    return max(0, budget - used)
 
 
 def _collect_stats_data(
@@ -240,15 +290,15 @@ def token_stats(ctx, agent: Optional[str], period: int):
         console.print("[bold]Per-Agent Breakdown:[/bold]")
         console.print()
 
-        all_agents = manager.get_all_agent_stats()
-        if _has_agents(all_agents):
-            agent_table = Table()
-            agent_table.add_column("Agent", style="cyan")
-            agent_table.add_column("Tokens", style="green")
-            agent_table.add_column("Cost (USD)", style="green")
+        # Collect stats once to avoid redundant manager calls in loop
+        agent_period_stats = _collect_stats_data(manager, period=period)
+        per_agent = agent_period_stats.get("per_agent_stats", {})
 
-            agent_period_stats = _collect_stats_data(manager, period=period)
-            per_agent = agent_period_stats.get("per_agent_stats", {})
+        if per_agent:
+            agent_table = Table(style="blue")
+            agent_table.add_column("Agent", style="cyan", no_wrap=True)
+            agent_table.add_column("Tokens", style="green", justify="right")
+            agent_table.add_column("Cost (USD)", style="green", justify="right")
 
             for agent_name in sorted(per_agent.keys()):
                 stats = per_agent[agent_name]
@@ -256,10 +306,7 @@ def token_stats(ctx, agent: Optional[str], period: int):
                 cost = _get_stat(stats, "cost", 0.0)
                 agent_table.add_row(agent_name, str(tokens), f"${cost:.{CURRENCY_DECIMAL_PLACES}f}")
 
-            if agent_table.rows:
-                console.print(agent_table)
-            else:
-                console.print("[dim]No agents with token usage in this period[/dim]")
+            console.print(agent_table)
         else:
             console.print("[dim]No agents have recorded token usage[/dim]")
 
@@ -392,11 +439,25 @@ def token_budget(ctx, agent_name: Optional[str], set: Optional[int]):
         console.print()
         return
 
+    # Comprehensive input validation for agent_name
+    if not isinstance(agent_name, str) or not agent_name.strip():
+        console.print()
+        console.print("[red]Error:[/red] Agent name must be a non-empty string")
+        console.print()
+        return
+
     manager = _get_token_manager(ctx)
 
     console.print()
 
     if set is not None:
+        # Comprehensive budget validation
+        validation_error = _validate_budget_input(set)
+        if validation_error:
+            console.print(f"[red]Error:[/red] {validation_error}")
+            console.print()
+            return
+
         # Set new budget with validation
         try:
             manager.set_token_budget(agent_name, set)
@@ -413,9 +474,9 @@ def token_budget(ctx, agent_name: Optional[str], set: Optional[int]):
             console.print()
             return
 
-        table = Table(title=f"Token Budget: {agent_name}")
-        table.add_column("Metric", style="cyan")
-        table.add_column("Value", style="green")
+        table = Table(title=f"Token Budget: {agent_name}", style="blue")
+        table.add_column("Metric", style="cyan", no_wrap=True)
+        table.add_column("Value", style="green", justify="right")
 
         total_tokens = _get_stat(agent_stats, "total_tokens")
         cost = _get_stat(agent_stats, "cost", 0.0)
@@ -425,14 +486,18 @@ def token_budget(ctx, agent_name: Optional[str], set: Optional[int]):
         table.add_row("Total Cost (USD)", f"${cost:.{CURRENCY_DECIMAL_PLACES}f}")
 
         if token_budget and token_budget > 0:
-            percentage = (total_tokens / token_budget * 100)
-            remaining = max(0, token_budget - total_tokens)
+            # Improved budget calculation with safe division
+            percentage = _calculate_budget_percentage(total_tokens, token_budget)
+            remaining = _calculate_remaining_budget(total_tokens, token_budget)
             table.add_row("Token Budget", f"{token_budget:,}")
             table.add_row("Tokens Remaining", f"{remaining:,}")
 
-            # Flag if over-budget
+            # Flag if over-budget or approaching limit
             if percentage > 100:
                 table.add_row("Status", "[red]Over Budget[/red]")
+            elif percentage >= 90:
+                table.add_row("Status", "[yellow]Approaching Limit[/yellow]")
+                table.add_row("Usage (%)", f"{percentage:.1f}%")
             else:
                 table.add_row("Usage (%)", f"{percentage:.1f}%")
 
@@ -494,11 +559,11 @@ def token_cost(ctx, agent: Optional[str], by: str):
             console.print("[bold]Recent Executions:[/bold]")
             console.print()
 
-            exec_table = Table()
-            exec_table.add_column("Model", style="cyan")
-            exec_table.add_column("Tokens", style="green")
-            exec_table.add_column("Cost (USD)", style="green")
-            exec_table.add_column("Time", style="dim")
+            exec_table = Table(style="blue")
+            exec_table.add_column("Model", style="cyan", no_wrap=True)
+            exec_table.add_column("Tokens", style="green", justify="right")
+            exec_table.add_column("Cost (USD)", style="green", justify="right")
+            exec_table.add_column("Time", style="dim", justify="right")
 
             for execution in executions[-10:]:
                 tokens = _format_execution_tokens(execution)
@@ -565,10 +630,10 @@ def _show_cost_by_agent(console: Console, manager: TokenTrackerManager) -> None:
     console.print("[bold]Cost Breakdown by Agent:[/bold]")
     console.print()
 
-    table = Table()
-    table.add_column("Agent", style="cyan")
-    table.add_column("Total Cost (USD)", style="green")
-    table.add_column("Executions", style="dim")
+    table = Table(style="blue")
+    table.add_column("Agent", style="cyan", no_wrap=True)
+    table.add_column("Total Cost (USD)", style="green", justify="right")
+    table.add_column("Executions", style="dim", justify="right")
 
     all_agents = manager.get_all_agent_stats()
     total_overall = 0.0
@@ -621,10 +686,10 @@ def _show_cost_by_model(console: Console, manager: TokenTrackerManager) -> None:
             model_executions[model] += 1
 
     if model_costs:
-        table = Table()
-        table.add_column("Model", style="cyan")
-        table.add_column("Total Cost (USD)", style="green")
-        table.add_column("Executions", style="dim")
+        table = Table(style="blue")
+        table.add_column("Model", style="cyan", no_wrap=True)
+        table.add_column("Total Cost (USD)", style="green", justify="right")
+        table.add_column("Executions", style="dim", justify="right")
 
         total_overall = 0.0
         for model_name in sorted(model_costs.keys()):
