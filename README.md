@@ -14,6 +14,8 @@ A lightweight agent framework built on SmolAgents for rapid experimentation with
 - **Jinja2 Templates**: Dynamic prompts with variables, conditionals, loops, filters
 - **Token Budget Protection**: Hard limits to prevent rate limit hits (prevents 30K TPM overages)
 - **Token Tracking & Cost**: Track input/output tokens, calculate costs per agent and model
+- **Token Budget Awareness**: Agents aware of token budget during execution, smart optimization strategies
+- **Token Stats CLI**: View token usage, export stats, manage budgets with `/token` commands
 - **Error Handling**: Capture execution errors with detailed error info in results
 - **RAG Foundation**: Chroma-based document collections with semantic search
 - **Multi-Agent Orchestration**: Orchestrator pattern for agent workflows with ReAct iteration
@@ -145,6 +147,22 @@ Clear all conversation history
 
 /history save <file>
 Export conversation history to JSON
+```
+
+### Token Stats Commands
+
+```
+/token stats [--agent <name>] [--period <hours>]
+Show token usage statistics overall or per-agent (default: last 24 hours)
+
+/token export [--format json|csv] [--agent <name>] [--output <file>] [--period <hours>]
+Export token statistics to file or stdout in JSON or CSV format
+
+/token budget <agent_name> [--set <budget>]
+Show agent token budget or set a new budget (for runtime overrides)
+
+/token cost [--agent <name>] [--by agent|model]
+Show cost breakdown by agent (default) or by model
 ```
 
 ### Collection Commands (RAG)
@@ -480,6 +498,54 @@ if "error" in data:
 - Allows graceful handling without exceptions
 - Full token tracking even when errors occur
 
+### Token Statistics & CLI (Phase 3.4)
+
+View and export token usage statistics across agents and models:
+
+```python
+# In REPL - Show overall token usage (last 24 hours)
+/token stats
+# Output: Overall Token Usage table with input, output, total tokens and cost
+
+# Show stats for specific agent
+/token stats --agent researcher
+# Output: Token usage for 'researcher' agent with per-execution history
+
+# Filter by time period (last 7 days)
+/token stats --period 168
+
+# Export to JSON
+/token export --format json --output stats.json
+
+# Export to CSV for specific agent
+/token export --format csv --agent researcher --output researcher_stats.csv
+
+# Show cost breakdown
+/token cost
+# Output: Cost breakdown by agent with total spent
+
+# Cost breakdown by model
+/token cost --by model
+# Output: Cost breakdown showing which models cost most
+
+# Manage token budgets
+/token budget researcher
+# Output: Show current budget and usage percentage
+
+# Set new budget for agent (for runtime overrides)
+/token budget researcher --set 25000
+
+# Persistence: All stats saved to ~/.simple-agent/token_stats.json
+```
+
+**Features:**
+- Persistent storage of token usage across sessions
+- Per-agent execution tracking with timestamps
+- Time-based filtering (last N hours)
+- Multiple export formats (JSON for detailed analysis, CSV for spreadsheets)
+- Budget management and usage tracking
+- Cost breakdown by agent or model
+
 ### Agent Inspection
 
 ```bash
@@ -682,26 +748,31 @@ See `CLAUDE.md` in root for development guidelines.
 
 ## Status & Roadmap
 
-**Current**: Phase 3.2 ✅ Complete | Phase 3.3-3.7 🔴 Backlog | Phase 4 🔴 Not Started
+**Current**: Phase 3.4 ✅ Complete | Phase 3.5-3.8 🔴 Backlog | Phase 4 🔴 Not Started
 
 ### Completed Phases
 - **Phase 0**: Foundation ✅
 - **Phase 1**: Interactive features (1.0, 1.5, 1.6, 1.7) ✅
 - **Phase 2**: Enhanced features (2.1-2.4) ✅
 - **Phase 3.1**: Token Budget Protection ✅
-- **Phase 3.2**: Token Tracking + Error Handling ✅ (512 unit tests)
+- **Phase 3.2**: Token Tracking + Error Handling ✅ (98 tests)
+- **Phase 3.3**: Token Budget Awareness ✅ (41 tests)
+- **Phase 3.4**: Token Stats CLI Commands ✅ (25 tests)
 
-### In Development
-- **Phase 3.3-3.7**: Token Stats CLI, MCP, Agent-to-Agent, Python Code Tool, Flow Conditionals (Backlog)
+### In Development / Backlog
+- **Phase 3.5**: MCP Integration (Model Context Protocol support)
+- **Phase 3.6**: Agent Composition (agents calling other agents as tools)
+- **Phase 3.7**: Python Code Tool (sandboxed code execution)
+- **Phase 3.8**: Flow Conditionals (if/else routing in workflows)
 - **Phase 4**: Raspberry Pi Integration (Not Started)
 
 ### Quick Links
-- **Progress Tracker**: `docs/progress.md` (simplified 8-column format)
+- **Progress Tracker**: `docs/progress.md` (detailed status with test counts)
 - **Phase Details**:
   - Phase 0: `docs/phase_0_foundation.md`
   - Phase 1: `docs/phase_1_interactive.md` + sub-phases
   - Phase 2: `docs/phase_2_enhanced_features.md`, `docs/phase_2_4_orchestration.md`
-  - Phase 3: `docs/phase_3_extensions.md` (3.1-3.2 done, 3.3-3.7 specs)
+  - Phase 3: `docs/phase_3_extensions.md` (3.1-3.4 complete, 3.5-3.8 specs)
   - Phase 4: `docs/phase_4_raspberrypi.md`
 - **Development Guidelines**: `docs/technical_specification.md`, `docs/product_requirements.md`, `CLAUDE.md`
 - **Archive**: `docs/backup_progress_tracker.md` (old detailed tracker, saved for reference)
