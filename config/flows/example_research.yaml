@@ -1,0 +1,42 @@
+name: "research_workflow"
+description: "Research, evaluate quality, summarize, and write a report"
+
+sub_agents:
+  - name: "researcher"
+    description: "Gathers information on a topic through research"
+    config: "config/agents/researcher.yaml"
+
+  - name: "writer"
+    description: "Writes polished, well-organized reports from research findings"
+    config: "config/agents/researcher.yaml"
+
+orchestrator:
+  name: "research_coordinator"
+  role: |
+    You are a research workflow coordinator. Your job is to orchestrate other agents.
+
+    Available agents you can call:
+    - researcher: Conducts research and gathers information
+    - writer: Writes professional reports
+
+    Your workflow:
+    1. Call researcher to gather information about the topic
+    2. Call writer to create a professional report based on research
+    3. Synthesize final output for user
+
+    Make intelligent decisions about which agents to call based on the request.
+    Evaluate outputs and retry if needed.
+
+  model:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.7
+
+  settings:
+    max_steps: 10
+    verbosity: 1
+
+metadata:
+  version: "1.0"
+  created_by: "system"
+  tags: ["research", "multi-agent"]

@@ -16,7 +16,7 @@ class TestAgentManagerInit:
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
     def test_init_with_config(self, mock_simple_agent: Mock) -> None:
-        """Test initialization with configuration dict and auto-loads agents."""
+        """Test initialization with configuration dict."""
         config = {
             "llm": {"provider": "openai", "openai": {"model": "gpt-4o-mini"}},
             "agents": {"default": {"role": "Test role"}},
@@ -25,8 +25,9 @@ class TestAgentManagerInit:
         manager = AgentManager(config)
 
         assert manager.config == config
-        # Auto-load should create the 'default' agent
-        assert "default" in manager.agents
+        # Agents are NOT auto-loaded in __init__ (tool_manager not set yet)
+        # They must be loaded later via _load_agents_from_config()
+        assert len(manager.agents) == 0
 
     def test_init_empty_agents_dict(self) -> None:
         """Test agents dictionary is initialized empty."""
@@ -60,16 +61,16 @@ class TestAgentManagerCreateAgent:
         manager = AgentManager(config)
         manager.create_agent("test_agent")
 
-        # Verify SimpleAgent was called twice (once for auto-load, once for test_agent)
-        assert mock_simple_agent.call_count == 2
+        # Verify SimpleAgent was called once (only for test_agent, no auto-load in __init__)
+        assert mock_simple_agent.call_count == 1
 
-        # Check the second call (test_agent creation)
-        second_call_kwargs = mock_simple_agent.call_args_list[1].kwargs
-        assert second_call_kwargs["name"] == "test_agent"
-        assert second_call_kwargs["model_provider"] == "openai"
-        assert second_call_kwargs["role"] == "You are a helpful assistant."
-        assert second_call_kwargs["verbosity"] == 1
-        assert second_call_kwargs["max_steps"] == 10
+        # Check the call (test_agent creation)
+        call_kwargs = mock_simple_agent.call_args_list[0].kwargs
+        assert call_kwargs["name"] == "test_agent"
+        assert call_kwargs["model_provider"] == "openai"
+        assert call_kwargs["role"] == "You are a helpful assistant."
+        assert call_kwargs["verbosity"] == 1
+        assert call_kwargs["max_steps"] == 10
 
         # Verify agent was registered
         assert "test_agent" in manager.agents
@@ -259,9 +260,8 @@ class TestAgentManagerListAgents:
 
         agents = manager.list_agents()
 
-        # Should have 4 agents: 'default' (auto-loaded) + agent1, agent2, agent3
-        assert len(agents) == 4
-        assert "default" in agents
+        # Should have 3 agents: agent1, agent2, agent3 (no auto-load in __init__)
+        assert len(agents) == 3
         assert "agent1" in agents
         assert "agent2" in agents
         assert "agent3" in agents

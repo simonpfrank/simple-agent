@@ -127,7 +127,9 @@ class ToolManager:
         This dynamically imports and registers all tools decorated with @tool.
         """
         try:
-            from tools.builtin import calculator
+            from simple_agent.tools.builtin import calculator
+            from simple_agent.tools.builtin.tavily_search import tavily_web_search
+            from simple_agent.tools.builtin.page_fetch import fetch_webpage_markdown
 
             # Register calculator tools
             tools_to_register = [
@@ -135,6 +137,8 @@ class ToolManager:
                 calculator.subtract,
                 calculator.multiply,
                 calculator.divide,
+                tavily_web_search,
+                fetch_webpage_markdown,
             ]
 
             for tool in tools_to_register:

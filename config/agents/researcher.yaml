@@ -4,26 +4,23 @@
 name: "researcher"
 agent_type: "tool_calling"
 role: |
-  You are a research specialist. You help users find accurate
-  information, analyze data, and provide well-sourced answers.
-
-  Always cite your sources and explain your reasoning clearly.
+  Research specialist. Search, fetch, summarize. Be concise.
 
 tools:
-  - add
-  - multiply
+  - tavily_web_search
+  - fetch_webpage_markdown
 
 model:
   provider: "openai"
-  model: "gpt-4o-mini"
-  temperature: 0.3
-  max_tokens: 2000
+  model: "gpt-4o"
+  temperature: 0.7
+  max_tokens: 1500
 
 settings:
-  verbosity: 2
-  max_steps: 15
+  verbosity: 5
+  max_steps: 6
 
 metadata:
-  description: "Research and information gathering specialist"
+  description: "Research and information gathering specialist for technical topics"
   author: "system"
-  version: "1.0.0"
+  version: "1.0.1"

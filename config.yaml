@@ -5,33 +5,37 @@ llm:
   # Active provider: openai, ollama, lmstudio, anthropic
   provider: "openai"
 
+  # Context window and token limits (shared across all providers)
+  context_window: 128000  # Max tokens the model can handle
+  max_input_tokens: 25000  # Hard limit for input prompt size to protect against rate limits
+
   # OpenAI Configuration
   openai:
     model: "gpt-4o-mini"
     api_key: "${OPENAI_API_KEY}"  # References .env
     temperature: 0.7
-    max_tokens: 2000
+    max_tokens: 2000  # Max output tokens per request
 
   # LM Studio Configuration (local, OpenAI-compatible API)
   lmstudio:
     model: "llama-3.2-1b-instruct"
     base_url: "http://localhost:1234/v1"
     temperature: 0.7
-    max_tokens: 2000
+    max_tokens: 2000  # Max output tokens per request
 
   # Ollama Configuration (local)
   ollama:
     model: "llama3.2:1b"
     base_url: "http://localhost:11434"
     temperature: 0.7
-    max_tokens: 2000
+    max_tokens: 2000  # Max output tokens per request
 
   # Anthropic Configuration
   anthropic:
     model: "claude-3-5-sonnet-20241022"
     api_key: "${ANTHROPIC_API_KEY}"  # References .env
     temperature: 0.7
-    max_tokens: 2000
+    max_tokens: 2000  # Max output tokens per request
 
 # Agent Settings
 agents:
@@ -42,10 +46,33 @@ agents:
     max_steps: 10  # Max tool call iterations
     agent_type: "tool_calling"  # "tool_calling" (safe, default) or "code" (requires Docker)
     # executor_type: "docker"  # Only for agent_type="code": "docker", "e2b", "modal", "wasm"
+    tools:
+    - fetch_webpage_markdown
+    # Token budget protection (prevents hitting rate limits)
+    token_budget: 20000  # Hard limit on input prompt size for this agent
+    token_warning_threshold: 18000  # Warning logged when approaching limit
+
+# Orchestration Settings (Multi-Agent Workflows)
+orchestration:
+  flows_dir: "config/flows"  # Directory containing YAML flow definitions
+
+# Tool Configuration
+tools:
+  tavily_web_search:
+    enabled: true
+    api_key_env: "TAVILY_API_KEY"  # Environment variable name for API key
+    description: "Search the web using Tavily API for current information"
+    timeout: 10
+
+  fetch_webpage_markdown:
+    enabled: true
+    description: "Fetch a webpage and convert content to markdown"
+    timeout: 10
 
 # Debug Settings
 debug:
-  level: "info"  # off (minimal), info (normal), debug (verbose)
+  enabled: false  # Controls SmolAgents verbosity (tool calls, prompts, reasoning)
+  level: "info"   # off (minimal), info (normal), debug (verbose) - controls logging level
   # Future: display_mode (full/minimal), output_template
 
 # Logging

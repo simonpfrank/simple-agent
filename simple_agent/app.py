@@ -32,6 +32,7 @@ from simple_agent.commands.debug_commands import debug
 from simple_agent.commands.history_commands import history
 from simple_agent.commands.tool_commands import tool
 from simple_agent.commands.collection_commands import collection
+from simple_agent.commands.flow_commands_cli import flow
 
 logger = logging.getLogger(__name__)
 
@@ -131,12 +132,7 @@ def cli(context, config, repl_mode, debug):
         std_logging.getLogger("LiteLLM").setLevel(std_logging.WARNING)
     elif debug_level == "debug":
         # Enable LiteLLM debug mode
-        try:
-            import litellm
-
-            litellm.set_verbose = True
-        except ImportError:
-            pass  # LiteLLM not directly imported, managed by smolagents
+        os.environ["LITELLM_LOG"] = "DEBUG"
     # For "info" level, use default LiteLLM logging (INFO)
 
     # Initialize ToolManager
@@ -153,6 +149,9 @@ def cli(context, config, repl_mode, debug):
         agent_manager.tool_manager = context.obj["tool_manager"]
         context.obj["agent_manager"] = agent_manager
 
+        # Load agents from config (NOW that tool_manager is set)
+        agent_manager._load_agents_from_config()
+
         # Auto-load agents from config/agents/ directory
         agents_dir = "config/agents"
         if os.path.exists(agents_dir):
@@ -166,6 +165,13 @@ def cli(context, config, repl_mode, debug):
         collections_dir = ConfigManager.get(config_dict, "rag.collections_dir", "./chroma_db")
         collection_manager = CollectionManager(collections_dir)
         context.obj["collection_manager"] = collection_manager
+
+    # Initialize FlowManager (Multi-Agent Orchestration)
+    if "flow_manager" not in context.obj:
+        from simple_agent.orchestration.flow_manager import FlowManager
+        flows_dir = ConfigManager.get(config_dict, "orchestration.flows_dir", "config/flows")
+        flow_manager = FlowManager(agent_manager=context.obj["agent_manager"], flows_dir=flows_dir)
+        context.obj["flow_manager"] = flow_manager
 
     # If no subcommand provided, start REPL mode
     if context.invoked_subcommand is None or repl_mode:
@@ -399,6 +405,7 @@ cli.add_command(debug, name="debug")
 cli.add_command(history, name="history")
 cli.add_command(tool, name="tool")
 cli.add_command(collection, name="collection")
+cli.add_command(flow, name="flow")
 
 
 def main():

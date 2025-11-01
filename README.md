@@ -13,6 +13,8 @@ A lightweight agent framework built on SmolAgents for rapid experimentation with
 - **YAML Agent Definitions**: Persist agent configs with full YAML support
 - **Jinja2 Templates**: Dynamic prompts with variables, conditionals, loops, filters
 - **Token Budget Protection**: Hard limits to prevent rate limit hits (prevents 30K TPM overages)
+- **Token Tracking & Cost**: Track input/output tokens, calculate costs per agent and model
+- **Error Handling**: Capture execution errors with detailed error info in results
 - **RAG Foundation**: Chroma-based document collections with semantic search
 - **Multi-Agent Orchestration**: Orchestrator pattern for agent workflows with ReAct iteration
 - **REPL Interface**: Interactive CLI for agent management and execution
@@ -398,12 +400,85 @@ Execute the workflow:
 > /flow run research_flow "Investigate AI trends in 2024"
 ```
 
-Or in Python:
+### Token Tracking & Cost Analysis (Phase 3.2)
+
+Track token usage and costs automatically for each agent call:
 
 ```python
-flow_mgr = FlowManager(agent_mgr)
-result = flow_mgr.run_flow("research_flow", "Investigate AI trends")
+from simple_agent.core.agent_manager import AgentManager
+from simple_agent.core.config_manager import ConfigManager
+
+config = ConfigManager.load_env()
+agent_mgr = AgentManager(config)
+
+agent = agent_mgr.create_agent(
+    name="assistant",
+    role="You are a helpful assistant",
+    model_provider="openai"
+)
+
+# Agent.run() now returns AgentResult with token stats
+result = agent.run("Explain quantum computing")
+
+# Access token information
+print(f"Response: {result.response}")
+print(f"Input tokens: {result.input_tokens}")
+print(f"Output tokens: {result.output_tokens}")
+print(f"Total tokens: {result.total_tokens}")
+print(f"Cost: ${result.cost} ({result.model})")
+
+# Serialize for logging/export
+stats = result.to_dict()
+# {
+#     "response": "...",
+#     "tokens": {
+#         "input_tokens": 50,
+#         "output_tokens": 150,
+#         "total_tokens": 200,
+#         "cost": 0.00234,
+#         "model": "gpt-4o-mini"
+#     }
+# }
+
+# Backward compatible - works as string
+message = str(result)  # Just the response
+print(f"Message: {message}")
 ```
+
+**Features:**
+- Automatic token estimation using tiktoken (OpenAI models) or model-specific libraries
+- Cost calculation for OpenAI, Anthropic, and Ollama models
+- `track_tokens=False` parameter to disable tracking if needed
+- Decimal precision to avoid float rounding errors
+
+### Error Handling with Result Info (Phase 3.2)
+
+Errors are captured with token info preserved:
+
+```python
+result = agent.run("prompt")
+
+# Check for execution errors
+if result.error:
+    print(f"Error Type: {result.error_type}")
+    print(f"Error Message: {result.error}")
+    print(f"Tokens used before error: {result.input_tokens}")
+    # Agent can handle error gracefully
+else:
+    print(f"Success: {result.response}")
+
+# Error info in serialized output
+data = result.to_dict()
+if "error" in data:
+    print(f"Execution halted: {data['error']['execution_halted']}")
+    print(f"Reason: {data['error']['error_message']}")
+```
+
+**Error Handling Design:**
+- **Token budget errors** still RAISE (hard limits)
+- **LLM execution errors** are CAPTURED (soft failures)
+- Allows graceful handling without exceptions
+- Full token tracking even when errors occur
 
 ### Agent Inspection
 
@@ -605,30 +680,31 @@ See `CLAUDE.md` in root for development guidelines.
 - `chromadb>=0.4.0` - Vector store for RAG (Phase 2.3+)
 - `python-dotenv>=1.0.0` - Environment variable loading
 
-## Status
+## Status & Roadmap
 
-**Phase 1**: ✅ Complete (7 sub-phases)
-- Interactive chat, inspection, memory, config management, tools, YAML agents, templates, Jinja2
+**Current**: Phase 3.2 ✅ Complete | Phase 3.3-3.7 🔴 Backlog | Phase 4 🔴 Not Started
 
-**Phase 2.1**: ✅ Complete
-- Guardrails: PII detection, custom rules, guardrail wrapper
+### Completed Phases
+- **Phase 0**: Foundation ✅
+- **Phase 1**: Interactive features (1.0, 1.5, 1.6, 1.7) ✅
+- **Phase 2**: Enhanced features (2.1-2.4) ✅
+- **Phase 3.1**: Token Budget Protection ✅
+- **Phase 3.2**: Token Tracking + Error Handling ✅ (512 unit tests)
 
-**Phase 2.2**: ✅ Complete
-- Human-in-the-loop approval gates
+### In Development
+- **Phase 3.3-3.7**: Token Stats CLI, MCP, Agent-to-Agent, Python Code Tool, Flow Conditionals (Backlog)
+- **Phase 4**: Raspberry Pi Integration (Not Started)
 
-**Phase 2.3**: ✅ Complete
-- RAG Foundation: Chroma-based collections with semantic search
-
-**Phase 2.4**: ✅ Complete
-- Multi-Agent Orchestration: Orchestrator pattern with ReAct iteration
-
-**Phase 3.1**: ✅ Complete
-- Token Budget Protection: Hard limits to prevent rate limit hits (30K TPM overages)
-
-**Phase 3.2+**: 🔄 Planning
-- Advanced token management: cost tracking, model-specific estimation
-
-See `docs/Progress_Tracker.md` for detailed phase status.
+### Quick Links
+- **Progress Tracker**: `docs/progress.md` (simplified 8-column format)
+- **Phase Details**:
+  - Phase 0: `docs/phase_0_foundation.md`
+  - Phase 1: `docs/phase_1_interactive.md` + sub-phases
+  - Phase 2: `docs/phase_2_enhanced_features.md`, `docs/phase_2_4_orchestration.md`
+  - Phase 3: `docs/phase_3_extensions.md` (3.1-3.2 done, 3.3-3.7 specs)
+  - Phase 4: `docs/phase_4_raspberrypi.md`
+- **Development Guidelines**: `docs/technical_specification.md`, `docs/product_requirements.md`, `CLAUDE.md`
+- **Archive**: `docs/backup_progress_tracker.md` (old detailed tracker, saved for reference)
 
 ## License
 
