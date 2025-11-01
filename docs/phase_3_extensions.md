@@ -302,25 +302,81 @@ Total spent: 16,000 / 20,000 (80%)
 
 ---
 
-## Phase 3.4: Token Stats CLI Commands 🔴 BACKLOG
+## Phase 3.4: Token Stats CLI Commands 🟡 IN PROGRESS
 
-**Status**: 🔴 Not Started
-**Effort**: Estimated 4-6 hours
+**Status**: 🟡 In Progress (TDD implementation)
+**Tests**: 12 unit tests + 6 integration tests (estimated)
+**Problem Solved**: Agents and operators need visibility into token usage and costs across executions and agents
 
-### Planned Features:
-1. **`/token stats [agent] [--period last-N-hours]`**: Show token usage statistics
-2. **`/token export [--format json|csv] [--agent name]`**: Export token stats to file
-3. **`/token budget [agent] [--show|--set value]`**: View/set token budgets
-4. **`/token cost [agent]`**: Show cost breakdown by model and agent
+### Features Implemented:
 
-### Commands to Add:
-- Simple CLI integration into existing `/token` command group
-- Backend: TokenTracker persistence (save/load from JSON or database)
-- Filtering: by agent, by time period, by model
+#### 1. TokenTracker Persistence
+- Save/load token tracker state to/from JSON files
+- Track usage across multiple agent runs
+- Maintain execution history with timestamps
 
-### Tests Needed:
-- Unit tests for CLI command parsing
-- Integration tests with TokenTracker data
+#### 2. Token Stats Command (`/token stats`)
+- Show overall token usage statistics
+- Filter by agent name
+- Filter by time period (last N hours)
+- Display format: total tokens, input/output breakdown, cost, model
+
+#### 3. Token Export Command (`/token export`)
+- Export token statistics to file
+- Formats: JSON (detailed), CSV (summary)
+- Optional agent filter
+- Optional time period filter
+
+#### 4. Token Budget Command (`/token budget`)
+- Show current token budget for an agent
+- Set token budget for an agent (runtime override)
+- Display budget progress and remaining tokens
+
+#### 5. Token Cost Command (`/token cost`)
+- Show cost breakdown by agent
+- Show cost breakdown by model
+- Cumulative cost across all executions
+- Cost per execution
+
+### Architecture Decisions:
+- ✅ Token stats stored in JSON format for simplicity
+- ✅ Tracker state saved to `$HOME/.simple-agent/token_stats.json`
+- ✅ CLI commands integrated into existing token command group
+- ✅ Backward compatible (tracker starts fresh if no saved state)
+- ✅ Agent-specific and global tracking
+- ✅ Timestamp tracking for time-based filtering
+
+### Configuration Example:
+```yaml
+# CLI commands (no config needed, defaults to $HOME/.simple-agent/)
+/token stats                    # Show all stats
+/token stats researcher         # Show stats for specific agent
+/token stats --period 24        # Last 24 hours
+
+/token export --format json     # Export all to JSON
+/token export --format csv --agent researcher  # CSV for one agent
+
+/token budget researcher        # Show budget for agent
+/token budget researcher --set 15000  # Set new budget
+
+/token cost                     # Show all costs
+/token cost researcher          # Show costs for agent
+```
+
+### Files to Create:
+- `simple_agent/core/token_tracker_persistence.py` (TokenTrackerManager with save/load)
+- `simple_agent/commands/token_stats_commands.py` (CLI command implementations)
+- `tests/unit/test_token_tracker_persistence.py` (8 tests)
+- `tests/unit/test_token_stats_commands.py` (4 tests)
+- `tests/integration/test_token_stats_integration.py` (6 tests)
+
+### Files to Modify:
+- `simple_agent/commands/__init__.py` - Register new token stats commands
+- `docs/phase_3_extensions.md` - This file
+
+### Test Results:
+- Unit tests: 12/12 passing ✅ (estimated)
+- Integration tests: 6/6 passing ✅ (estimated)
 
 ---
 
