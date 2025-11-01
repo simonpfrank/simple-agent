@@ -17,6 +17,7 @@ from simple_agent.core.config_manager import ConfigManager
 from simple_agent.tools.helpers.token_counter import estimate_tokens
 from simple_agent.tools.helpers.model_pricing import calculate_cost
 from simple_agent.core.agent_result import AgentResult
+from simple_agent.core.token_budget_context import TokenBudgetContext
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -324,7 +325,14 @@ User query: {prompt}"""
             logger.warning(f"Error retrieving RAG context: {e}")
             return prompt
 
-    def run(self, prompt: str, reset: bool = True, track_tokens: bool = True) -> AgentResult:
+    def run(
+        self,
+        prompt: str,
+        reset: bool = True,
+        track_tokens: bool = True,
+        token_budget_override: int | None = None,
+        token_warning_threshold_override: int | None = None,
+    ) -> AgentResult:
         """
         Execute prompt through agent with optional token budget protection and tracking.
 
@@ -333,6 +341,9 @@ User query: {prompt}"""
             reset: If True, reset memory before running. If False, preserve memory
                    for multi-turn conversations. Default True for backwards compatibility.
             track_tokens: If True, track and return token statistics. Default True.
+            token_budget_override: Optional override for agent's token_budget. Used by
+                                  orchestration/automation systems to control sub-agent budgets.
+            token_warning_threshold_override: Optional override for token_warning_threshold.
 
         Returns:
             AgentResult with response and token statistics. If an error occurs,
@@ -344,6 +355,14 @@ User query: {prompt}"""
         input_tokens = 0
         output_tokens = 0
         cost = Decimal("0")
+
+        # Determine effective budget and warning threshold (use overrides if provided)
+        effective_budget = token_budget_override if token_budget_override is not None else self.token_budget
+        effective_warning_threshold = (
+            token_warning_threshold_override
+            if token_warning_threshold_override is not None
+            else self.token_warning_threshold
+        )
 
         # Inject RAG context if collection is connected
         prompt_with_context = self._inject_rag_context(prompt)
@@ -358,6 +377,17 @@ User query: {prompt}"""
         else:
             formatted_prompt = prompt_with_context
 
+        # Inject budget context into user prompt if budget is set
+        if effective_budget is not None:
+            # Create budget context and prepend to user prompt
+            budget_context = TokenBudgetContext(
+                token_budget=effective_budget,
+                tokens_used=0,  # At execution time, assume 0 tokens used initially
+                warning_threshold=effective_warning_threshold,
+            )
+            budget_info = budget_context.to_prompt_string()
+            formatted_prompt = f"{budget_info}\n\n{formatted_prompt}"
+
         # Estimate input tokens
         if track_tokens:
             # Build full prompt including system role for accurate token counting
@@ -368,7 +398,20 @@ User query: {prompt}"""
 
         # Token budget guard: check prompt size before sending to LLM
         # NOTE: Token budget errors RAISE (hard limit), not captured in try-except
-        if self.token_budget is not None:
+        if effective_budget is not None:
+            if input_tokens > effective_budget:
+                raise ValueError(
+                    f"Token budget exceeded: prompt has {input_tokens} tokens "
+                    f"but budget is {effective_budget}"
+                )
+
+            if effective_warning_threshold is not None and input_tokens > effective_warning_threshold:
+                logger.warning(
+                    f"Agent '{self.name}' approaching token limit: "
+                    f"{input_tokens}/{effective_budget} tokens used"
+                )
+        elif self.token_budget is not None:
+            # Fallback to original self.token_budget if no override and we have token_budget
             if input_tokens > self.token_budget:
                 raise ValueError(
                     f"Token budget exceeded: prompt has {input_tokens} tokens "

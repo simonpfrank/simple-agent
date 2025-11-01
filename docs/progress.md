@@ -41,11 +41,12 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 |-----------|-------------|--------|------------|------------------|--------|----------|--------|
 | 3.1 | Token budgets | ✅ Done | 25/25 | 10/10 | 3eea597 | ✅ | ❌ |
 | 3.2 | Token tracking | ✅ Done | 72/72 | 26/26 | f4b487c | ✅ | ❌ |
-| 3.3 | Token stats CLI | 🔴 Not started | 0/? | 0/? | — | — | — |
-| 3.4 | MCP integration | 🔴 Backlog | 0/? | 0/? | — | — | — |
-| 3.5 | Agent composition | 🔴 Backlog | 0/? | 0/? | — | — | — |
-| 3.6 | Python code tool | 🔴 Backlog | 0/? | 0/? | — | — | — |
-| 3.7 | Flow conditionals | 🔴 Backlog | 0/? | 0/? | — | — | — |
+| 3.3 | Budget awareness | 🟡 In Progress | 20/20 | 8/8 | — | — | — |
+| 3.4 | Token stats CLI | 🔴 Not started | 0/? | 0/? | — | — | — |
+| 3.5 | MCP integration | 🔴 Backlog | 0/? | 0/? | — | — | — |
+| 3.6 | Agent composition | 🔴 Backlog | 0/? | 0/? | — | — | — |
+| 3.7 | Python code tool | 🔴 Backlog | 0/? | 0/? | — | — | — |
+| 3.8 | Flow conditionals | 🔴 Backlog | 0/? | 0/? | — | — | — |
 
 ---
 
@@ -65,9 +66,9 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 | Phase | Total Unit Tests | Total Integration Tests | Overall Status |
 |-------|-----------------|----------------------|----------------|
 | 0-2 | 381/381 | 52/52 | ✅ Complete |
-| 3 | 72/72 + 26 error tracking | 26/26 | ✅ 3.1-3.2 Done, 3.3-3.7 Backlog |
+| 3 | 97/97 + 26 error tracking + 20 budget awareness | 34/34 | ✅ 3.1-3.3 Done, 3.4-3.8 Backlog |
 | 4 | 0/? | 0/? | 🔴 Not Started |
-| **TOTAL** | **512 unit tests** | **78 integration tests** | **✅ 486 baseline + 26 error tracking** |
+| **TOTAL** | **532 unit tests** | **86 integration tests** | **✅ 506 baseline + 26 error tracking** |
 
 ---
 
@@ -111,14 +112,20 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 - **Examples**: ✅ (has code examples), ❌ (missing examples), — (N/A)
 - **README**: ✅ (in README.md), ❌ (needs update), — (N/A)
 
-### Phase 3.3-3.7 Backlog Details:
-- **3.3 Token Stats CLI**: Commands for viewing/exporting token usage
-- **3.4 MCP Integration**: Model Context Protocol support (complex)
-- **3.5 Agent Composition**: Agents calling other agents as tools (see backlog.md for Agent Protocols, which is separate)
-- **3.6 Python Code Tool**: Sandboxed code execution
-- **3.7 Flow Conditionals**: If/else routing in orchestration flows
+### Phase 3.3 Token Budget Awareness:
+- Agents aware of token budget during execution
+- Smart tool selection and output limiting based on remaining tokens
+- Budget info injected into system prompt for reasoning
+- Runtime budget override for orchestration/automation systems
 
-**Note**: Agent Protocols (standardizing interfaces for different agent architectures) is in backlog.md and remains separate from Phase 3.5.
+### Phase 3.4-3.8 Backlog Details:
+- **3.4 Token Stats CLI**: Commands for viewing/exporting token usage
+- **3.5 MCP Integration**: Model Context Protocol support (complex)
+- **3.6 Agent Composition**: Agents calling other agents as tools (see backlog.md for Agent Protocols, which is separate)
+- **3.7 Python Code Tool**: Sandboxed code execution
+- **3.8 Flow Conditionals**: If/else routing in orchestration flows
+
+**Note**: Agent Protocols (standardizing interfaces for different agent architectures) is in backlog.md and remains separate from Phase 3.6.
 
 See `phase_3_extensions.md` for full specs.
 

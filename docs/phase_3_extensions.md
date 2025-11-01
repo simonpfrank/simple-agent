@@ -1,8 +1,8 @@
 # Phase 3: Extensions & Token Management
 
-**Overview**: This phase combines token management features (3.1-3.2, completed) with planned extensions (3.3-3.7) for advanced agent capabilities. Mixed nature: core token management done; advanced features in backlog.
+**Overview**: This phase combines token management features (3.1-3.3 in progress) with planned extensions (3.4-3.8) for advanced agent capabilities. Core token management includes budget awareness; advanced features in backlog.
 
-**Current Status**: Phase 3.1 & 3.2 ✅ Complete | Phase 3.3-3.7 🔴 Backlog
+**Current Status**: Phase 3.1 & 3.2 ✅ Complete | Phase 3.3 🟡 In Progress | Phase 3.4-3.8 🔴 Backlog
 **Total Tests**: 512 unit tests passing (486 existing + 26 new error tracking)
 **Latest Commits**:
 - f4b487c: Error tracking enhancement
@@ -172,7 +172,137 @@ dict_data = result.to_dict()    # Serialize to dict
 
 ---
 
-## Phase 3.3: Token Stats CLI Commands 🔴 BACKLOG
+## Phase 3.3: Token Budget Awareness 🟡 IN PROGRESS
+
+**Status**: 🟡 In Progress (TDD implementation)
+**Tests**: 20 unit tests + 8 integration tests (estimated)
+**Problem Solved**: Agents need to intelligently manage token usage during execution by being aware of budget constraints and adapting tool calls accordingly
+
+### Features Implemented:
+
+#### 1. Token Budget Context
+- **TokenBudgetContext**: Dataclass containing budget info
+  - `token_budget`: Total budget from config
+  - `tokens_used`: Tokens used so far
+  - `tokens_remaining`: Calculated remaining budget
+  - `warning_threshold`: Soft limit for warnings
+  - `percent_used`: Usage percentage for agent reasoning
+  - `approaching_limit`: Boolean flag when > 80% used
+
+#### 2. Configuration-Driven Activation
+- Token budget awareness **triggered by presence** of `token_budget` in agent config
+- No impact if `token_budget` not configured (backward compatible)
+- Works with config.yaml or per-agent YAML files
+
+#### 3. Budget Context Injection
+- Budget context injected into system prompt via Jinja2 template
+- Agent receives human-readable budget information in instructions
+- Example: "You have 20,000 token budget. Currently used: 500. Remaining: 19,500 (2.5% used)"
+
+#### 4. Runtime Budget Override
+- Optional parameters in `SimpleAgent.run()`:
+  - `token_budget_override`: Override configured budget
+  - `token_warning_threshold_override`: Override warning threshold
+- Enables orchestration agents to control sub-agent budgets
+- Enables automation/workflow systems to apply dynamic constraints
+
+#### 5. Tool Parameter Pattern (max_tokens)
+- Tools that return variable content support optional `max_tokens` parameter
+- `fetch_webpage_markdown(url, max_tokens=2000)`: Trims response to token limit
+- `tavily_web_search(query, max_tokens=1500)`: Limits result length
+- Agents can intelligently set max_tokens based on remaining budget
+
+#### 6. Smart Budget Management Strategies
+Budget info in system prompt guides agent behavior:
+```
+- If remaining > 50%: Use full detailed searches/fetches
+- If remaining 20-50%: Limit fetch results (max_tokens=2000)
+- If remaining 5-20%: Use max_tokens=1000, skip secondary analysis
+- If remaining < 5%: Provide final answer, minimal additional fetches (max_tokens=500)
+- If remaining < 1%: Refuse new searches, use existing context only
+```
+
+### Architecture Decisions:
+- ✅ Budget context in **both** system prompt (for reasoning) AND accessible object (for framework)
+- ✅ **Optional max_tokens** on tools - only when needed
+- ✅ Agent **decides** optimization (not hardcoded rules)
+- ✅ **Backward compatible** - existing agents without token_budget unaffected
+- ✅ **Override mechanism** for orchestration/automation systems
+- ✅ **Token budget errors still raise** (Phase 3.1 hard limits maintained)
+- ✅ **LLM execution errors still captured** (Phase 3.2 behavior unchanged)
+
+### Configuration Example:
+```yaml
+# config.yaml - Single agent with budget
+agents:
+  researcher:
+    role: "You are a research specialist. Search, fetch, and summarize."
+    token_budget: 20000
+    token_warning_threshold: 18000
+    tools:
+      - fetch_webpage_markdown
+      - tavily_web_search
+
+# Per-agent YAML override
+# config/agents/researcher.yaml can override:
+token_budget: 25000  # Different from config.yaml default
+```
+
+### Usage Example:
+```python
+# Basic usage - budget from config
+researcher = agent_manager.get_agent("researcher")
+result = researcher.run("Research quantum computing")
+# Agent automatically sees budget in system prompt and optimizes
+
+# Runtime override - orchestration use case
+result = sub_agent.run(
+    prompt,
+    token_budget_override=5000  # Tighter budget for sub-agent
+)
+
+# Workflow automation use case
+result = agent.run(
+    prompt,
+    token_budget_override=int(remaining_budget * 0.8)  # Use 80% of remaining
+)
+```
+
+### Multi-Step Flow Example:
+```
+Flow: Research → Analyze → Summarize
+Initial Budget: 20,000 tokens
+
+1. Research step
+   - Budget: 20,000, uses 5,000 → remaining 15,000
+
+2. Analyze step (orchestrator passes remaining budget)
+   - Budget override: 15,000, uses 8,000 → remaining 7,000
+
+3. Summarize step (orchestrator passes remaining budget)
+   - Budget override: 7,000, uses 3,000 → remaining 4,000
+
+Total spent: 16,000 / 20,000 (80%)
+```
+
+### Files to Create:
+- `simple_agent/core/token_budget_context.py` (TokenBudgetContext dataclass)
+- `tests/unit/test_token_budget_context.py` (8 tests)
+- `tests/unit/test_agent_budget_awareness.py` (12 tests)
+- `tests/integration/test_budget_aware_execution.py` (8 tests)
+
+### Files to Modify:
+- `simple_agent/agents/simple_agent.py` - Add budget override params, context injection
+- `simple_agent/tools/builtin/fetch_webpage_markdown.py` - Add max_tokens param
+- `simple_agent/tools/builtin/tavily_search.py` - Add max_tokens param (if exists)
+
+### Test Results:
+- Unit tests: 20/20 passing ✅ (estimated)
+- Integration tests: 8/8 passing ✅ (estimated)
+
+---
+
+## Phase 3.4: Token Stats CLI Commands 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 4-6 hours
@@ -194,7 +324,7 @@ dict_data = result.to_dict()    # Serialize to dict
 
 ---
 
-## Phase 3.4: MCP Integration 🔴 BACKLOG
+## Phase 3.5: MCP Integration 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 8-12 hours
@@ -216,7 +346,7 @@ dict_data = result.to_dict()    # Serialize to dict
 
 ---
 
-## Phase 3.5: Agent Composition (Agent as Tool) 🔴 BACKLOG
+## Phase 3.6: Agent Composition (Agent as Tool) 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 6-10 hours
@@ -234,11 +364,11 @@ dict_data = result.to_dict()    # Serialize to dict
 - Timeout and error boundary management
 
 ### Note:
-This is different from **Agent Protocols** (architectural adapter pattern in backlog.md). Agent Composition focuses on agents calling each other as tools within orchestration. Agent Protocols focuses on standardizing agent interfaces for switching between different agent architectures (SimpleAgent, LangGraph, Subagents, etc.)
+This is different from **Agent Protocols** (architectural adapter pattern in backlog.md). Agent Composition (3.6) focuses on agents calling each other as tools within orchestration. Agent Protocols focuses on standardizing agent interfaces for switching between different agent architectures (SimpleAgent, LangGraph, Subagents, etc.)
 
 ---
 
-## Phase 3.6: Python Code Execution Tool 🔴 BACKLOG
+## Phase 3.7: Python Code Execution Tool 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 5-8 hours
@@ -264,7 +394,7 @@ This is different from **Agent Protocols** (architectural adapter pattern in bac
 
 ---
 
-## Phase 3.7: Simple Conditionals in Flows 🔴 BACKLOG
+## Phase 3.8: Simple Conditionals in Flows 🔴 BACKLOG
 
 **Status**: 🔴 Not Started
 **Effort**: Estimated 4-6 hours
@@ -308,18 +438,25 @@ flows:
 ## Next Steps
 
 ### Immediate (if context is lost, start here):
-1. ✅ Phase 3.1 & 3.2 are complete with 512 tests passing
+1. ✅ Phase 3.1 & 3.2 complete with 512 tests passing
 2. ✅ Error tracking added (f4b487c commit)
-3. ✅ This phase_3_extensions.md created
-4. 🔴 Still need to create phase_4_raspberrypi.md
-5. 🔴 Still need to create new simplified progress.md
-6. 🔴 Still need to update README.md with examples
+3. ✅ Documentation reorganized (ce9baae commit)
+4. 🟡 Phase 3.3 specification created - now implementing TDD
+5. 🔴 Phase 3.4-3.8 backlog items
 
-### Backlog Items for Phase 3.3-3.7:
-- MCP (Model Context Protocol) - complex, requires protocol implementation
-- Agent-to-Agent - requires composition system
-- Python code tool - requires sandbox setup
-- Simple conditionals - requires condition parser
-- Token stats CLI - requires persistence layer
+### Phase 3.3 Implementation Plan:
+1. Create TokenBudgetContext dataclass in `simple_agent/core/token_budget_context.py`
+2. Modify SimpleAgent.run() to accept `token_budget_override` and `token_warning_threshold_override`
+3. Inject TokenBudgetContext into system prompt via Jinja2 template context
+4. Add `max_tokens` parameter to `fetch_webpage_markdown` (and `tavily_search` if exists)
+5. Write 20 unit tests + 8 integration tests (TDD)
+6. Verify all tests passing before marking complete
+
+### Backlog Items for Phase 3.4-3.8:
+- **3.4 Token Stats CLI** - Commands for viewing/exporting token usage
+- **3.5 MCP Integration** - Model Context Protocol support (complex)
+- **3.6 Agent Composition** - Agents calling other agents as tools
+- **3.7 Python Code Tool** - Sandboxed code execution
+- **3.8 Flow Conditionals** - If/else routing in orchestration flows
 
 All backlog items documented above with estimates and planned architecture.
