@@ -89,7 +89,8 @@ class TestTokenGuardWithAgent:
         with patch.object(agent.agent, "run", return_value="Response"):
             result = agent.run(large_prompt)
             # Should reach the agent.run() call (token guard passed)
-            assert result == "Response"
+            # AgentResult supports string conversion for backward compatibility
+            assert str(result) == "Response"
 
     def test_warning_threshold_logs_warning(self) -> None:
         """Agent approaching warning threshold should log warning."""
@@ -122,7 +123,8 @@ class TestTokenGuardWithAgent:
                 result = agent.run(medium_prompt)
 
                 # Should succeed but might log warning depending on token count
-                assert result == "Response"
+                # AgentResult supports string conversion for backward compatibility
+                assert str(result) == "Response"
                 # Logger was available for warnings
                 assert hasattr(mock_logger, "warning")
 

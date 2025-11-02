@@ -273,14 +273,13 @@ class TestPhase1_2HistoryMocked:
         mock_memory2.get_full_steps.return_value = mock_memory2.steps.copy()
         mock_agent2.memory = mock_memory2
 
-        # Return different agents on successive calls (default, agent1, agent2)
+        # Return different agents on successive calls (agent1, agent2)
         mock_tool_calling_agent.side_effect = [
-            mock_default_agent,
             mock_agent1,
             mock_agent2,
         ]
 
-        # Initialize AgentManager (auto-loads default) and create two more agents
+        # Initialize AgentManager and create two agents
         agent_manager = AgentManager(test_config)
         agent_manager.create_agent("agent1")
         agent_manager.create_agent("agent2")

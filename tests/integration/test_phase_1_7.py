@@ -57,8 +57,8 @@ Please show your work step by step.
         # Run prompt
         response = agent_manager.run_agent("jinja_bot", "What is 2+2?")
 
-        # Verify response
-        assert response == "4"
+        # Verify response (AgentResult supports string conversion)
+        assert str(response) == "4"
 
         # Verify user_prompt_template was applied with conditional
         expected_prompt = """What is 2+2?

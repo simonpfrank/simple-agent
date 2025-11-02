@@ -55,7 +55,7 @@ class TestPhase1_1InspectionMocked:
         assert agent_manager.last_prompt == prompt
         assert agent_manager.last_response == "The capital of France is Paris"
         assert agent_manager.last_agent == "test_agent"
-        assert response == "The capital of France is Paris"
+        assert str(response) == "The capital of France is Paris"  # AgentResult supports string conversion
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
@@ -176,23 +176,24 @@ class TestPhase1_1InspectionMocked:
         mock_litellm: MagicMock,
         test_config: dict,
     ) -> None:
-        """Test that tracking works with auto-loaded agents from config."""
+        """Test that tracking works with manually created agents."""
         # Setup mock
         mock_agent_instance = MagicMock()
         mock_agent_instance.run.return_value = "Auto-loaded response"
         mock_tool_calling_agent.return_value = mock_agent_instance
 
-        # AgentManager auto-loads 'default' agent from test_config
+        # AgentManager needs agents to be created manually
         agent_manager = AgentManager(test_config)
+        agent_manager.create_agent("default")
 
-        # Verify 'default' was auto-loaded
+        # Verify 'default' was created
         assert "default" in agent_manager.list_agents()
 
-        # Run with auto-loaded agent
+        # Run with created agent
         response = agent_manager.run_agent("default", "Test with default agent")
 
         # Verify tracking works
         assert agent_manager.last_agent == "default"
         assert agent_manager.last_prompt == "Test with default agent"
         assert agent_manager.last_response == "Auto-loaded response"
-        assert response == "Auto-loaded response"
+        assert str(response) == "Auto-loaded response"  # AgentResult supports string conversion

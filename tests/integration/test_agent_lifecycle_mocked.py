@@ -52,8 +52,8 @@ class TestAgentLifecycleMocked:
         # Run prompt through agent
         response = agent_manager.run_agent("calculator", "What is 2+2?")
 
-        # Verify response
-        assert response == "The answer is 4"
+        # Verify response (AgentResult supports string conversion for backward compatibility)
+        assert str(response) == "The answer is 4"
         mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
@@ -78,10 +78,9 @@ class TestAgentLifecycleMocked:
         agent2 = agent_manager.create_agent("agent2")
         agent3 = agent_manager.create_agent("agent3")
 
-        # Verify all registered (includes auto-loaded 'default' agent)
+        # Verify all registered
         agents = agent_manager.list_agents()
-        assert len(agents) == 4
-        assert "default" in agents  # Auto-loaded from config
+        assert len(agents) == 3  # Only manually created agents (not auto-loaded from config)
         assert "agent1" in agents
         assert "agent2" in agents
         assert "agent3" in agents
