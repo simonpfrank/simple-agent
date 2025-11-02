@@ -6,7 +6,7 @@ These tests verify REPL-specific features like / prefix handling and auto-comple
 from unittest.mock import Mock, patch
 from click.testing import CliRunner
 
-from repl_cli_template.app import cli, get_command_names, start_repl
+from simple_agent.app import cli, get_command_names, start_repl
 
 
 class TestSlashPrefixStripping:
@@ -142,8 +142,8 @@ class TestAutoCompletion:
 class TestREPLIntegration:
     """Integration tests for REPL functionality."""
 
-    @patch("repl_cli_template.app.repl")
-    @patch("repl_cli_template.app.show_welcome")
+    @patch("simple_agent.app.repl")
+    @patch("simple_agent.app.show_welcome")
     def test_start_repl_shows_welcome(self, mock_welcome, mock_repl):
         """Test that start_repl displays welcome screen."""
         runner = CliRunner()
@@ -173,7 +173,7 @@ class TestREPLIntegration:
                 # Verify welcome was called
                 mock_welcome.assert_called_once()
 
-    @patch("repl_cli_template.app.repl")
+    @patch("simple_agent.app.repl")
     def test_start_repl_patches_execute_function(self, mock_repl):
         """Test that start_repl patches _execute_internal_and_sys_cmds."""
         import click_repl._repl as repl_module
@@ -206,7 +206,7 @@ class TestREPLIntegration:
             # Verify function was restored after start_repl exits
             assert repl_module._execute_internal_and_sys_cmds == original_func
 
-    @patch("repl_cli_template.app.repl")
+    @patch("simple_agent.app.repl")
     def test_start_repl_restores_function_on_error(self, mock_repl):
         """Test that patched function is restored even if error occurs."""
         import click_repl._repl as repl_module
@@ -245,7 +245,7 @@ class TestREPLCommandExecution:
                 f.write("app:\n  name: Test\n")
 
             # Mock the start_repl function to avoid interactive session
-            with patch("repl_cli_template.app.start_repl") as mock_start_repl:
+            with patch("simple_agent.app.start_repl") as mock_start_repl:
                 runner.invoke(cli, ["--config", "config.yaml"])
 
                 # start_repl should have been called
@@ -260,7 +260,7 @@ class TestREPLCommandExecution:
                 f.write("app:\n  name: Test\n")
 
             # Mock start_repl to verify it's NOT called
-            with patch("repl_cli_template.app.start_repl") as mock_start_repl:
+            with patch("simple_agent.app.start_repl") as mock_start_repl:
                 runner.invoke(cli, ["--config", "config.yaml", "config", "show"])
 
                 # start_repl should NOT have been called
@@ -270,9 +270,9 @@ class TestREPLCommandExecution:
 class TestREPLErrorHandling:
     """Tests for error handling in REPL."""
 
-    @patch("repl_cli_template.app.repl")
+    @patch("simple_agent.app.repl")
     @patch(
-        "repl_cli_template.ui.welcome.show_goodbye"
+        "simple_agent.app.ui.welcome.show_goodbye"
     )  # Patch where it's defined, not where it's imported
     def test_keyboard_interrupt_shows_goodbye(self, mock_goodbye, mock_repl):
         """Test that Ctrl+C shows goodbye message."""
@@ -301,8 +301,8 @@ class TestREPLErrorHandling:
                 # Verify goodbye was called
                 mock_goodbye.assert_called_once()
 
-    @patch("repl_cli_template.app.repl")
-    @patch("repl_cli_template.ui.welcome.show_goodbye")  # Patch where it's defined
+    @patch("simple_agent.app.repl")
+    @patch("simple_agent.app.ui.welcome.show_goodbye")  # Patch where it's defined
     def test_eof_error_shows_goodbye(self, mock_goodbye, mock_repl):
         """Test that Ctrl+D (EOFError) shows goodbye message."""
         runner = CliRunner()

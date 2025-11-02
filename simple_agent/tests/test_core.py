@@ -6,8 +6,8 @@ These tests demonstrate testing core functions without CLI/REPL.
 import pytest
 from pathlib import Path
 
-from repl_cli_template.core.processor import process_data
-from repl_cli_template.core.config_manager import ConfigManager
+from simple_agent.core.processor import process_data
+from simple_agent.core.config_manager import ConfigManager
 
 
 class TestProcessor:
@@ -54,14 +54,16 @@ class TestConfigManager:
         """Test loading configuration from file."""
         # Create a temporary config file
         config_file = tmp_path / "test_config.yaml"
-        config_file.write_text("""
+        config_file.write_text(
+            """
 app:
   name: "Test App"
   version: "1.0.0"
 
 logging:
   level: "DEBUG"
-        """)
+        """
+        )
 
         # Load config
         config = ConfigManager.load(str(config_file))
@@ -112,12 +114,8 @@ logging:
     def test_merge_with_defaults(self):
         """Test merging config with defaults."""
         custom_config = {
-            "app": {
-                "name": "Custom App"  # Override default
-            },
-            "custom": {
-                "new_setting": "value"  # Add new setting
-            },
+            "app": {"name": "Custom App"},  # Override default
+            "custom": {"new_setting": "value"},  # Add new setting
         }
 
         merged = ConfigManager.merge_with_defaults(custom_config)

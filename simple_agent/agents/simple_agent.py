@@ -68,8 +68,8 @@ class SimpleAgent:
         if not isinstance(name, str):
             raise TypeError(f"name must be a string, got {type(name).__name__}")
 
-        if not isinstance(model_provider, str):
-            raise TypeError(f"model_provider must be a string, got {type(model_provider).__name__}")
+        if model_provider is not None and not isinstance(model_provider, str):
+            raise TypeError(f"model_provider must be a string or None, got {type(model_provider).__name__}")
 
         if not isinstance(model_config, dict):
             raise TypeError(f"model_config must be a dict, got {type(model_config).__name__}")

@@ -5,7 +5,7 @@ These tests demonstrate testing commands programmatically without UI interaction
 
 from click.testing import CliRunner
 
-from repl_cli_template.app import cli
+from simple_agent.app import cli
 
 
 class TestConfigCommands:
@@ -93,12 +93,14 @@ class TestCLIMode:
 
         # Create custom config
         config_file = tmp_path / "custom.yaml"
-        config_file.write_text("""
+        config_file.write_text(
+            """
 app:
   name: "Test App"
 logging:
   level: "DEBUG"
-        """)
+        """
+        )
 
         # Run with custom config
         result = runner.invoke(cli, ["--config", str(config_file), "config", "show"])
