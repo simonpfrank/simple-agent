@@ -74,31 +74,54 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 
 # Next
 
-## Current Development: Code Review Fixes (Phase 2 Refactoring)
+## Current Development: Code Review Fixes (All Phases)
 
-### Status (as of context continuation):
-- ✅ Phase 2.1 complete: SimpleAgent constructor refactoring with AgentConfig
-  - Created AgentConfig dataclass encapsulating 13 constructor parameters
-  - Refactored SimpleAgent.__init__() to use AgentConfig
-  - Issue 1-A (SRP violation): RESOLVED
-  - All 555 unit + 123 integration tests passing (678 total)
-  - Commit: f6e2d67
+### Status (as of latest context):
 
-- ✅ Phase 2.2 complete: AppContext dataclass (replace service locator)
-  - Created AppContext dataclass for type-safe dependency injection
-  - Replaced ctx.obj dict-based injection pattern
-  - Issue 10-B (service locator anti-pattern): RESOLVED
-  - Created 9 unit tests for AppContext (all passing)
-  - All 564 unit + 123 integration tests passing (687 total)
-  - Commit: 050e19a
+**Phase 2.1 - SimpleAgent Refactoring** ✅ COMPLETE
+- Created AgentConfig dataclass encapsulating 13 constructor parameters
+- Issue 1-A (SRP violation): RESOLVED
+- Commit: f6e2d67
+
+**Phase 2.2 - AppContext Dataclass** ✅ COMPLETE
+- Created AppContext for type-safe dependency injection
+- Issue 10-B (service locator): RESOLVED
+- Commit: 050e19a
+
+**Phase 1 - HITL Implementation** ✅ COMPLETE
+- ✅ Issue 5-A: ConsoleApprovalUI (interactive approval dialogs)
+  - Rich terminal-based approval prompts
+  - Preview data display, responsive to user input
+- ✅ Issue 5-B: FileApprovalPersistence (approval storage)
+  - JSON file-based storage for requests and decisions
+  - Survives manager restarts, audit trail with timestamps
+- Enhanced ApprovalManager with UI + Persistence integration
+- 71 new tests: all passing (44 unit + 27 integration)
+- Commit: cecf1aa
+
+### Completed Code Review Issues: 11/56 (20%)
+- ✅ 1-A: SimpleAgent constructor (AgentConfig)
+- ✅ 1-B: Template duplication (extracted methods)
+- ✅ 1-C: RAG error handling (better logging)
+- ✅ 1-D: Config key access (fallback)
+- ✅ 2-D: File locking (fcntl)
+- ✅ 3-C/3-D: Command duplication (common.py)
+- ✅ 5-A: HITL UI (ConsoleApprovalUI)
+- ✅ 5-B: HITL persistence (FileApprovalPersistence)
+- ✅ 8-C: Token estimation (smart fallback)
+- ✅ 10-B: Service locator (AppContext)
 
 ### Next Priority (Code Review Fixes Roadmap):
 1. [ ] Phase 2.3: Integrate AppContext into app.py commands
-2. [ ] Phase 1: HIGH Priority (HITL Module) - Issues 5-A, 5-B
-3. [ ] Phase 3: Split large files - Issues 3-A, 3-B
-4. [ ] Phase 4: Config validation - Issues 2-C, 8-A, 8-D
-5. [ ] Phase 5: RAG improvements - Issues 7-A, 7-B, 7-C
-6. [ ] Continue with remaining 50+ code review issues
+2. [ ] Phase 3: Split large files - Issues 3-A, 3-B
+3. [ ] Phase 4: Config validation - Issues 2-C, 8-A, 8-D
+4. [ ] Phase 5: RAG improvements - Issues 7-A, 7-B, 7-C
+5. [ ] Phase 6-7: Remaining issues (41 items, mixed severity)
+
+### Test Summary:
+- ✅ 731/731 tests passing (573 unit + 158 integration)
+- NEW: +44 unit tests (HITL implementation)
+- NEW: +27 integration tests (HITL workflows + backward compat)
 
 ### Key Links:
 - **Phase 0**: `phase_0_foundation.md`
