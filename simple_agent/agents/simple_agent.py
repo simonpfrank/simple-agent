@@ -61,8 +61,28 @@ class SimpleAgent:
             token_warning_threshold: Soft warning threshold before token_budget
 
         Raises:
-            ValueError: If invalid agent_type or attempting to use unsafe executor
+            ValueError: If invalid parameters or attempting to use unsafe executor
+            TypeError: If parameters have incorrect types
         """
+        # Input validation
+        if not isinstance(name, str):
+            raise TypeError(f"name must be a string, got {type(name).__name__}")
+
+        if not isinstance(model_provider, str):
+            raise TypeError(f"model_provider must be a string, got {type(model_provider).__name__}")
+
+        if not isinstance(model_config, dict):
+            raise TypeError(f"model_config must be a dict, got {type(model_config).__name__}")
+
+        if not isinstance(max_steps, int) or max_steps <= 0:
+            raise ValueError(f"max_steps must be a positive integer, got {max_steps}")
+
+        if token_budget is not None and (not isinstance(token_budget, int) or token_budget < 0):
+            raise ValueError(f"token_budget must be a non-negative integer or None, got {token_budget}")
+
+        if token_warning_threshold is not None and (not isinstance(token_warning_threshold, int) or token_warning_threshold < 0):
+            raise ValueError(f"token_warning_threshold must be a non-negative integer or None, got {token_warning_threshold}")
+
         # Validate agent_type
         valid_types = ["tool_calling", "code"]
         if agent_type not in valid_types:
@@ -213,8 +233,20 @@ class SimpleAgent:
 
         Returns:
             LiteLLMModel instance
+
+        Raises:
+            ValueError: If required model configuration is missing
         """
         model_id = config.get("model")
+        if not model_id:
+            # Log warning instead of raising to maintain backward compatibility
+            # Tests and some integrations may use empty configs
+            logger.warning(
+                f"No 'model' key in config for provider '{provider}'. "
+                f"Config keys: {list(config.keys())}. Using provider name as fallback."
+            )
+            model_id = provider  # Use provider name as fallback
+
         temperature = config.get("temperature", 0.7)
         max_tokens = config.get("max_tokens", 2000)
 
@@ -322,7 +354,12 @@ User query: {prompt}"""
             return enhanced_prompt
 
         except Exception as e:
-            logger.warning(f"Error retrieving RAG context: {e}")
+            error_type = type(e).__name__
+            logger.error(
+                f"Failed to inject RAG context for agent '{self.name}': "
+                f"{error_type}: {e}. Proceeding without RAG context.",
+                exc_info=True
+            )
             return prompt
 
     def run(
@@ -445,7 +482,7 @@ User query: {prompt}"""
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cost=cost,
-                model=self.model_config.get("model", "unknown"),
+                model=model_name,  # Use the validated model_name from above
             )
 
         except Exception as e:
@@ -454,8 +491,12 @@ User query: {prompt}"""
             error_message = str(e)
             error_type = type(e).__name__
             logger.error(
-                f"Agent '{self.name}' execution failed with {error_type}: {error_message}"
+                f"Agent '{self.name}' execution failed with {error_type}: {error_message}",
+                exc_info=True
             )
+
+            # Get model name with fallback for safety
+            model_name = self.model_config.get("model", "unknown")
 
             # Return AgentResult with error information
             return AgentResult.from_response(
@@ -463,7 +504,7 @@ User query: {prompt}"""
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 cost=cost,
-                model=self.model_config.get("model", "unknown"),
+                model=model_name,
                 error=error_message,
                 error_type=error_type,
             )

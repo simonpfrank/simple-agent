@@ -6,32 +6,18 @@ import click
 import logging
 import yaml
 
-from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
 
 from simple_agent.core.config_manager import ConfigManager
+from simple_agent.commands.common import get_console
 from simple_agent.ui.styles import (
-    APP_THEME,
     format_success,
     format_error,
     format_info,
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _get_console(context: click.Context) -> Console:
-    """
-    Get console from context with fallback.
-
-    Args:
-        context: Click context object
-
-    Returns:
-        Console instance from context, or new instance if not found
-    """
-    return context.obj.get("console", Console(theme=APP_THEME))
 
 
 @click.group()
@@ -51,7 +37,7 @@ def config():
 @click.pass_context
 def config_show(context, resolve):
     """Display current configuration."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -102,7 +88,7 @@ def config_show(context, resolve):
 @click.pass_context
 def config_load(context, file):
     """Load configuration from YAML file."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         # Load config
@@ -148,7 +134,7 @@ def config_load(context, file):
 @click.pass_context
 def config_save(context, file):
     """Save current configuration to YAML file."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -182,7 +168,7 @@ def config_save(context, file):
 @click.pass_context
 def config_set(context, key, value):
     """Set a configuration value."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -211,7 +197,7 @@ def config_set(context, key, value):
 @click.pass_context
 def config_get(context, key):
     """Get a configuration value."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -244,7 +230,7 @@ def config_get(context, key):
 @click.pass_context
 def config_reset(context, key):
     """Reset a configuration value to its default."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -284,7 +270,7 @@ def config_reset(context, key):
 @click.pass_context
 def config_set_path(context, type, path):
     """Set a configurable path."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})
@@ -327,7 +313,7 @@ def config_set_path(context, type, path):
 @click.pass_context
 def config_show_paths(context):
     """Display all configured paths."""
-    console = _get_console(context)
+    console = get_console(context)
 
     try:
         config_dict = context.obj.get("config", {})

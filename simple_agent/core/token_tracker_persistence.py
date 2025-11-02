@@ -2,12 +2,17 @@
 
 import json
 import os
+import fcntl
+import logging
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 from decimal import Decimal
 
 from simple_agent.tools.helpers.token_tracker import TokenTracker, TokenStats
+
+logger = logging.getLogger(__name__)
 
 
 class TokenTrackerManager:
@@ -190,7 +195,11 @@ class TokenTrackerManager:
         }
 
     def save(self) -> None:
-        """Save tracker state to file."""
+        """Save tracker state to file with file locking and atomic writes.
+
+        Uses fcntl exclusive locking (Unix) and atomic writes via temp file
+        to prevent race conditions with concurrent saves.
+        """
         data = {
             "version": "1.0",
             "timestamp": datetime.now().isoformat(),
@@ -212,19 +221,53 @@ class TokenTrackerManager:
         }
 
         os.makedirs(os.path.dirname(self.stats_file), exist_ok=True)
-        with open(self.stats_file, "w") as f:
-            json.dump(data, f, indent=2)
+
+        # Use atomic write with temporary file and file locking
+        stats_dir = os.path.dirname(self.stats_file)
+        temp_fd, temp_path = tempfile.mkstemp(dir=stats_dir, suffix=".tmp")
+
+        try:
+            # Acquire exclusive lock on temp file (Unix only)
+            fcntl.flock(temp_fd, fcntl.LOCK_EX)
+
+            # Write to temp file
+            with os.fdopen(temp_fd, "w") as f:
+                json.dump(data, f, indent=2)
+
+            # Atomically replace original file
+            os.replace(temp_path, self.stats_file)
+            logger.debug(f"Successfully saved token stats to {self.stats_file}")
+
+        except OSError as e:
+            logger.error(f"Failed to save token stats: {e}", exc_info=True)
+            # Clean up temp file if it still exists
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
 
     def load(self) -> None:
-        """Load tracker state from file."""
+        """Load tracker state from file with error recovery.
+
+        If file is corrupted or missing, starts fresh with empty tracking.
+        """
         if not os.path.exists(self.stats_file):
             # No saved state, start fresh
             self.tracker = TokenTracker()
             self._agent_stats = {}
+            logger.debug(f"No existing stats file at {self.stats_file}, starting fresh")
             return
 
         try:
             with open(self.stats_file, "r") as f:
+                # Acquire shared lock during read (non-blocking for concurrent reads)
+                try:
+                    fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+                except OSError:
+                    # fcntl not available (Windows), proceed without lock
+                    pass
+
                 data = json.load(f)
 
             # Load agent stats
@@ -240,8 +283,15 @@ class TokenTrackerManager:
                     cost=Decimal(str(stat["cost"])),
                     model=stat["model"],
                 )
-        except (json.JSONDecodeError, KeyError):
+            logger.debug(f"Successfully loaded token stats from {self.stats_file}")
+
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
             # Corrupted file, start fresh
+            logger.warning(
+                f"Failed to load token stats from {self.stats_file}: {e}. "
+                f"Starting with empty tracking.",
+                exc_info=True
+            )
             self.tracker = TokenTracker()
             self._agent_stats = {}
 
