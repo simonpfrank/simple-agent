@@ -1,19 +1,29 @@
 """Integration tests for Phase 2.2 Human-in-the-Loop - TDD approach."""
 
+import tempfile
 from unittest.mock import Mock
 
 import pytest
 
 from simple_agent.commands.approval_commands import ApprovalCommands
 from simple_agent.hitl import ApprovalManager, ApprovalRejected, HITLTool
+from simple_agent.hitl.approval_persistence import FileApprovalPersistence
 
 
 class TestPhase22Integration:
     """Integration tests for Phase 2.2 Human-in-the-Loop."""
 
-    def test_approval_workflow_approve(self):
+    @pytest.fixture
+    def approval_manager(self, tmp_path):
+        """Create ApprovalManager for testing."""
+        persistence = FileApprovalPersistence(storage_dir=str(tmp_path))
+        return ApprovalManager(
+            persistence=persistence,
+            enable_interactive=False,
+        )
+
+    def test_approval_workflow_approve(self, approval_manager):
         """Test complete approval workflow with approval."""
-        approval_manager = ApprovalManager()
 
         def send_email(recipient: str, subject: str) -> str:
             return f"Email sent to {recipient} with subject {subject}"
@@ -41,9 +51,8 @@ class TestPhase22Integration:
         assert len(history) == 1
         assert history[0]["decision"] == "approved"
 
-    def test_approval_workflow_reject(self):
+    def test_approval_workflow_reject(self, approval_manager):
         """Test complete approval workflow with rejection."""
-        approval_manager = ApprovalManager()
 
         def delete_file(path: str) -> str:
             return f"File deleted: {path}"
@@ -71,9 +80,8 @@ class TestPhase22Integration:
         assert len(history) == 1
         assert history[0]["decision"] == "rejected"
 
-    def test_multiple_approval_requests(self):
+    def test_multiple_approval_requests(self, approval_manager):
         """Test multiple sequential approval requests."""
-        approval_manager = ApprovalManager()
 
         def log_message(msg: str) -> str:
             return f"Logged: {msg}"
@@ -101,9 +109,8 @@ class TestPhase22Integration:
         assert history[0]["decision"] == "approved"
         assert history[1]["decision"] == "rejected"
 
-    def test_approval_commands_integration(self):
+    def test_approval_commands_integration(self, approval_manager):
         """Test ApprovalCommands with ApprovalManager."""
-        approval_manager = ApprovalManager()
         console = Mock()
 
         commands = ApprovalCommands(approval_manager, console)
@@ -123,9 +130,8 @@ class TestPhase22Integration:
         assert "test_tool" in history[0]
         assert "approved" in history[0]
 
-    def test_tool_with_approval_required_false(self):
+    def test_tool_with_approval_required_false(self, approval_manager):
         """Test tool executes directly when approval not required."""
-        approval_manager = ApprovalManager()
 
         def quick_task() -> str:
             return "Task completed"
@@ -145,9 +151,8 @@ class TestPhase22Integration:
         history = approval_manager.get_history()
         assert len(history) == 0
 
-    def test_approval_prompt_customization(self):
+    def test_approval_prompt_customization(self, approval_manager):
         """Test custom approval prompts."""
-        approval_manager = ApprovalManager()
 
         def send_payment(amount: float) -> str:
             return f"Payment sent: ${amount}"
@@ -167,9 +172,8 @@ class TestPhase22Integration:
         pending = approval_manager.pending_approval
         assert "send_payment" in pending["prompt"]
 
-    def test_approval_history_clearing(self):
+    def test_approval_history_clearing(self, approval_manager):
         """Test clearing approval history."""
-        approval_manager = ApprovalManager()
 
         # Make some approvals
         for i in range(3):
@@ -187,9 +191,9 @@ class TestPhase22Integration:
         approval_manager.clear_history()
         assert len(approval_manager.get_history()) == 0
 
-    def test_approval_manager_in_isolation(self):
+    def test_approval_manager_in_isolation(self, approval_manager):
         """Test ApprovalManager works in isolation."""
-        manager = ApprovalManager()
+        manager = approval_manager
 
         # Request 1
         manager.request_approval("tool1", "Approve?", 60, "reject")
@@ -199,9 +203,8 @@ class TestPhase22Integration:
         assert manager.pending_approval is None
         assert len(manager.get_history()) == 1
 
-    def test_hitl_tool_preserves_return_value(self):
+    def test_hitl_tool_preserves_return_value(self, approval_manager):
         """Test HITLTool preserves tool return value."""
-        approval_manager = ApprovalManager()
 
         def calculate(a: int, b: int) -> int:
             return a + b
@@ -216,9 +219,8 @@ class TestPhase22Integration:
         result = tool(5, 3)
         assert result == 8
 
-    def test_pending_approval_timeout_parameters(self):
+    def test_pending_approval_timeout_parameters(self, approval_manager):
         """Test pending approval stores timeout parameters."""
-        approval_manager = ApprovalManager()
 
         approval_manager.request_approval(
             tool_name="test",

@@ -1,20 +1,28 @@
 """Unit tests for ApprovalManager - TDD approach."""
 
+import tempfile
 from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
 
 from simple_agent.hitl.approval_manager import ApprovalManager, ApprovalDecision
+from simple_agent.hitl.approval_persistence import FileApprovalPersistence
 
 
 class TestApprovalManager:
     """Test ApprovalManager class."""
 
     @pytest.fixture
-    def approval_manager(self):
+    def approval_manager(self, tmp_path):
         """Create ApprovalManager instance."""
-        return ApprovalManager()
+        # Use non-interactive mode for testing (no UI prompts)
+        # Use tmp_path for persistence (pytest handles cleanup)
+        persistence = FileApprovalPersistence(storage_dir=str(tmp_path))
+        return ApprovalManager(
+            persistence=persistence,
+            enable_interactive=False,
+        )
 
     def test_approval_manager_initialization(self, approval_manager):
         """Test ApprovalManager initializes correctly."""

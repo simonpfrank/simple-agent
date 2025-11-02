@@ -63,10 +63,19 @@ class ApprovalCommands:
 
         formatted = []
         for entry in history[-limit:]:
-            tool = entry["tool_name"]
-            decision = entry["decision"]
-            timestamp = entry["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
-            formatted.append(f"[{timestamp}] {tool}: {decision}")
+            tool = entry.get("tool_name", "unknown")
+            decision = entry.get("decision", "unknown")
+
+            # Handle both old format (timestamp) and new format (decided_at)
+            timestamp = entry.get("timestamp") or entry.get("decided_at")
+            if isinstance(timestamp, str):
+                # Already formatted as string
+                timestamp_str = timestamp
+            else:
+                # datetime object
+                timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S") if timestamp else "unknown"
+
+            formatted.append(f"[{timestamp_str}] {tool}: {decision}")
 
         return formatted
 
