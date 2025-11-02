@@ -8,21 +8,121 @@ import re
 import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+
+class ConfigValidationError(ValueError):
+    """Raised when config structure validation fails."""
+
+    pass
 
 
 class ConfigManager:
     """Manages configuration loading, saving, and access."""
 
     @staticmethod
-    def load(path: str) -> Dict[str, Any]:
+    def validate(config: Optional[Dict[str, Any]]) -> None:
+        """
+        Validate config structure (required keys, types, values).
+
+        Args:
+            config: Configuration dictionary to validate
+
+        Raises:
+            ConfigValidationError: If config structure is invalid
+        """
+        if config is None:
+            raise ConfigValidationError("Config cannot be None")
+
+        if not isinstance(config, dict):
+            raise ConfigValidationError(
+                f"Config must be a dict, got {type(config).__name__}"
+            )
+
+        # Check required top-level keys
+        required_keys = {"app", "logging", "paths"}
+        missing_keys = required_keys - set(config.keys())
+        if missing_keys:
+            raise ConfigValidationError(
+                f"Config missing required keys: {', '.join(sorted(missing_keys))}"
+            )
+
+        # Validate 'app' section
+        if not isinstance(config.get("app"), dict):
+            raise ConfigValidationError(
+                f"'app' section must be a dict, got {type(config.get('app')).__name__}"
+            )
+        app_config = config["app"]
+        if "name" not in app_config:
+            raise ConfigValidationError("'app.name' is required")
+        if not isinstance(app_config["name"], str):
+            raise ConfigValidationError(
+                f"'app.name' must be a string, got {type(app_config['name']).__name__}"
+            )
+        if "version" not in app_config:
+            raise ConfigValidationError("'app.version' is required")
+        if not isinstance(app_config["version"], str):
+            raise ConfigValidationError(
+                f"'app.version' must be a string, got {type(app_config['version']).__name__}"
+            )
+
+        # Validate 'logging' section
+        if not isinstance(config.get("logging"), dict):
+            raise ConfigValidationError(
+                f"'logging' section must be a dict, got {type(config.get('logging')).__name__}"
+            )
+        logging_config = config["logging"]
+        if "level" not in logging_config:
+            raise ConfigValidationError("'logging.level' is required")
+        if not isinstance(logging_config["level"], str):
+            raise ConfigValidationError(
+                f"'logging.level' must be a string, got {type(logging_config['level']).__name__}"
+            )
+        valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if logging_config["level"] not in valid_levels:
+            raise ConfigValidationError(
+                f"'logging.level' must be a valid level ({', '.join(sorted(valid_levels))}, "
+                f"got {logging_config['level']})"
+            )
+
+        # Validate 'paths' section
+        if not isinstance(config.get("paths"), dict):
+            raise ConfigValidationError(
+                f"'paths' section must be a dict, got {type(config.get('paths')).__name__}"
+            )
+        paths_config = config["paths"]
+        required_paths = {"prompts", "tools"}
+        missing_paths = required_paths - set(paths_config.keys())
+        if missing_paths:
+            raise ConfigValidationError(
+                f"'paths' missing required keys: {', '.join(sorted(missing_paths))}"
+            )
+        for key in required_paths:
+            if not isinstance(paths_config[key], str):
+                raise ConfigValidationError(
+                    f"'paths.{key}' must be a string, got {type(paths_config[key]).__name__}"
+                )
+
+        # Validate optional sections if present
+        optional_sections = {"custom", "agent"}
+        for section in optional_sections:
+            if section in config and not isinstance(config[section], dict):
+                raise ConfigValidationError(
+                    f"'{section}' section must be a dict, got {type(config.get(section)).__name__}"
+                )
+
+        logger.debug("Config structure validation passed")
+
+    @staticmethod
+    def load(path: str, validate: bool = True) -> Dict[str, Any]:
         """
         Load configuration from YAML file with validation.
 
         Args:
             path: Path to config file
+            validate: If True, validate config structure (default: True)
 
         Returns:
             Dictionary containing configuration
@@ -31,6 +131,7 @@ class ConfigManager:
             FileNotFoundError: If config file doesn't exist
             yaml.YAMLError: If config file is invalid YAML
             ValueError: If config is not a dictionary
+            ConfigValidationError: If validate=True and config structure is invalid
         """
         config_path = Path(path)
 
@@ -50,6 +151,14 @@ class ConfigManager:
                 raise ValueError(
                     f"Config must be a dictionary, got {type(config).__name__}"
                 )
+
+            # Validate config structure if requested
+            if validate:
+                try:
+                    ConfigManager.validate(config)
+                except ConfigValidationError:
+                    logger.exception(f"Config structure validation failed: {path}")
+                    raise
 
             logger.info(f"Config loaded from: {path}")
             return config

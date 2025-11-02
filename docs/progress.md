@@ -99,11 +99,12 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 - 71 new tests: all passing (44 unit + 27 integration)
 - Commit: cecf1aa
 
-### Completed Code Review Issues: 12/56 (21%)
+### Completed Code Review Issues: 13/56 (23%)
 - ✅ 1-A: SimpleAgent constructor (AgentConfig)
 - ✅ 1-B: Template duplication (extracted methods)
 - ✅ 1-C: RAG error handling (better logging)
 - ✅ 1-D: Config key access (fallback)
+- ✅ 2-C: Config structure validation (required keys, types)
 - ✅ 2-D: File locking (fcntl)
 - ✅ 3-C/3-D: Command duplication (common.py)
 - ✅ 5-A: HITL UI (ConsoleApprovalUI)

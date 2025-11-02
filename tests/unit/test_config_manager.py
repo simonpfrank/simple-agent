@@ -22,7 +22,7 @@ class TestConfigManagerLoad:
         config_data = {"app": {"name": "test"}, "logging": {"level": "DEBUG"}}
         config_file.write_text(yaml.dump(config_data))
 
-        result = ConfigManager.load(str(config_file))
+        result = ConfigManager.load(str(config_file), validate=False)
 
         assert result == config_data
 
@@ -31,7 +31,7 @@ class TestConfigManagerLoad:
         config_file = tmp_path / "empty.yaml"
         config_file.write_text("")
 
-        result = ConfigManager.load(str(config_file))
+        result = ConfigManager.load(str(config_file), validate=False)
 
         assert result == {}
 
