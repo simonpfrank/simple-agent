@@ -7,7 +7,7 @@ Supports ToolCallingAgent (default, safe), CodeAgent (with Docker), and MultiSte
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, Literal, Optional, Union
 
 from jinja2 import Environment, BaseLoader, TemplateError
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
@@ -18,6 +18,7 @@ from simple_agent.tools.helpers.token_counter import estimate_tokens
 from simple_agent.tools.helpers.model_pricing import calculate_cost
 from simple_agent.core.agent_result import AgentResult
 from simple_agent.core.token_budget_context import TokenBudgetContext
+from simple_agent.agents.agent_config import AgentConfig
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -28,9 +29,9 @@ class SimpleAgent:
 
     def __init__(
         self,
-        name: str,
-        model_provider: str,
-        model_config: Dict[str, Any],
+        name: Union[str, AgentConfig] = None,
+        model_provider: Optional[str] = None,
+        model_config: Optional[Dict[str, Any]] = None,
         role: Optional[str] = None,
         tools: Optional[list] = None,
         verbosity: int = 1,
@@ -45,8 +46,12 @@ class SimpleAgent:
         """
         Initialize agent.
 
+        Can be called in two ways:
+        1. With AgentConfig object: SimpleAgent(config=AgentConfig(...))
+        2. With individual parameters (backward compatible): SimpleAgent(name="test", model_provider="openai", ...)
+
         Args:
-            name: Agent identifier
+            name: Agent identifier or AgentConfig object (if first positional arg)
             model_provider: "openai", "ollama", etc.
             model_config: Dict with model settings
             role: Optional system prompt/persona
@@ -64,92 +69,84 @@ class SimpleAgent:
             ValueError: If invalid parameters or attempting to use unsafe executor
             TypeError: If parameters have incorrect types
         """
-        # Input validation
-        if not isinstance(name, str):
-            raise TypeError(f"name must be a string, got {type(name).__name__}")
-
-        if model_provider is not None and not isinstance(model_provider, str):
-            raise TypeError(f"model_provider must be a string or None, got {type(model_provider).__name__}")
-
-        if not isinstance(model_config, dict):
-            raise TypeError(f"model_config must be a dict, got {type(model_config).__name__}")
-
-        if not isinstance(max_steps, int) or max_steps <= 0:
-            raise ValueError(f"max_steps must be a positive integer, got {max_steps}")
-
-        if token_budget is not None and (not isinstance(token_budget, int) or token_budget < 0):
-            raise ValueError(f"token_budget must be a non-negative integer or None, got {token_budget}")
-
-        if token_warning_threshold is not None and (not isinstance(token_warning_threshold, int) or token_warning_threshold < 0):
-            raise ValueError(f"token_warning_threshold must be a non-negative integer or None, got {token_warning_threshold}")
-
-        # Validate agent_type
-        valid_types = ["tool_calling", "code"]
-        if agent_type not in valid_types:
-            raise ValueError(
-                f"Invalid agent_type '{agent_type}'. Must be one of: {valid_types}"
+        # Support both AgentConfig object and individual parameters
+        if isinstance(name, AgentConfig):
+            config = name
+        else:
+            # Build config from individual parameters
+            config = AgentConfig(
+                name=name,
+                model_provider=model_provider,
+                model_config=model_config or {},
+                role=role,
+                tools=tools,
+                verbosity=verbosity,
+                max_steps=max_steps,
+                agent_type=agent_type,
+                executor_type=executor_type,
+                debug_enabled=debug_enabled,
+                user_prompt_template=user_prompt_template,
+                token_budget=token_budget,
+                token_warning_threshold=token_warning_threshold,
             )
 
-        # Security: Reject 'local' executor for CodeAgent
-        if agent_type == "code" and executor_type == "local":
-            raise ValueError(
-                "Security error: 'local' executor is unsafe and not allowed. "
-                "Use 'docker' (recommended), 'e2b', 'modal', or 'wasm' instead."
-            )
+        # Validate configuration
+        config.validate()
 
-        self.name = name
-        self.model_provider = model_provider
-        self.model_config = model_config  # Store model config for token tracking
-        self.agent_type = agent_type
-        self.debug_enabled = debug_enabled
-        self.tools = tools or []  # Store tools list for access
-        self.verbosity = verbosity
-        self.max_steps = max_steps
-        self.user_prompt_template = user_prompt_template
+        # Store configuration values as instance attributes
+        self.name = config.name
+        self.model_provider = config.model_provider
+        self.model_config = config.model_config  # Store model config for token tracking
+        self.agent_type = config.agent_type
+        self.debug_enabled = config.debug_enabled
+        self.tools = config.tools or []  # Store tools list for access
+        self.verbosity = config.verbosity
+        self.max_steps = config.max_steps
+        self.user_prompt_template = config.user_prompt_template
         self.rag_collection = None  # Connected RAG collection (set via set_rag_collection)
-        self.token_budget = token_budget
-        self.token_warning_threshold = token_warning_threshold
+        self.token_budget = config.token_budget
+        self.token_warning_threshold = config.token_warning_threshold
 
         # Render role template if it contains Jinja2 syntax
-        if role:
-            self.role = self._render_template(role, user_input=None)
+        if config.role:
+            self.role = self._render_template(config.role, user_input=None)
         else:
-            self.role = role
+            self.role = config.role
 
         # Create LiteLLM model instance
-        self.model = self._create_model(model_provider, model_config)
+        self.model = self._create_model(config.model_provider, config.model_config)
 
         # Map debug mode to SmolAgents LogLevel
         # LogLevel: OFF=-1, ERROR=0, INFO=1, DEBUG=2
-        verbosity_level = LogLevel.DEBUG if debug_enabled else LogLevel.INFO
+        verbosity_level = LogLevel.DEBUG if config.debug_enabled else LogLevel.INFO
         logger.debug(
-            f"Agent '{name}' verbosity set to {verbosity_level.name} "
-            f"(debug_enabled={debug_enabled})"
+            f"Agent '{config.name}' verbosity set to {verbosity_level.name} "
+            f"(debug_enabled={config.debug_enabled})"
         )
 
         # Create appropriate agent type
         # SmolAgents accepts tools as a list during initialization
-        if agent_type == "tool_calling":
+        if config.agent_type == "tool_calling":
             self.agent = ToolCallingAgent(
-                tools=tools or [],
+                tools=config.tools or [],
                 model=self.model,
-                max_steps=max_steps,
-                instructions=role,
+                max_steps=config.max_steps,
+                instructions=config.role,
                 verbosity_level=verbosity_level,
             )
-            logger.info(f"Created ToolCallingAgent: {self.name} ({model_provider})")
-        elif agent_type == "code":
+            logger.info(f"Created ToolCallingAgent: {self.name} ({config.model_provider})")
+        elif config.agent_type == "code":
             self.agent = CodeAgent(
-                tools=tools or [],
+                tools=config.tools or [],
                 model=self.model,
-                max_steps=max_steps,
+                max_steps=config.max_steps,
                 verbosity_level=verbosity_level,
-                instructions=role,
-                executor_type=executor_type,
+                instructions=config.role,
+                executor_type=config.executor_type,
             )
             logger.info(
-                f"Created CodeAgent: {self.name} ({model_provider}) "
-                f"with {executor_type} executor"
+                f"Created CodeAgent: {self.name} ({config.model_provider}) "
+                f"with {config.executor_type} executor"
             )
 
     def _build_context(self, user_input: Optional[str] = None) -> Dict[str, Any]:
