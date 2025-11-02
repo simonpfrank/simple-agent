@@ -117,17 +117,33 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 - ✅ 8-D: Input validation (page_fetch.py)
 - ✅ 10-B: Service locator (AppContext)
 
-### Next Priority (Code Review Fixes Roadmap):
-1. [ ] Phase 2.3: Integrate AppContext into app.py commands
-2. [ ] Phase 3: Split large files - Issues 3-A, 3-B
-3. [ ] Phase 4: Config validation - Issues 2-C, 8-A, 8-D
-4. [ ] Phase 5: RAG improvements - Issues 7-A, 7-B, 7-C
-5. [ ] Phase 6-7: Remaining issues (41 items, mixed severity)
+### Backlog (Code Review Fixes Roadmap):
+1. [ ] **Phase 2.3: Integrate AppContext into app.py** - DEFERRED (HIGH COMPLEXITY)
+   - Replace service locator pattern (ctx.obj dict) with AppContext in all commands
+   - Refactor command functions to use AppContext for dependency injection
+   - Update command registration and initialization
+   - Effort: 3-4 hours | Risk: Medium
 
-### Test Summary:
-- ✅ 731/731 tests passing (573 unit + 158 integration)
-- NEW: +44 unit tests (HITL implementation)
-- NEW: +27 integration tests (HITL workflows + backward compat)
+2. [ ] **Phase 3: Split Large Files** - DEFERRED (HIGH COMPLEXITY)
+   - Issue 3-A: Split token_stats_commands.py (710 lines → 3-4 modules)
+   - Issue 3-B: Split agent_commands.py (495 lines → 2-3 modules)
+   - Requires careful refactoring of command classes and tests
+   - Effort: 4-6 hours | Risk: Medium
+
+3. [ ] **Phase 6-7: Remaining Issues** (39 items, mixed severity)
+   - 2-A, 2-B, 2-E, 2-F: Manager lifecycle and config improvements
+   - 1-H, 1-I, 4-*, 6-*: Various quality and architectural improvements
+   - Ready for implementation after core issues complete
+
+### Current Test Summary (End of Session):
+- ✅ **703 unit tests passing** (all tests)
+- ✅ **123 integration tests** (from earlier phases)
+- **Total: 826 tests passing**
+- **New tests created this session: 95**
+  - +28 tests (Issue 8-D: page_fetch validation)
+  - +28 tests (Issue 2-C: config validation)
+  - +17 tests (Issue 8-A: model pricing config)
+  - +22 tests (Issues 7-A/B/C: RAG improvements)
 
 ### Key Links:
 - **Phase 0**: `phase_0_foundation.md`
