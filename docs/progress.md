@@ -74,29 +74,31 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 
 # Next
 
-## Immediate Tasks (if context is lost, start here):
+## Current Development: Code Review Fixes (Phase 2 Refactoring)
 
-### Current Status:
-- ✅ Phase 3.1 complete: Token budgets (25 unit + 10 integration tests)
-- ✅ Phase 3.2 complete: Token tracking & error handling (72 unit + 26 integration tests)
-- ✅ Phase 3.3 complete: Token budget awareness (31 unit + 10 integration tests)
-- ✅ Phase 3.4 complete: Token stats CLI commands (12 unit + 13 integration tests)
-  - TokenTrackerManager: Save/load persistence to JSON
-  - /token stats: Show overall or per-agent usage stats
-  - /token export: Export stats to JSON or CSV format
-  - /token budget: Show or set agent token budget
-  - /token cost: Show cost breakdown by agent or model
-- ✅ All phase files renamed to lowercase
-- ✅ phase_3_extensions.md with detailed Phase 3 specs
-- ✅ phase_4_raspberrypi.md created
-- ✅ progress.md updated with all statuses
-- ✅ Documentation committed (ce9baae, 6041b7e, 48a4c47)
-- 🔴 README.md needs update with Phase 3.3 & 3.4 examples
+### Status (as of context continuation):
+- ✅ Phase 2.1 complete: SimpleAgent constructor refactoring with AgentConfig
+  - Created AgentConfig dataclass encapsulating 13 constructor parameters
+  - Refactored SimpleAgent.__init__() to use AgentConfig
+  - Issue 1-A (SRP violation): RESOLVED
+  - All 555 unit + 123 integration tests passing (678 total)
+  - Commit: f6e2d67
 
-### Next Priority:
-1. [ ] Update README.md with Phase 3.3 & 3.4 examples
-2. [ ] Manual testing: Token stats CLI commands in REPL
-3. [ ] (Optional) Phase 3.5+: MCP, Agent Composition, Python Code Tool, Flow Conditionals
+- ✅ Phase 2.2 complete: AppContext dataclass (replace service locator)
+  - Created AppContext dataclass for type-safe dependency injection
+  - Replaced ctx.obj dict-based injection pattern
+  - Issue 10-B (service locator anti-pattern): RESOLVED
+  - Created 9 unit tests for AppContext (all passing)
+  - All 564 unit + 123 integration tests passing (687 total)
+  - Commit: 050e19a
+
+### Next Priority (Code Review Fixes Roadmap):
+1. [ ] Phase 2.3: Integrate AppContext into app.py commands
+2. [ ] Phase 1: HIGH Priority (HITL Module) - Issues 5-A, 5-B
+3. [ ] Phase 3: Split large files - Issues 3-A, 3-B
+4. [ ] Phase 4: Config validation - Issues 2-C, 8-A, 8-D
+5. [ ] Phase 5: RAG improvements - Issues 7-A, 7-B, 7-C
+6. [ ] Continue with remaining 50+ code review issues
 
 ### Key Links:
 - **Phase 0**: `phase_0_foundation.md`
