@@ -1,6 +1,11 @@
-"""Webpage fetching and markdown conversion tool for Simple Agent."""
+"""Webpage fetching and markdown conversion tool for Simple Agent.
+
+Issue 8-D: Added input validation for URL and parameters.
+"""
 
 from random import choice
+from typing import Optional
+from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -10,6 +15,75 @@ import html2text
 
 from simple_agent.tools.helpers import HTMLCleaner
 from simple_agent.tools.helpers.token_counter import estimate_tokens
+
+
+def _validate_url(url: str) -> Optional[str]:
+    """Validate URL format and accessibility.
+
+    Args:
+        url: URL to validate
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if not url or not isinstance(url, str):
+        return "URL must be a non-empty string"
+
+    if len(url) > 2048:
+        return "URL is too long (max 2048 characters)"
+
+    # Basic URL parsing validation
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme:
+            return "URL must include a scheme (http:// or https://)"
+        if parsed.scheme not in ("http", "https"):
+            return f"Unsupported URL scheme: {parsed.scheme} (only http and https allowed)"
+        if not parsed.netloc:
+            return "URL must include a domain"
+    except Exception as e:
+        return f"Invalid URL format: {e}"
+
+    return None
+
+
+def _validate_strip_level(strip_level: str) -> Optional[str]:
+    """Validate HTML strip level parameter.
+
+    Args:
+        strip_level: Strip level to validate
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    valid_levels = ("minimal", "moderate", "aggressive")
+    if strip_level not in valid_levels:
+        return f"strip_level must be one of {valid_levels}, got: {strip_level}"
+    return None
+
+
+def _validate_max_chars(max_chars: Optional[int]) -> Optional[str]:
+    """Validate max_chars parameter.
+
+    Args:
+        max_chars: Max characters limit to validate
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if max_chars is None:
+        return None
+
+    if not isinstance(max_chars, int):
+        return "max_chars must be an integer or None"
+
+    if max_chars < 1:
+        return "max_chars must be greater than 0"
+
+    if max_chars > 10_000_000:
+        return "max_chars is too large (max 10,000,000 characters)"
+
+    return None
 
 
 def _get_random_user_agent() -> str:
@@ -36,7 +110,7 @@ def _get_random_user_agent() -> str:
 def fetch_webpage_markdown(
     url: str,
     strip_level: str = "minimal",
-    max_chars: int = None
+    max_chars: Optional[int] = None
 ) -> dict:
     """Fetch a webpage and convert to markdown with token management.
 
@@ -44,9 +118,9 @@ def fetch_webpage_markdown(
     Returns the page content as clean markdown text with token usage tracking.
 
     Args:
-        url: URL to fetch
+        url: URL to fetch (must be valid http/https URL)
         strip_level: HTML cleaning level - "minimal", "moderate", or "aggressive"
-        max_chars: Maximum characters to return (None = no limit)
+        max_chars: Maximum characters to return (None = no limit, max 10,000,000)
 
     Returns:
         dict with keys:
@@ -57,6 +131,40 @@ def fetch_webpage_markdown(
             - was_truncated (bool): Whether content was truncated by max_chars
             - message (str): Status message
     """
+    # Validate inputs (Issue 8-D)
+    url_error = _validate_url(url)
+    if url_error:
+        return {
+            "success": False,
+            "data": None,
+            "tokens_used": 0,
+            "original_size": 0,
+            "was_truncated": False,
+            "message": f"Invalid URL: {url_error}",
+        }
+
+    strip_level_error = _validate_strip_level(strip_level)
+    if strip_level_error:
+        return {
+            "success": False,
+            "data": None,
+            "tokens_used": 0,
+            "original_size": 0,
+            "was_truncated": False,
+            "message": f"Invalid parameter: {strip_level_error}",
+        }
+
+    max_chars_error = _validate_max_chars(max_chars)
+    if max_chars_error:
+        return {
+            "success": False,
+            "data": None,
+            "tokens_used": 0,
+            "original_size": 0,
+            "was_truncated": False,
+            "message": f"Invalid parameter: {max_chars_error}",
+        }
+
     headers = {"User-Agent": _get_random_user_agent()}
 
     try:

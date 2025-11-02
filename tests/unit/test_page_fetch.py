@@ -30,20 +30,16 @@ class TestFetchWebpageMarkdown:
                     assert "example.com" in result["message"]
 
     def test_fetch_webpage_markdown_invalid_url(self) -> None:
-        """Test fetch_webpage_markdown with invalid URL."""
+        """Test fetch_webpage_markdown with invalid URL (missing scheme)."""
         from simple_agent.tools.builtin import page_fetch
 
-        with patch.object(page_fetch.requests, "get") as mock_get:
-            import requests
+        # Test with URL missing scheme - should be caught by input validation
+        result = page_fetch.fetch_webpage_markdown("not a valid url")
 
-            # Use a more generic RequestException
-            mock_get.side_effect = requests.RequestException("Invalid URL")
-
-            result = page_fetch.fetch_webpage_markdown("not a valid url")
-
-            assert result["success"] is False
-            assert result["data"] is None
-            assert "Page request failed" in result["message"]
+        assert result["success"] is False
+        assert result["data"] is None
+        assert "Invalid URL" in result["message"]
+        assert "scheme" in result["message"]
 
     def test_fetch_webpage_markdown_timeout(self) -> None:
         """Test fetch_webpage_markdown handles timeout."""
