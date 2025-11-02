@@ -1,8 +1,13 @@
 """Document loader for loading and chunking files."""
 
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
+
+from simple_agent.rag.collection import DocumentValidationError
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentLoader:
@@ -111,3 +116,78 @@ class DocumentLoader:
             "page": None,
             "paragraph": None,
         }
+
+    @staticmethod
+    def validate_document(document: dict) -> None:
+        """
+        Validate document structure before adding to collection.
+
+        Issue 7-B: Add document structure validation
+        Ensures documents have required fields and valid types.
+
+        Args:
+            document: Document dict to validate
+
+        Raises:
+            DocumentValidationError: If document structure is invalid
+        """
+        if not isinstance(document, dict):
+            raise DocumentValidationError("Document must be a dictionary")
+
+        # Check required fields
+        required_fields = {"id", "content", "source"}
+        missing_fields = required_fields - set(document.keys())
+        if missing_fields:
+            raise DocumentValidationError(
+                f"Document missing required fields: {', '.join(sorted(missing_fields))}"
+            )
+
+        # Validate field types and values
+        if not isinstance(document.get("id"), str):
+            raise DocumentValidationError("Document 'id' must be a string")
+
+        if not isinstance(document.get("content"), str):
+            raise DocumentValidationError("Document 'content' must be a string")
+
+        if not isinstance(document.get("source"), str):
+            raise DocumentValidationError("Document 'source' must be a string")
+
+        # Validate non-empty required fields
+        if not document["id"]:
+            raise DocumentValidationError("Document 'id' cannot be empty")
+
+        if not document["content"]:
+            raise DocumentValidationError("Document 'content' cannot be empty")
+
+        logger.debug(f"Document '{document['id']}' validation passed")
+
+    @staticmethod
+    def validate_documents(documents: List[dict]) -> None:
+        """
+        Validate a batch of documents before adding to collection.
+
+        Issue 7-B: Batch validation
+        Validates all documents and fails on first error.
+
+        Args:
+            documents: List of document dicts to validate
+
+        Raises:
+            DocumentValidationError: If any document is invalid
+        """
+        if not isinstance(documents, list):
+            raise DocumentValidationError("Documents must be a list")
+
+        if not documents:
+            raise DocumentValidationError("Documents list cannot be empty")
+
+        for i, document in enumerate(documents):
+            try:
+                DocumentLoader.validate_document(document)
+            except DocumentValidationError as e:
+                raise DocumentValidationError(
+                    f"Document {i} validation failed: {str(e)}"
+                ) from e
+
+        logger.debug(f"Validated {len(documents)} documents")
+
