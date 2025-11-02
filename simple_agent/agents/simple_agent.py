@@ -178,6 +178,21 @@ class SimpleAgent:
 
         return context
 
+    def _get_jinja_env(self) -> Environment:
+        """Get configured Jinja2 environment (cached)."""
+        if not hasattr(self, "_jinja_env"):
+            self._jinja_env = Environment(
+                loader=BaseLoader(),
+                autoescape=False,  # Not rendering HTML
+                trim_blocks=True,
+                lstrip_blocks=True,
+            )
+        return self._jinja_env
+
+    def _is_jinja_template(self, template: str) -> bool:
+        """Check if template uses Jinja2 syntax."""
+        return "{{" in template or "{%" in template or "{#" in template
+
     def _render_template(self, template: str, user_input: Optional[str] = None) -> str:
         """
         Render template with Jinja2 or simple format string.
@@ -200,15 +215,10 @@ class SimpleAgent:
         context = self._build_context(user_input)
 
         # Auto-detect template type
-        if "{{" in template or "{%" in template or "{#" in template:
+        if self._is_jinja_template(template):
             # Jinja2 template detected
             try:
-                jinja_env = Environment(
-                    loader=BaseLoader(),
-                    autoescape=False,  # Not rendering HTML
-                    trim_blocks=True,
-                    lstrip_blocks=True,
-                )
+                jinja_env = self._get_jinja_env()
                 jinja_template = jinja_env.from_string(template)
                 rendered = jinja_template.render(**context)
                 # Strip trailing whitespace (templates often have trailing newlines)
