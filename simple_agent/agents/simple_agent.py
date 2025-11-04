@@ -294,6 +294,80 @@ class SimpleAgent:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
+        elif provider == "azure_openai":
+            # Azure OpenAI with Azure AD or API key authentication
+            azure_endpoint = config.get("azure_endpoint")
+            api_version = config.get("api_version", "2024-07-18")
+            
+            if not azure_endpoint:
+                raise ValueError("azure_endpoint is required for azure_openai provider")
+            
+            # Resolve environment variables if present
+            azure_endpoint = ConfigManager.resolve_env_var(azure_endpoint)
+            
+            # Check authentication type
+            auth_type = config.get("auth_type", "azure_ad")
+            
+            if auth_type == "azure_ad":
+                # Azure AD authentication (recommended for enterprise)
+                try:
+                    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+                    
+                    logger.info("Using Azure AD authentication for Azure OpenAI")
+                    
+                    # Create token provider (callable that returns fresh tokens)
+                    credential = DefaultAzureCredential()
+                    token_provider = get_bearer_token_provider(
+                        credential, 
+                        f"{azure_endpoint}/.default"
+                    )
+                    
+                    logger.debug(
+                        f"Created Azure OpenAI model - endpoint: {azure_endpoint}, "
+                        f"model: {model_id}, api_version: {api_version}"
+                    )
+                    
+                    return LiteLLMModel(
+                        model_id=f"azure/{model_id}",
+                        api_base=azure_endpoint,
+                        api_version=api_version,
+                        azure_ad_token_provider=token_provider,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                except ImportError as e:
+                    raise ValueError(
+                        "Azure AD authentication requires 'azure-identity' package. "
+                        f"Install it with: pip install azure-identity. Error: {e}"
+                    )
+                except Exception as e:
+                    logger.error(f"Azure AD authentication failed: {e}")
+                    raise ValueError(
+                        f"Failed to authenticate with Azure AD: {e}. "
+                        "Ensure you have valid Azure credentials configured "
+                        "(run 'az login' or set environment variables)."
+                    )
+            else:
+                # API Key authentication (fallback)
+                api_key = config.get("api_key", "")
+                if not api_key:
+                    raise ValueError("api_key is required when auth_type is not 'azure_ad'")
+                
+                api_key = ConfigManager.resolve_env_var(api_key)
+                
+                logger.debug(
+                    f"Created Azure OpenAI model with API key - endpoint: {azure_endpoint}, "
+                    f"model: {model_id}, api_version: {api_version}"
+                )
+                
+                return LiteLLMModel(
+                    model_id=f"azure/{model_id}",
+                    api_base=azure_endpoint,
+                    api_key=api_key,
+                    api_version=api_version,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
         else:
             # Generic provider - let LiteLLM figure it out
             logger.warning(f"Unknown provider: {provider}, using generic configuration")
