@@ -136,17 +136,19 @@ guardrails:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
+            temp_path = f.name
 
-            config = load_guardrails_from_yaml(f.name)
+        try:
+            config = load_guardrails_from_yaml(temp_path)
 
             assert "guardrails" in config
             assert "input" in config["guardrails"]
             assert len(config["guardrails"]["input"]) == 2
             assert config["guardrails"]["input"][0]["type"] == "pii_detector"
             assert config["guardrails"]["input"][1]["type"] == "custom"
-
-            # Clean up
-            Path(f.name).unlink()
+        finally:
+            # Clean up - file is now closed so Windows can delete it
+            Path(temp_path).unlink(missing_ok=True)
 
     def test_guardrail_commands_integration(self):
         """Test GuardrailCommands with real guardrails."""

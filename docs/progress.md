@@ -118,19 +118,25 @@ Development progress across all phases. See individual phase docs (phase_N_*.md)
 - ✅ 10-B: Service locator (AppContext)
 
 ### Backlog (Code Review Fixes Roadmap):
-1. [ ] **Phase 2.3: Integrate AppContext into app.py** - DEFERRED (HIGH COMPLEXITY)
+1. [ ] **Azure Integration Tests: Retrieve Token in Tests**
+   - Currently 6 Azure tests are skipped due to requiring credentials
+   - Update tests to retrieve Azure AD token dynamically in test setup
+   - Use `DefaultAzureCredential` to get token so tests don't skip
+   - Effort: 1-2 hours | Priority: Medium
+
+2. [ ] **Phase 2.3: Integrate AppContext into app.py** - DEFERRED (HIGH COMPLEXITY)
    - Replace service locator pattern (ctx.obj dict) with AppContext in all commands
    - Refactor command functions to use AppContext for dependency injection
    - Update command registration and initialization
    - Effort: 3-4 hours | Risk: Medium
 
-2. [ ] **Phase 3: Split Large Files** - DEFERRED (HIGH COMPLEXITY)
+3. [ ] **Phase 3: Split Large Files** - DEFERRED (HIGH COMPLEXITY)
    - Issue 3-A: Split token_stats_commands.py (710 lines → 3-4 modules)
    - Issue 3-B: Split agent_commands.py (495 lines → 2-3 modules)
    - Requires careful refactoring of command classes and tests
    - Effort: 4-6 hours | Risk: Medium
 
-3. [ ] **Phase 6-7: Remaining Issues** (39 items, mixed severity)
+4. [ ] **Phase 6-7: Remaining Issues** (39 items, mixed severity)
    - 2-A, 2-B, 2-E, 2-F: Manager lifecycle and config improvements
    - 1-H, 1-I, 4-*, 6-*: Various quality and architectural improvements
    - Ready for implementation after core issues complete

@@ -2,9 +2,9 @@
 
 import json
 import os
-import fcntl
 import logging
 import tempfile
+import platform
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
@@ -13,6 +13,57 @@ from decimal import Decimal
 from simple_agent.tools.helpers.token_tracker import TokenTracker, TokenStats
 
 logger = logging.getLogger(__name__)
+
+# Cross-platform file locking
+_IS_WINDOWS = platform.system() == "Windows"
+
+if _IS_WINDOWS:
+    import msvcrt
+else:
+    import fcntl
+
+
+def _lock_file(file_obj, exclusive: bool = True):
+    """Cross-platform file locking.
+    
+    Args:
+        file_obj: File object to lock
+        exclusive: If True, acquire exclusive lock; if False, acquire shared lock
+    """
+    if _IS_WINDOWS:
+        # Windows locking using msvcrt - lock first byte
+        mode = msvcrt.LK_NBLCK if exclusive else msvcrt.LK_NBRLCK
+        try:
+            file_obj.seek(0)
+            msvcrt.locking(file_obj.fileno(), mode, 1)
+        except (OSError, IOError):
+            pass  # Lock not available, continue anyway
+    else:
+        # Unix/Mac locking using fcntl
+        lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        try:
+            fcntl.flock(file_obj.fileno(), lock_type | fcntl.LOCK_NB)
+        except (OSError, IOError):
+            pass  # Lock not available, continue anyway
+
+
+def _unlock_file(file_obj):
+    """Cross-platform file unlocking.
+    
+    Args:
+        file_obj: File object to unlock
+    """
+    if _IS_WINDOWS:
+        try:
+            file_obj.seek(0)
+            msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+        except (OSError, IOError):
+            pass
+    else:
+        try:
+            fcntl.flock(file_obj.fileno(), fcntl.LOCK_UN)
+        except (OSError, IOError):
+            pass
 
 
 class TokenTrackerManager:
@@ -227,12 +278,12 @@ class TokenTrackerManager:
         temp_fd, temp_path = tempfile.mkstemp(dir=stats_dir, suffix=".tmp")
 
         try:
-            # Acquire exclusive lock on temp file (Unix only)
-            fcntl.flock(temp_fd, fcntl.LOCK_EX)
-
             # Write to temp file
             with os.fdopen(temp_fd, "w") as f:
+                # Acquire exclusive lock on temp file
+                _lock_file(f, exclusive=True)
                 json.dump(data, f, indent=2)
+                _unlock_file(f)
 
             # Atomically replace original file
             os.replace(temp_path, self.stats_file)
@@ -262,13 +313,9 @@ class TokenTrackerManager:
         try:
             with open(self.stats_file, "r") as f:
                 # Acquire shared lock during read (non-blocking for concurrent reads)
-                try:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_SH)
-                except OSError:
-                    # fcntl not available (Windows), proceed without lock
-                    pass
-
+                _lock_file(f, exclusive=False)
                 data = json.load(f)
+                _unlock_file(f)
 
             # Load agent stats
             self._agent_stats = data.get("agent_stats", {})

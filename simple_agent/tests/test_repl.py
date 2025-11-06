@@ -81,12 +81,12 @@ class TestGetCommandNames:
             with cli.make_context("cli", []) as ctx:
                 command_names = get_command_names(ctx.command)
 
-                # Verify all our registered commands are present
+                # Verify our registered commands are present (check a few key ones)
                 assert "help" in command_names
                 assert "quit" in command_names
                 assert "exit" in command_names
                 assert "config" in command_names
-                assert "process" in command_names
+                assert "agent" in command_names  # Changed from "process" which doesn't exist
 
     def test_get_command_names_returns_list(self):
         """Test that get_command_names returns a list."""
@@ -242,7 +242,24 @@ class TestREPLCommandExecution:
 
         with runner.isolated_filesystem():
             with open("config.yaml", "w") as f:
-                f.write("app:\n  name: Test\n")
+                f.write("""
+app:
+  name: Test
+  version: "1.0"
+paths:
+  data_dir: "./data"
+  logs_dir: "./logs"
+  prompts: "./prompts"
+  tools: "./tools"
+llm:
+  provider: "openai"
+agents:
+  default:
+    role: "Test"
+logging:
+  level: "INFO"
+  file: "test.log"
+""")
 
             # Mock the start_repl function to avoid interactive session
             with patch("simple_agent.app.start_repl") as mock_start_repl:
@@ -272,7 +289,7 @@ class TestREPLErrorHandling:
 
     @patch("simple_agent.app.repl")
     @patch(
-        "simple_agent.app.ui.welcome.show_goodbye"
+        "simple_agent.ui.welcome.show_goodbye"
     )  # Patch where it's defined, not where it's imported
     def test_keyboard_interrupt_shows_goodbye(self, mock_goodbye, mock_repl):
         """Test that Ctrl+C shows goodbye message."""
@@ -302,7 +319,7 @@ class TestREPLErrorHandling:
                 mock_goodbye.assert_called_once()
 
     @patch("simple_agent.app.repl")
-    @patch("simple_agent.app.ui.welcome.show_goodbye")  # Patch where it's defined
+    @patch("simple_agent.ui.welcome.show_goodbye")  # Patch where it's defined
     def test_eof_error_shows_goodbye(self, mock_goodbye, mock_repl):
         """Test that Ctrl+D (EOFError) shows goodbye message."""
         runner = CliRunner()

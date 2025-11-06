@@ -158,3 +158,12 @@ class CollectionManager:
         if collection_name is None:
             return None
         return self.get_collection(collection_name)
+
+    def cleanup(self) -> None:
+        """Cleanup resources (close ChromaDB client)."""
+        try:
+            # Reset ChromaDB client to close connections
+            if hasattr(self.chroma_wrapper, 'client') and self.chroma_wrapper.client is not None:
+                self.chroma_wrapper.client.clear_system_cache()
+        except Exception:
+            pass

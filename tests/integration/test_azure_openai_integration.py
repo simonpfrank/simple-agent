@@ -27,8 +27,8 @@ class TestAzureOpenAIIntegration:
         """Azure OpenAI configuration for integration tests."""
         return {
             "model": "gpt-4o-mini",
-            "azure_endpoint": "https://api.lab.ai.wtwco.com",
-            "api_version": "2024-07-18",
+            "azure_endpoint": "https://api.lab.ai.wtwco.com/",
+            "api_version": "2024-02-01",
             "auth_type": "azure_ad",
             "temperature": 0.7,
             "max_tokens": 100,  # Keep tokens low for cost efficiency
@@ -143,17 +143,24 @@ class TestAzureOpenAIIntegration:
             assert "nonexistent-model" in str(e) or "model" in str(e).lower()
 
     def test_azure_openai_token_budget(self, azure_agent):
-        """Test token budget enforcement."""
-        # Set very low token budget
+        """Test token budget enforcement - should work when within budget."""
+        # Set reasonable token budget that accommodates the prompt
         result = azure_agent.run(
-            "Write a very long essay about artificial intelligence.",
-            token_budget_override=50,  # Very low budget
+            "What is 5+5? Answer with just the number.",
+            token_budget_override=1000,  # Reasonable budget for simple prompt
         )
         
-        # Should either truncate or raise error
-        # With budget override, should work but be constrained
+        # Should work when within budget
         assert result is not None
-        assert result.input_tokens <= 50
+        assert result.input_tokens > 0
+        assert result.input_tokens <= 1000
+        
+        # Should raise error when budget too low
+        with pytest.raises(ValueError, match="Token budget exceeded"):
+            azure_agent.run(
+                "Write a very long essay about artificial intelligence and its impact on society.",
+                token_budget_override=20,  # Too low for this prompt
+            )
 
     def test_azure_openai_temperature_variation(self, azure_config):
         """Test that temperature setting affects responses (determinism check)."""
@@ -299,17 +306,22 @@ class TestAzureOpenAIEdgeCases:
         """Test prompt with special characters and emojis."""
         config = {
             "model": "gpt-4o-mini",
-            "azure_endpoint": "https://api.lab.ai.wtwco.com",
-            "api_version": "2024-07-18",
+            "azure_endpoint": "https://api.lab.ai.wtwco.com/",
+            "api_version": "2024-02-01",
             "auth_type": "azure_ad",
         }
         
-        agent = SimpleAgent(
-            name="test_special",
-            model_provider="azure_openai",
-            model_config=config,
-        )
+        try:
+            agent = SimpleAgent(
+                name="test_special",
+                model_provider="azure_openai",
+                model_config=config,
+            )
+        except ValueError as e:
+            pytest.skip(f"Azure OpenAI not available: {e}")
         
         result = agent.run("Respond to this: 👋 Hello! 🌟 Test@#$%^&*()")
         assert result is not None
-        assert len(str(result)) > 0
+        response_str = str(result)
+        assert response_str is not None
+        assert len(response_str) > 0, f"Expected non-empty response, got: '{response_str}'"

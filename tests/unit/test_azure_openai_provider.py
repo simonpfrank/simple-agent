@@ -31,7 +31,7 @@ class TestAzureOpenAIProvider:
         config = {
             "model": "gpt-4o-mini",
             "azure_endpoint": "https://api.lab.ai.wtwco.com",
-            "api_version": "2024-07-18",
+            "api_version": "2024-02-01",
             "auth_type": "azure_ad",
             "temperature": 0.7,
             "max_tokens": 2000,
@@ -50,9 +50,9 @@ class TestAzureOpenAIProvider:
 
         assert call_kwargs['model_id'] == "azure/gpt-4o-mini"
         assert call_kwargs['api_base'] == "https://api.lab.ai.wtwco.com"
-        assert call_kwargs['api_version'] == "2024-07-18"
-        assert 'azure_ad_token_provider' in call_kwargs
-        assert callable(call_kwargs['azure_ad_token_provider'])
+        assert call_kwargs['api_version'] == "2024-02-01"
+        assert 'azure_ad_token' in call_kwargs
+        assert call_kwargs['azure_ad_token'] == "mock_bearer_token"
         assert call_kwargs['temperature'] == 0.7
         assert call_kwargs['max_tokens'] == 2000
 
@@ -169,7 +169,7 @@ class TestAzureOpenAIProvider:
 
         # Verify default api_version was used
         call_kwargs = mock_litellm.call_args[1]
-        assert call_kwargs['api_version'] == "2024-07-18"
+        assert call_kwargs['api_version'] == "2024-02-01"
 
     @patch('azure.identity.DefaultAzureCredential')
     @patch('azure.identity.get_bearer_token_provider')

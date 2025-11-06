@@ -4,6 +4,100 @@ Future enhancements and feature ideas, organized by category.
 
 ---
 
+## Configuration & Agent Management
+
+### SSL Certificate Verification - Per-Provider and Per-Tool Granularity
+**Priority:** Low
+**Complexity:** Medium (2-3 hours)
+**Status:** Basic implementation in place (global setting)
+
+Extend SSL certificate verification to support per-provider and per-tool configuration.
+
+**Current Implementation:**
+- Global `verify_certificates: true/false` setting in config.yaml (default: true)
+- Applied to tavily_search tool
+
+**Future Enhancement:**
+- Per-provider SSL settings:
+  ```yaml
+  llm:
+    openai:
+      verify_certificates: true
+    azure_openai:
+      verify_certificates: false  # For corporate proxy scenarios
+  ```
+- Per-tool SSL settings:
+  ```yaml
+  tools:
+    tavily_web_search:
+      verify_certificates: true
+    custom_api_tool:
+      verify_certificates: false
+  ```
+
+**Related Code:**
+- `simple_agent/core/config_manager.py` - Config validation
+- `simple_agent/tools/builtin/tavily_search.py` - Current implementation
+- All provider implementations in `simple_agent/agents/simple_agent.py`
+
+---
+
+### Agent Autoload Configuration
+**Priority:** Medium
+**Complexity:** Low (15-30 minutes)
+**Status:** Temporarily disabled (commented out in app.py line 153-161)
+
+Add configurable agent autoloading from `config/agents/` directory.
+
+**Current State:**
+- Autoload functionality exists but temporarily disabled
+- Agents must be manually loaded: `agent load config/agents/agent_name.yaml`
+- Config agents (from `config.yaml`) still autoload normally
+
+**Implementation:**
+- Add `app.autoload_agents: true/false` flag to config.yaml
+- Make autoload directory configurable
+- Add exclusion list for specific agents
+- Default to `true` for backward compatibility
+- Consider granular control (per-agent enable/disable)
+
+**Related Code:**
+- `simple_agent/app.py` lines 153-161 (commented out)
+- `simple_agent/core/agent_manager.py` - `load_agents_from_directory()`
+
+**Related Issues:**
+- Tool loading failures in YAML agents need to be resolved first
+- See tool validation and error handling improvements below
+
+---
+
+### Tool Loading Error Handling for YAML Agents
+**Priority:** High
+**Complexity:** Medium (1-2 hours)
+**Related to:** Agent autoload issue
+
+Improve tool loading reliability and error reporting for agents loaded from YAML files.
+
+**Current Problems:**
+- Silent failures when tools can't be loaded
+- No validation that declared tools exist
+- No feedback when tools are missing/disabled
+- Agent creation fails entirely if one tool fails
+
+**Implementation:**
+- Add `tool_manager.has_tool()` validation before loading
+- Log warnings for missing/disabled tools
+- Continue agent creation with available tools only
+- Return diagnostics showing which tools loaded successfully
+- Add `verify_tools()` method to check tool availability before agent run
+
+**Related Code:**
+- `simple_agent/core/agent_manager.py` - `create_agent()` lines 94-98
+- `simple_agent/core/agent_manager.py` - `load_agent_from_yaml()` line 373
+- `simple_agent/core/tool_manager.py` - `get_tool()`
+
+---
+
 ## RAG Enhancements (Post Phase 2.3)
 
 ### PDF Support for RAG

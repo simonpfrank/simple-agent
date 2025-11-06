@@ -136,6 +136,10 @@ def cli(context, config, repl_mode, debug):
         os.environ["LITELLM_LOG"] = "DEBUG"
     # For "info" level, use default LiteLLM logging (INFO)
 
+    # Set runtime config for tools and components to access
+    from simple_agent.core.runtime_config import set_config
+    set_config(config_dict)
+
     # Initialize ToolManager
     # IMPORTANT: Only create ToolManager once in REPL mode
     if "tool_manager" not in context.obj:
@@ -153,12 +157,13 @@ def cli(context, config, repl_mode, debug):
         # Load agents from config (NOW that tool_manager is set)
         agent_manager._load_agents_from_config()
 
-        # Auto-load agents from config/agents/ directory
-        agents_dir = "config/agents"
-        if os.path.exists(agents_dir):
-            count = agent_manager.load_agents_from_directory(agents_dir)
-            if count > 0:
-                logger.info(f"Auto-loaded {count} agents from {agents_dir}")
+        # TODO: Auto-load agents from config/agents/ directory - TEMPORARILY DISABLED
+        # See backlog for proper implementation with config flag
+        # agents_dir = "config/agents"
+        # if os.path.exists(agents_dir):
+        #     count = agent_manager.load_agents_from_directory(agents_dir)
+        #     if count > 0:
+        #         logger.info(f"Auto-loaded {count} agents from {agents_dir}")
 
     # Initialize CollectionManager (RAG)
     if "collection_manager" not in context.obj:

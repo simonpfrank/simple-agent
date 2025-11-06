@@ -52,24 +52,33 @@ class TestConfigManager:
 
     def test_load_config(self, tmp_path):
         """Test loading configuration from file."""
-        # Create a temporary config file
+        # Create a temporary config file with all required fields
         config_file = tmp_path / "test_config.yaml"
-        config_file.write_text(
-            """
+        config_file.write_text("""
 app:
   name: "Test App"
   version: "1.0.0"
-
+paths:
+  data_dir: "./data"
+  logs_dir: "./logs"
+  prompts: "./prompts"
+  tools: "./tools"
+llm:
+  provider: "openai"
+agents:
+  default:
+    role: "Test"
 logging:
   level: "DEBUG"
-        """
-        )
+  file: "test.log"
+""")
 
         # Load config
         config = ConfigManager.load(str(config_file))
 
         assert config["app"]["name"] == "Test App"
         assert config["logging"]["level"] == "DEBUG"
+        assert config["paths"]["data_dir"] == "./data"
 
     def test_load_nonexistent_config(self):
         """Test loading non-existent config file."""
@@ -80,7 +89,18 @@ logging:
         """Test saving configuration to file."""
         config_file = tmp_path / "saved_config.yaml"
 
-        config = {"app": {"name": "Test"}, "logging": {"level": "INFO"}}
+        config = {
+            "app": {"name": "Test", "version": "1.0"},
+            "paths": {
+                "data_dir": "./data",
+                "logs_dir": "./logs",
+                "prompts": "./prompts",
+                "tools": "./tools"
+            },
+            "llm": {"provider": "openai"},
+            "agents": {"default": {"role": "Test"}},
+            "logging": {"level": "INFO", "file": "test.log"}
+        }
 
         ConfigManager.save(config, str(config_file))
 

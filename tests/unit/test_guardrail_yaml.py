@@ -25,13 +25,15 @@ input_guardrails:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
+            temp_path = f.name
 
-            guardrails_config = load_guardrails_from_yaml(f.name)
+        try:
+            guardrails_config = load_guardrails_from_yaml(temp_path)
             assert "input_guardrails" in guardrails_config
             assert len(guardrails_config["input_guardrails"]) == 1
-
-            # Clean up
-            Path(f.name).unlink()
+        finally:
+            # Clean up - file is now closed so Windows can delete it
+            Path(temp_path).unlink(missing_ok=True)
 
     def test_load_multiple_guardrails(self):
         """Test loading multiple guardrails from YAML."""
@@ -48,14 +50,16 @@ input_guardrails:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
+            temp_path = f.name
 
-            guardrails_config = load_guardrails_from_yaml(f.name)
+        try:
+            guardrails_config = load_guardrails_from_yaml(temp_path)
             assert len(guardrails_config["input_guardrails"]) == 2
             assert guardrails_config["input_guardrails"][0]["type"] == "pii_detector"
             assert guardrails_config["input_guardrails"][1]["type"] == "custom"
-
-            # Clean up
-            Path(f.name).unlink()
+        finally:
+            # Clean up - file is now closed so Windows can delete it
+            Path(temp_path).unlink(missing_ok=True)
 
     def test_load_empty_guardrails(self):
         """Test loading YAML with no guardrails."""
@@ -66,14 +70,16 @@ role: "Test agent"
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
+            temp_path = f.name
 
-            guardrails_config = load_guardrails_from_yaml(f.name)
+        try:
+            guardrails_config = load_guardrails_from_yaml(temp_path)
             assert "input_guardrails" not in guardrails_config or not guardrails_config.get(
                 "input_guardrails"
             )
-
-            # Clean up
-            Path(f.name).unlink()
+        finally:
+            # Clean up - file is now closed so Windows can delete it
+            Path(temp_path).unlink(missing_ok=True)
 
     def test_instantiate_pii_detector_from_config(self):
         """Test creating PIIDetector instance from YAML config."""
@@ -109,16 +115,18 @@ input_guardrails:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(yaml_content)
             f.flush()
+            temp_path = f.name
 
-            guardrails_config = load_guardrails_from_yaml(f.name)
+        try:
+            guardrails_config = load_guardrails_from_yaml(temp_path)
             assert guardrails_config["input_guardrails"][0]["function"] == "validators.no_sql_injection"
             assert (
                 guardrails_config["input_guardrails"][0]["description"]
                 == "Prevents SQL injection attempts"
             )
-
-            # Clean up
-            Path(f.name).unlink()
+        finally:
+            # Clean up - file is now closed so Windows can delete it
+            Path(temp_path).unlink(missing_ok=True)
 
     def test_load_nonexistent_file(self):
         """Test loading from nonexistent YAML file."""

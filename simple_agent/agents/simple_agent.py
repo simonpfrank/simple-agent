@@ -297,7 +297,7 @@ class SimpleAgent:
         elif provider == "azure_openai":
             # Azure OpenAI with Azure AD or API key authentication
             azure_endpoint = config.get("azure_endpoint")
-            api_version = config.get("api_version", "2024-07-18")
+            api_version = config.get("api_version", "2024-02-01")
             
             if not azure_endpoint:
                 raise ValueError("azure_endpoint is required for azure_openai provider")
@@ -315,12 +315,19 @@ class SimpleAgent:
                     
                     logger.info("Using Azure AD authentication for Azure OpenAI")
                     
-                    # Create token provider (callable that returns fresh tokens)
+                    # Create token provider and get token
                     credential = DefaultAzureCredential()
                     token_provider = get_bearer_token_provider(
                         credential, 
                         f"{azure_endpoint}/.default"
                     )
+                    
+                    # Get the actual token (LiteLLM doesn't support token_provider callable)
+                    azure_ad_token = token_provider()
+                    
+                    # Enable dropping unsupported params for older Azure API versions
+                    import litellm
+                    litellm.drop_params = True
                     
                     logger.debug(
                         f"Created Azure OpenAI model - endpoint: {azure_endpoint}, "
@@ -331,7 +338,7 @@ class SimpleAgent:
                         model_id=f"azure/{model_id}",
                         api_base=azure_endpoint,
                         api_version=api_version,
-                        azure_ad_token_provider=token_provider,
+                        azure_ad_token=azure_ad_token,
                         temperature=temperature,
                         max_tokens=max_tokens,
                     )

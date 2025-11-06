@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 import chromadb
+import chromadb.config
 
 
 class ChromaWrapper:
@@ -18,8 +19,12 @@ class ChromaWrapper:
         self.collections_dir = collections_dir
         # Create directory if it doesn't exist
         Path(collections_dir).mkdir(parents=True, exist_ok=True)
+        # Turn off telemetry
+        client_settings = chromadb.config.Settings(anonymized_telemetry=False)
         # Initialize Chroma persistent client
-        self.client = chromadb.PersistentClient(path=collections_dir)
+        self.client = chromadb.PersistentClient(
+            path=collections_dir, settings=client_settings
+        )
 
     def get_or_create_collection(
         self, name: str, metadata: Optional[dict] = None

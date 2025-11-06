@@ -29,9 +29,23 @@ class TestRAGEndToEnd:
     @pytest.fixture
     def collection_manager(self):
         """Create CollectionManager with temporary Chroma database."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        import shutil
+        import platform
+        
+        tmpdir = tempfile.mkdtemp()
+        try:
             manager = CollectionManager(collections_dir=tmpdir)
             yield manager
+            # Cleanup ChromaDB resources
+            manager.cleanup()
+        finally:
+            # Best effort cleanup - on Windows, ChromaDB may hold locks
+            try:
+                shutil.rmtree(tmpdir)
+            except (PermissionError, OSError):
+                # On Windows, SQLite files may still be locked - ignore
+                if platform.system() != "Windows":
+                    raise
 
     def test_create_collection_basic(self, collection_manager):
         """Test creating a basic collection."""

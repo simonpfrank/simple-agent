@@ -113,7 +113,7 @@ class TestAgentLifecycleMocked:
         # Note: call_args gets the LAST call, which is for 'default_agent'
         # The first call was for auto-loaded 'default' agent
         call_kwargs = mock_tool_calling_agent.call_args.kwargs
-        assert call_kwargs["instructions"] == "You are a test assistant."
+        assert call_kwargs["instructions"] == "You are a helpful AI assistant for testing."
         # ToolCallingAgent doesn't have verbosity_level parameter
         assert call_kwargs["max_steps"] == 10
 

@@ -1,9 +1,26 @@
 # Simple Agent Configuration
 
+# Application Metadata
+app:
+  name: "Simple Agent"
+  version: "0.1.0"
+
+# Paths Configuration
+paths:
+  data_dir: "./data"
+  logs_dir: "./logs"
+  prompts: "./config/prompts"
+  tools: "./config/tools"
+
+# SSL Certificate Verification
+# Set to false to disable SSL certificate verification (e.g., corporate proxies)
+# Default: true
+verify_certificates: true
+
 # LLM Provider Settings
 llm:
   # Active provider: openai, ollama, lmstudio, anthropic
-  provider: "openai"
+  provider: "azure_openai"
 
   # Context window and token limits (shared across all providers)
   context_window: 128000  # Max tokens the model can handle
@@ -40,8 +57,8 @@ llm:
   # Azure OpenAI Configuration (Enterprise/WTW)
   azure_openai:
     model: "gpt-4o-mini"  # Azure deployment name (see docs/Azure_model_names_and_versions.md)
-    azure_endpoint: "https://api.lab.ai.wtwco.com"  # Azure OpenAI endpoint URL
-    api_version: "2024-07-18"  # API version (from Azure deployment)
+    azure_endpoint: "https://api.lab.ai.wtwco.com/"  # Azure OpenAI endpoint URL
+    api_version: "2024-02-01"  # API version (verified working with basic OpenAI SDK)
     temperature: 0.7
     max_tokens: 2000
     auth_type: "azure_ad"  # Authentication: "azure_ad" (recommended) or "api_key"
@@ -57,10 +74,13 @@ agents:
     agent_type: "tool_calling"  # "tool_calling" (safe, default) or "code" (requires Docker)
     # executor_type: "docker"  # Only for agent_type="code": "docker", "e2b", "modal", "wasm"
     tools:
-    - fetch_webpage_markdown
+    - tavily_web_search
     # Token budget protection (prevents hitting rate limits)
     token_budget: 20000  # Hard limit on input prompt size for this agent
     token_warning_threshold: 18000  # Warning logged when approaching limit
+  column_matcher:
+    #seperate yaml
+    verbosity: 1
 
 # Orchestration Settings (Multi-Agent Workflows)
 orchestration:
