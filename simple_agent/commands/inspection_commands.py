@@ -23,6 +23,8 @@ def show(ctx):
     """
     Display the last formatted prompt sent to LLM.
 
+    Shows both the system prompt (agent's role/instructions) and the user prompt.
+
     Examples:
         /prompt show
     """
@@ -33,10 +35,18 @@ def show(ctx):
         console.print("[yellow]No prompts yet.[/yellow] Run an agent first.\n")
         return
 
+    # Get the agent to retrieve system prompt
+    try:
+        agent = agent_manager.get_agent(agent_manager.last_agent)
+        system_prompt = agent.role if agent.role else "(no system prompt)"
+    except (KeyError, AttributeError):
+        system_prompt = "(system prompt unavailable)"
+
     console.print()
     console.print(
         Panel(
             f"[bold]Agent:[/bold] {agent_manager.last_agent}\n\n"
+            f"[bold cyan]System Prompt:[/bold cyan]\n{system_prompt}\n\n"
             f"[bold]User Prompt:[/bold]\n{agent_manager.last_prompt}",
             title="Last Prompt (Formatted)",
             border_style="cyan",
@@ -63,12 +73,20 @@ def raw(ctx):
         console.print("[yellow]No prompts yet.[/yellow] Run an agent first.\n")
         return
 
+    # Get the agent to retrieve system prompt
+    try:
+        agent = agent_manager.get_agent(agent_manager.last_agent)
+        system_prompt = agent.role if agent.role else "(no system prompt)"
+    except (KeyError, AttributeError):
+        system_prompt = "(system prompt unavailable)"
+
     # For now, raw is the same as formatted (until Jinja2 templates in Phase 1.3)
     console.print()
     console.print(
         Panel(
             f"[bold]Agent:[/bold] {agent_manager.last_agent}\n\n"
-            f"[bold]Raw Prompt:[/bold]\n{agent_manager.last_prompt}\n\n"
+            f"[bold yellow]System Prompt (Raw):[/bold yellow]\n{system_prompt}\n\n"
+            f"[bold]User Prompt (Raw):[/bold]\n{agent_manager.last_prompt}\n\n"
             f"[dim]Note: Template variables (Jinja2) coming in Phase 1.3[/dim]",
             title="Last Prompt (Raw)",
             border_style="yellow",

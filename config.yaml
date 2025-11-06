@@ -20,7 +20,7 @@ verify_certificates: true
 # LLM Provider Settings
 llm:
   # Active provider: openai, ollama, lmstudio, anthropic
-  provider: "azure_openai"
+  provider: "openai"
 
   # Context window and token limits (shared across all providers)
   context_window: 128000  # Max tokens the model can handle
@@ -66,6 +66,9 @@ llm:
 
 # Agent Settings
 agents:
+  # Agent auto-loading from config/agents/ directory
+  auto_load_from_directory: false  # If true, loads all .yaml files from config/agents/ on startup
+
   # Default agent configuration
   default:
     role: "You are a helpful AI assistant."
@@ -78,9 +81,8 @@ agents:
     # Token budget protection (prevents hitting rate limits)
     token_budget: 20000  # Hard limit on input prompt size for this agent
     token_warning_threshold: 18000  # Warning logged when approaching limit
-  column_matcher:
-    #seperate yaml
-    verbosity: 1
+  # Note: column_matcher agent is defined in config/agents/column_matcher.yaml
+  # It will be auto-loaded if auto_load_from_directory is true
 
 # Orchestration Settings (Multi-Agent Workflows)
 orchestration:

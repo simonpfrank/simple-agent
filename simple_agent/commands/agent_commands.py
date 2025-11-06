@@ -5,11 +5,17 @@ Provides /agent command group with create, run, list, and chat subcommands.
 NO business logic - all logic delegated to AgentManager.
 """
 
+import logging
+import os
+from pathlib import Path
+
 import click
 from rich.console import Console
 from rich.panel import Panel
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
+
+logger = logging.getLogger("simple_agent.commands.agent")
 
 
 @click.group()
@@ -24,9 +30,7 @@ def agent(ctx):
 @click.option(
     "--provider", "-p", default=None, help="LLM provider (openai, ollama, etc.)"
 )
-@click.option(
-    "--role", "-r", default=None, help="Agent role/persona"
-)
+@click.option("--role", "-r", default=None, help="Agent role/persona")
 @click.pass_context
 def create(ctx, name: str, provider: str, role: str):
     """
@@ -37,19 +41,107 @@ def create(ctx, name: str, provider: str, role: str):
         /agent create custom --role "You are a code reviewer"
         /agent create local_agent --provider ollama
     """
+    logger.info("Create")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
     try:
         # Business logic in agent_manager, not here
-        agent = agent_manager.create_agent(
-            name=name, provider=provider, role=role
-        )
+        agent = agent_manager.create_agent(name=name, provider=provider, role=role)
         console.print(f"[green]✓[/green] Created agent: {agent}")
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {str(e)}")
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
+
+
+@agent.command()
+@click.argument("agent_name")
+@click.pass_context
+def load(ctx, agent_name: str):
+    """
+    Load an agent from a YAML file.
+
+    Intelligently resolves agent names to file paths:
+    - If agent_name is a full path, uses it as-is
+    - If agent_name is in config/agents/, searches there with .yaml or .yml extension
+    - Otherwise, tries to find it in config/agents/ directory
+
+    Examples:
+        /agent load column_matcher          # Loads config/agents/column_matcher.yaml
+        /agent load researcher              # Loads config/agents/researcher.yaml
+        /agent load /path/to/custom.yaml    # Loads absolute path
+        /agent load ./agents/my_agent       # Loads relative path
+    """
+    logger.info(f"Load agent: {agent_name}")
+    console: Console = ctx.obj["console"]
+    agent_manager = ctx.obj["agent_manager"]
+
+    # Resolve the actual file path
+    yaml_path = _resolve_agent_path(agent_name)
+
+    if not yaml_path:
+        console.print(
+            f"[red]Error:[/red] Agent '{agent_name}' not found\n"
+            f"  Tried:\n"
+            f"    - config/agents/{agent_name}.yaml\n"
+            f"    - config/agents/{agent_name}.yml\n"
+            f"    - {agent_name} (as-is)"
+        )
+        return
+
+    try:
+        agent = agent_manager.load_agent_from_yaml(yaml_path)
+        console.print(f"[green]✓[/green] Loaded agent: {agent.name}")
+        if agent.tools:
+            console.print(f"  Tools: {[t.name for t in agent.tools]}")
+        else:
+            console.print(f"  Tools: (none)")
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] File not found: {yaml_path}")
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {str(e)}")
+
+
+def _resolve_agent_path(agent_name: str) -> str:
+    """
+    Resolve agent name to actual file path.
+
+    Tries multiple strategies:
+    1. If it's a full/relative path, return if it exists
+    2. If it's just a name, look in config/agents/ with .yaml or .yml extension
+    3. Return None if not found
+
+    Args:
+        agent_name: Agent name or path
+
+    Returns:
+        Resolved file path, or None if not found
+    """
+    # Strategy 1: If it looks like a path (contains / or \ or file extension), try as-is
+    if "/" in agent_name or "\\" in agent_name or agent_name.endswith((".yaml", ".yml")):
+        if os.path.exists(agent_name):
+            return agent_name
+        # If it doesn't exist, fall through to other strategies
+
+    # Strategy 2: Try in config/agents/ with .yaml extension
+    agents_dir = Path("config/agents")
+    yaml_path = agents_dir / f"{agent_name}.yaml"
+    if yaml_path.exists():
+        return str(yaml_path)
+
+    # Strategy 3: Try in config/agents/ with .yml extension
+    yml_path = agents_dir / f"{agent_name}.yml"
+    if yml_path.exists():
+        return str(yml_path)
+
+    # Strategy 4: If full path was provided but doesn't exist, return it anyway
+    # (let agent_manager.load_agent_from_yaml handle the error)
+    if "/" in agent_name or "\\" in agent_name or agent_name.endswith((".yaml", ".yml")):
+        return agent_name
+
+    # Not found
+    return None
 
 
 @agent.command()
@@ -90,6 +182,7 @@ def list_agents(ctx):
     Examples:
         /agent list
     """
+    logger.info("List")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -117,6 +210,7 @@ def chat(ctx, name: str):
         /agent chat default
         /agent chat researcher
     """
+    logger.info("Chat")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -188,6 +282,7 @@ def tools(ctx, name: str):
         /agent tools my_agent
         /agent tools default
     """
+    logger.info("Tools")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -230,6 +325,7 @@ def add_tool(ctx, name: str, tool: str):
         /agent add-tool my_agent calculator
         /agent add-tool default add
     """
+    logger.info("Add tool")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -258,6 +354,7 @@ def remove_tool(ctx, name: str, tool: str):
         /agent remove-tool my_agent calculator
         /agent remove-tool default add
     """
+    logger.info("Remove tool")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -288,6 +385,7 @@ def show_prompt(ctx, name: str):
         /agent show-prompt default
         /agent show-prompt my_agent
     """
+    logger.info("Show prompt")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -341,6 +439,7 @@ def save(ctx, name: str, path: str):
         /agent save my_agent
         /agent save researcher --path custom/researcher.yaml
     """
+    logger.info("Save")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
@@ -378,6 +477,7 @@ def create_wizard(ctx):
     Example:
         /agent create-wizard
     """
+    logger.info("Create wizard")
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
     tool_manager = ctx.obj.get("tool_manager")
@@ -419,9 +519,11 @@ def create_wizard(ctx):
         provider_idx = click.prompt(
             "Provider choice",
             type=click.IntRange(1, len(providers)),
-            default=providers.index(default_provider) + 1
-            if default_provider in providers
-            else 1,
+            default=(
+                providers.index(default_provider) + 1
+                if default_provider in providers
+                else 1
+            ),
             show_default=True,
         )
         provider = providers[provider_idx - 1]

@@ -219,7 +219,7 @@ Show available commands
 Exit REPL
 ```
 
-## Examples
+## Code Examples
 
 ### Basic Agent
 

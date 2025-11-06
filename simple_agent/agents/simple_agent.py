@@ -70,10 +70,13 @@ class SimpleAgent:
             TypeError: If parameters have incorrect types
         """
         # Support both AgentConfig object and individual parameters
+        logger.info(f"Initialising agent: {name}")
         if isinstance(name, AgentConfig):
+            logger.debug("From config")
             config = name
         else:
             # Build config from individual parameters
+            logger.debug("From parameters")
             config = AgentConfig(
                 name=name,
                 model_provider=model_provider,
@@ -103,7 +106,9 @@ class SimpleAgent:
         self.verbosity = config.verbosity
         self.max_steps = config.max_steps
         self.user_prompt_template = config.user_prompt_template
-        self.rag_collection = None  # Connected RAG collection (set via set_rag_collection)
+        self.rag_collection = (
+            None  # Connected RAG collection (set via set_rag_collection)
+        )
         self.token_budget = config.token_budget
         self.token_warning_threshold = config.token_warning_threshold
 
@@ -134,7 +139,9 @@ class SimpleAgent:
                 instructions=config.role,
                 verbosity_level=verbosity_level,
             )
-            logger.info(f"Created ToolCallingAgent: {self.name} ({config.model_provider})")
+            logger.info(
+                f"Created ToolCallingAgent: {self.name} ({config.model_provider})"
+            )
         elif config.agent_type == "code":
             self.agent = CodeAgent(
                 tools=config.tools or [],
@@ -159,6 +166,7 @@ class SimpleAgent:
         Returns:
             Dict with context variables for template rendering
         """
+        logger.debug("Building context")
         context = {
             "agent_name": self.name,
             "current_time": datetime.now(),
@@ -166,7 +174,9 @@ class SimpleAgent:
             "verbosity": self.verbosity,
             "max_steps": self.max_steps,
             "model_provider": self.model_provider,
-            "tools": [getattr(t, "name", str(t)) for t in self.tools] if self.tools else [],
+            "tools": (
+                [getattr(t, "name", str(t)) for t in self.tools] if self.tools else []
+            ),
         }
 
         # Add user_input if provided (for user_prompt_template)
@@ -209,6 +219,7 @@ class SimpleAgent:
             ValueError: If Jinja2 template has invalid syntax
         """
         # Build context
+        logging.debug("Rendering template")
         context = self._build_context(user_input)
 
         # Auto-detect template type
@@ -244,6 +255,7 @@ class SimpleAgent:
         Raises:
             ValueError: If required model configuration is missing
         """
+        logger.info("Creating LiteLLM Model")
         model_id = config.get("model")
         if not model_id:
             # Log warning instead of raising to maintain backward compatibility
@@ -268,6 +280,7 @@ class SimpleAgent:
             base_url = config.get("base_url", "http://localhost:11434")
             # Resolve env vars at point-of-use (base_url might have tokens)
             base_url = ConfigManager.resolve_env_var(base_url)
+            logger.info("Ollama")
             return LiteLLMModel(
                 model_id=f"ollama/{model_id}",
                 api_base=base_url,
@@ -278,14 +291,16 @@ class SimpleAgent:
             # OpenAI models - resolve API key from env var at point-of-use
             api_key = config.get("api_key", "")
             api_key = ConfigManager.resolve_env_var(api_key)
+            logger.info("OpenAI")
             return LiteLLMModel(
                 model_id=model_id,
                 api_key=api_key,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-        elif provider == "anthropic":
+        elif provider == "Anthropic":
             # Anthropic models - resolve API key from env var at point-of-use
+            logger.info("Anthropic")
             api_key = config.get("api_key", "")
             api_key = ConfigManager.resolve_env_var(api_key)
             return LiteLLMModel(
@@ -296,44 +311,48 @@ class SimpleAgent:
             )
         elif provider == "azure_openai":
             # Azure OpenAI with Azure AD or API key authentication
+            logger.info("Azure OpenAI")
             azure_endpoint = config.get("azure_endpoint")
             api_version = config.get("api_version", "2024-02-01")
-            
+
             if not azure_endpoint:
                 raise ValueError("azure_endpoint is required for azure_openai provider")
-            
+
             # Resolve environment variables if present
             azure_endpoint = ConfigManager.resolve_env_var(azure_endpoint)
-            
+
             # Check authentication type
             auth_type = config.get("auth_type", "azure_ad")
-            
+
             if auth_type == "azure_ad":
                 # Azure AD authentication (recommended for enterprise)
                 try:
-                    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-                    
+                    from azure.identity import (
+                        DefaultAzureCredential,
+                        get_bearer_token_provider,
+                    )
+
                     logger.info("Using Azure AD authentication for Azure OpenAI")
-                    
+
                     # Create token provider and get token
                     credential = DefaultAzureCredential()
                     token_provider = get_bearer_token_provider(
-                        credential, 
-                        f"{azure_endpoint}/.default"
+                        credential, f"{azure_endpoint}/.default"
                     )
-                    
+
                     # Get the actual token (LiteLLM doesn't support token_provider callable)
                     azure_ad_token = token_provider()
-                    
+
                     # Enable dropping unsupported params for older Azure API versions
                     import litellm
+
                     litellm.drop_params = True
-                    
+
                     logger.debug(
                         f"Created Azure OpenAI model - endpoint: {azure_endpoint}, "
                         f"model: {model_id}, api_version: {api_version}"
                     )
-                    
+
                     return LiteLLMModel(
                         model_id=f"azure/{model_id}",
                         api_base=azure_endpoint,
@@ -358,15 +377,17 @@ class SimpleAgent:
                 # API Key authentication (fallback)
                 api_key = config.get("api_key", "")
                 if not api_key:
-                    raise ValueError("api_key is required when auth_type is not 'azure_ad'")
-                
+                    raise ValueError(
+                        "api_key is required when auth_type is not 'azure_ad'"
+                    )
+
                 api_key = ConfigManager.resolve_env_var(api_key)
-                
+
                 logger.debug(
                     f"Created Azure OpenAI model with API key - endpoint: {azure_endpoint}, "
                     f"model: {model_id}, api_version: {api_version}"
                 )
-                
+
                 return LiteLLMModel(
                     model_id=f"azure/{model_id}",
                     api_base=azure_endpoint,
@@ -446,7 +467,7 @@ User query: {prompt}"""
             logger.error(
                 f"Failed to inject RAG context for agent '{self.name}': "
                 f"{error_type}: {e}. Proceeding without RAG context.",
-                exc_info=True
+                exc_info=True,
             )
             return prompt
 
@@ -477,12 +498,17 @@ User query: {prompt}"""
         Raises:
             ValueError: If prompt exceeds token budget (hard limit, not caught)
         """
+        logger.info("Agent run")
         input_tokens = 0
         output_tokens = 0
         cost = Decimal("0")
 
         # Determine effective budget and warning threshold (use overrides if provided)
-        effective_budget = token_budget_override if token_budget_override is not None else self.token_budget
+        effective_budget = (
+            token_budget_override
+            if token_budget_override is not None
+            else self.token_budget
+        )
         effective_warning_threshold = (
             token_warning_threshold_override
             if token_warning_threshold_override is not None
@@ -494,7 +520,9 @@ User query: {prompt}"""
 
         # Apply user_prompt_template if set
         if self.user_prompt_template:
-            formatted_prompt = self._render_template(self.user_prompt_template, user_input=prompt_with_context)
+            formatted_prompt = self._render_template(
+                self.user_prompt_template, user_input=prompt_with_context
+            )
             logger.debug(
                 f"Applied user_prompt_template to agent '{self.name}': "
                 f"{prompt[:30]}... -> {formatted_prompt[:50]}..."
@@ -530,7 +558,10 @@ User query: {prompt}"""
                     f"but budget is {effective_budget}"
                 )
 
-            if effective_warning_threshold is not None and input_tokens > effective_warning_threshold:
+            if (
+                effective_warning_threshold is not None
+                and input_tokens > effective_warning_threshold
+            ):
                 logger.warning(
                     f"Agent '{self.name}' approaching token limit: "
                     f"{input_tokens}/{effective_budget} tokens used"
@@ -543,7 +574,10 @@ User query: {prompt}"""
                     f"but budget is {self.token_budget}"
                 )
 
-            if self.token_warning_threshold is not None and input_tokens > self.token_warning_threshold:
+            if (
+                self.token_warning_threshold is not None
+                and input_tokens > self.token_warning_threshold
+            ):
                 logger.warning(
                     f"Agent '{self.name}' approaching token limit: "
                     f"{input_tokens}/{self.token_budget} tokens used"
@@ -580,7 +614,7 @@ User query: {prompt}"""
             error_type = type(e).__name__
             logger.error(
                 f"Agent '{self.name}' execution failed with {error_type}: {error_message}",
-                exc_info=True
+                exc_info=True,
             )
 
             # Get model name with fallback for safety

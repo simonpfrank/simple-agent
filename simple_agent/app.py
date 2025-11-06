@@ -35,8 +35,6 @@ from simple_agent.commands.token_stats_commands import token
 from simple_agent.commands.collection_commands import collection
 from simple_agent.commands.flow_commands_cli import flow
 
-logger = logging.getLogger(__name__)
-
 # Initialize console
 console = Console(theme=APP_THEME)
 
@@ -138,10 +136,13 @@ def cli(context, config, repl_mode, debug):
 
     # Set runtime config for tools and components to access
     from simple_agent.core.runtime_config import set_config
+
+    logger.info("Setting configuration")
     set_config(config_dict)
 
     # Initialize ToolManager
     # IMPORTANT: Only create ToolManager once in REPL mode
+    logger.info("Loading tool manager")
     if "tool_manager" not in context.obj:
         tool_manager = ToolManager(auto_load_builtin=True)
         context.obj["tool_manager"] = tool_manager
@@ -149,34 +150,51 @@ def cli(context, config, repl_mode, debug):
     # Initialize AgentManager (business logic)
     # IMPORTANT: Only create AgentManager once in REPL mode
     # click-repl may re-invoke cli() for each command, so check if it exists
+    logger.info("Loading Agent manager")
     if "agent_manager" not in context.obj:
         agent_manager = AgentManager(config_dict)
         agent_manager.tool_manager = context.obj["tool_manager"]
         context.obj["agent_manager"] = agent_manager
 
         # Load agents from config (NOW that tool_manager is set)
+        logger.info("Loading agents")
         agent_manager._load_agents_from_config()
 
-        # TODO: Auto-load agents from config/agents/ directory - TEMPORARILY DISABLED
-        # See backlog for proper implementation with config flag
-        # agents_dir = "config/agents"
-        # if os.path.exists(agents_dir):
-        #     count = agent_manager.load_agents_from_directory(agents_dir)
-        #     if count > 0:
-        #         logger.info(f"Auto-loaded {count} agents from {agents_dir}")
+        # Auto-load agents from config/agents/ directory (if enabled in config)
+        auto_load_agents = ConfigManager.get(
+            config_dict, "agents.auto_load_from_directory", True
+        )
+        if auto_load_agents:
+            agents_dir = "config/agents"
+            if os.path.exists(agents_dir):
+                count = agent_manager.load_agents_from_directory(agents_dir)
+                if count > 0:
+                    logger.info(f"Auto-loaded {count} agents from {agents_dir}")
+            else:
+                logger.debug(f"Agents directory not found: {agents_dir}")
 
     # Initialize CollectionManager (RAG)
     if "collection_manager" not in context.obj:
+        logger.info("Loading rag")
         from simple_agent.rag.collection_manager import CollectionManager
-        collections_dir = ConfigManager.get(config_dict, "rag.collections_dir", "./chroma_db")
+
+        collections_dir = ConfigManager.get(
+            config_dict, "rag.collections_dir", "./chroma_db"
+        )
         collection_manager = CollectionManager(collections_dir)
         context.obj["collection_manager"] = collection_manager
 
     # Initialize FlowManager (Multi-Agent Orchestration)
     if "flow_manager" not in context.obj:
+        logger.info("Loading flow")
         from simple_agent.orchestration.flow_manager import FlowManager
-        flows_dir = ConfigManager.get(config_dict, "orchestration.flows_dir", "config/flows")
-        flow_manager = FlowManager(agent_manager=context.obj["agent_manager"], flows_dir=flows_dir)
+
+        flows_dir = ConfigManager.get(
+            config_dict, "orchestration.flows_dir", "config/flows"
+        )
+        flow_manager = FlowManager(
+            agent_manager=context.obj["agent_manager"], flows_dir=flows_dir
+        )
         context.obj["flow_manager"] = flow_manager
 
     # If no subcommand provided, start REPL mode
@@ -213,6 +231,7 @@ def start_repl(context: click.Context) -> None:
         EOFError: When user presses Ctrl+D
         ExitReplException: When user runs /quit or /exit
     """
+    logger.info("Loading REPL UI")
     # Show welcome screen
     config_dict = context.obj["config"]
     config_file = context.obj["config_file"]
@@ -354,6 +373,7 @@ def start_repl(context: click.Context) -> None:
         except Exception as e:
             # Handle unknown command errors gracefully
             error_msg = str(e)
+            logger.error(error_msg)
             if (
                 "No such command" in error_msg
                 or "no command named" in error_msg.lower()
@@ -421,4 +441,5 @@ def main():
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger("simple_agent.app")
     main()

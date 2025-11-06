@@ -135,8 +135,8 @@ class AgentManager:
         """
         if name not in self.agents:
             available = list(self.agents.keys())
-            logger.error(f"Agent '{name}' not found. Available: {available}")
-            raise KeyError(f"Agent '{name}' not found. Available: {available}")
+            logger.error(f"Agent '{name}' not loaded. Available: {available}")
+            raise KeyError(f"Agent '{name}' not loaded. Available: {available}")
         return self.agents[name]
 
     def list_agents(self) -> list[str]:

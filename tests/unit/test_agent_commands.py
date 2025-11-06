@@ -1,15 +1,18 @@
 """
 Unit tests for /agent tool commands (Phase 1.4).
 
-Tests the tool-related agent commands: tools, add-tool, remove-tool.
+Tests the tool-related agent commands: tools, add-tool, remove-tool, load.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from pathlib import Path
+import tempfile
+import os
 
 import pytest
 from click.testing import CliRunner
 
-from simple_agent.commands.agent_commands import agent
+from simple_agent.commands.agent_commands import agent, _resolve_agent_path
 
 
 class TestAgentToolsCommand:
@@ -349,6 +352,226 @@ class TestAgentSaveCommand:
 
         result = runner.invoke(agent, ["save", "missing"], obj=mock_context)
 
+        assert result.exit_code == 0
+        call_args = str(console.print.call_args_list)
+        assert "not found" in call_args.lower() or "error" in call_args.lower()
+
+
+class TestResolveAgentPath:
+    """Test _resolve_agent_path helper function."""
+
+    def test_resolve_agent_name_with_yaml_extension(self) -> None:
+        """Test resolving agent name finds .yaml file in config/agents/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create config/agents directory with test file
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            yaml_file = agents_dir / "column_matcher.yaml"
+            yaml_file.write_text("name: column_matcher")
+
+            # Change to temp directory
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("column_matcher")
+                assert result == "config/agents/column_matcher.yaml"
+            finally:
+                os.chdir(original_cwd)
+
+    def test_resolve_agent_name_with_yml_extension(self) -> None:
+        """Test resolving agent name finds .yml file in config/agents/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create config/agents directory with test file
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            yml_file = agents_dir / "researcher.yml"
+            yml_file.write_text("name: researcher")
+
+            # Change to temp directory
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("researcher")
+                assert result == "config/agents/researcher.yml"
+            finally:
+                os.chdir(original_cwd)
+
+    def test_resolve_full_path(self) -> None:
+        """Test resolving a full path returns it as-is if it exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a file at a specific path
+            agent_file = Path(tmpdir) / "custom" / "agent.yaml"
+            agent_file.parent.mkdir(parents=True)
+            agent_file.write_text("name: custom")
+
+            result = _resolve_agent_path(str(agent_file))
+            assert result == str(agent_file)
+
+    def test_resolve_relative_path(self) -> None:
+        """Test resolving a relative path returns it as-is if it exists."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a file with relative path
+            agents_dir = Path(tmpdir) / "agents"
+            agents_dir.mkdir()
+            agent_file = agents_dir / "agent.yaml"
+            agent_file.write_text("name: agent")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("agents/agent.yaml")
+                assert result == "agents/agent.yaml"
+            finally:
+                os.chdir(original_cwd)
+
+    def test_resolve_nonexistent_agent_returns_none(self) -> None:
+        """Test that non-existent agent name returns None."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create empty config/agents directory
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("nonexistent")
+                assert result is None
+            finally:
+                os.chdir(original_cwd)
+
+    def test_resolve_prefers_yaml_over_yml(self) -> None:
+        """Test that .yaml is preferred over .yml when both exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create both .yaml and .yml files
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "agent.yaml").write_text("name: agent")
+            (agents_dir / "agent.yml").write_text("name: agent")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("agent")
+                assert result == "config/agents/agent.yaml"
+            finally:
+                os.chdir(original_cwd)
+
+
+class TestAgentLoadCommand:
+    """Test /agent load command."""
+
+    @pytest.fixture
+    def runner(self) -> CliRunner:
+        """Create Click test runner."""
+        return CliRunner()
+
+    @pytest.fixture
+    def mock_context(self) -> dict:
+        """Create mock context object."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        # Mock agent with tools
+        mock_agent = MagicMock()
+        mock_agent.name = "test_agent"
+        mock_agent.tools = [MagicMock(name="tavily_web_search")]
+        agent_manager.load_agent_from_yaml.return_value = mock_agent
+        return {"console": console, "agent_manager": agent_manager}
+
+    def test_load_command_exists(self, runner: CliRunner, mock_context: dict) -> None:
+        """Test that /agent load command exists."""
+        result = runner.invoke(agent, ["load", "--help"], obj=mock_context)
+        assert result.exit_code == 0
+
+    def test_load_by_agent_name(self, runner: CliRunner, mock_context: dict) -> None:
+        """Test loading agent by name only."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create test agent file
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "test_agent.yaml").write_text("name: test_agent")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = runner.invoke(agent, ["load", "test_agent"], obj=mock_context)
+                assert result.exit_code == 0
+                # Verify load_agent_from_yaml was called with resolved path
+                mock_context["agent_manager"].load_agent_from_yaml.assert_called_once()
+                call_args = mock_context["agent_manager"].load_agent_from_yaml.call_args
+                assert "test_agent.yaml" in call_args[0][0]
+            finally:
+                os.chdir(original_cwd)
+
+    def test_load_with_full_path(self, runner: CliRunner, mock_context: dict) -> None:
+        """Test loading agent with full path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create test agent file
+            agent_file = Path(tmpdir) / "custom_agent.yaml"
+            agent_file.write_text("name: custom_agent")
+
+            result = runner.invoke(
+                agent, ["load", str(agent_file)], obj=mock_context
+            )
+            assert result.exit_code == 0
+            # Verify load_agent_from_yaml was called with the full path
+            mock_context["agent_manager"].load_agent_from_yaml.assert_called_once_with(
+                str(agent_file)
+            )
+
+    def test_load_displays_agent_name_and_tools(
+        self, runner: CliRunner, mock_context: dict
+    ) -> None:
+        """Test that load command displays agent name and tools."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "test_agent.yaml").write_text("name: test_agent")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = runner.invoke(agent, ["load", "test_agent"], obj=mock_context)
+                assert result.exit_code == 0
+                # Verify console.print was called with agent info
+                call_args_str = str(mock_context["console"].print.call_args_list)
+                assert "test_agent" in call_args_str.lower() or "loaded" in call_args_str.lower()
+            finally:
+                os.chdir(original_cwd)
+
+    def test_load_handles_nonexistent_agent(self, runner: CliRunner) -> None:
+        """Test load command with non-existent agent."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        mock_context = {"console": console, "agent_manager": agent_manager}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = runner.invoke(
+                    agent, ["load", "nonexistent"], obj=mock_context
+                )
+                assert result.exit_code == 0
+                call_args = str(console.print.call_args_list)
+                assert "not found" in call_args.lower() or "error" in call_args.lower()
+            finally:
+                os.chdir(original_cwd)
+
+    def test_load_handles_file_not_found(self, runner: CliRunner) -> None:
+        """Test load command when load_agent_from_yaml raises FileNotFoundError."""
+        console = MagicMock()
+        agent_manager = MagicMock()
+        agent_manager.load_agent_from_yaml.side_effect = FileNotFoundError(
+            "Agent file not found"
+        )
+        mock_context = {"console": console, "agent_manager": agent_manager}
+
+        result = runner.invoke(
+            agent, ["load", "/path/to/nonexistent.yaml"], obj=mock_context
+        )
         assert result.exit_code == 0
         call_args = str(console.print.call_args_list)
         assert "not found" in call_args.lower() or "error" in call_args.lower()
