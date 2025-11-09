@@ -116,7 +116,7 @@ class AgentManager:
 
         # Register
         self.agents[name] = agent
-        logger.info(f"Agent '{name}' created and registered")
+        logger.info(f"Agent '{name}' created and registered (provider={provider})")
 
         return agent
 
@@ -178,7 +178,7 @@ class AgentManager:
         # Store response for inspection (convert to string)
         self.last_response = str(result)
 
-        logger.debug(f"Agent '{name}' completed - result length: {len(str(result))}")
+        logger.debug(f"Agent '{name}' (provider={agent.model_provider}) completed - result length: {len(str(result))}")
         return result
 
     def _load_agents_from_config(self) -> None:
