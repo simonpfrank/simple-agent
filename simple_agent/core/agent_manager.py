@@ -374,7 +374,10 @@ class AgentManager:
             user_prompt_template=user_prompt_template,
         )
 
-        logger.info(f"Loaded agent '{name}' from YAML: {yaml_path}")
+        # Log with tool information
+        tool_count = len(agent.tools) if agent.tools else 0
+        tool_names = [t.name for t in agent.tools] if agent.tools else []
+        logger.info(f"Loaded agent '{name}' from YAML: {yaml_path} ({tool_count} tools: {tool_names})")
         return agent
 
     def save_agent_to_yaml(self, agent_name: str, yaml_path: str) -> None:
