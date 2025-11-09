@@ -7,6 +7,11 @@ import os
 import sys
 from pathlib import Path
 
+# SECURITY: Prevent LiteLLM from making unauthorized API calls to fetch model pricing data
+# LiteLLM fetches https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
+# during import unless this env var is set. We use the bundled backup file instead.
+os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
+
 import click
 
 from click_repl import repl
