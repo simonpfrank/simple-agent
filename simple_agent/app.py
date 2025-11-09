@@ -29,6 +29,7 @@ from simple_agent.commands.system_commands import (
     help_command,
     quit_command,
     exit_command,
+    refresh,
 )
 from simple_agent.commands.config_commands import config
 from simple_agent.commands.agent_commands import agent
@@ -439,6 +440,7 @@ def start_repl(context: click.Context) -> None:
 cli.add_command(help_command, name="help")
 cli.add_command(quit_command, name="quit")
 cli.add_command(exit_command, name="exit")
+cli.add_command(refresh, name="refresh")
 cli.add_command(config, name="config")
 cli.add_command(agent, name="agent")
 cli.add_command(prompt, name="prompt")
