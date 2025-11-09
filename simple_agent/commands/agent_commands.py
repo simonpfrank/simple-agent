@@ -597,20 +597,30 @@ def create_wizard(ctx):
         # Step 3: LLM provider
         console.print()
         console.print("[bold]Select LLM provider:[/bold]")
-        providers = ["openai", "anthropic", "ollama", "lmstudio"]
+
+        # Get providers from config (Issue #14: use dynamic provider list)
+        llm_config = config.get("llm", {})
+        # Filter out non-provider keys (keys with dict values that have config like model, api_key, etc.)
+        providers = [
+            key for key in llm_config.keys()
+            if isinstance(llm_config[key], dict) and any(
+                k in llm_config[key] for k in ["model", "api_key", "base_url", "azure_endpoint"]
+            )
+        ]
+        # Sort for consistent ordering, with default first
+        default_provider = llm_config.get("provider", "openai")
+        if default_provider in providers:
+            providers.remove(default_provider)
+            providers.insert(0, default_provider)
+
+        logger.debug(f"→ Wizard step 3: LLM provider - available={providers}")
         for i, provider in enumerate(providers, 1):
             console.print(f"  {i}. {provider}")
 
-        logger.debug("→ Wizard step 3: LLM provider")
-        default_provider = config.get("llm", {}).get("provider", "openai")
         provider_idx = click.prompt(
             "Provider choice",
             type=click.IntRange(1, len(providers)),
-            default=(
-                providers.index(default_provider) + 1
-                if default_provider in providers
-                else 1
-            ),
+            default=1,
             show_default=True,
         )
         provider = providers[provider_idx - 1]
