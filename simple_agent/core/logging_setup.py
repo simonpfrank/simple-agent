@@ -49,6 +49,16 @@ def setup_logging(
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
 
+    # Suppress third-party library debug logs unless we're in DEBUG mode
+    if log_level.upper() != "DEBUG":
+        # Suppress verbose third-party DEBUG logs
+        logging.getLogger("litellm").setLevel(logging.INFO)
+        logging.getLogger("httpcore").setLevel(logging.INFO)
+        logging.getLogger("httpx").setLevel(logging.INFO)
+        logging.getLogger("urllib3").setLevel(logging.INFO)
+        logging.getLogger("requests").setLevel(logging.INFO)
+        logging.getLogger("smolagents").setLevel(logging.INFO)
+
     logger.info(f"Logging initialized: {log_file} (level={log_level})")
 
 
