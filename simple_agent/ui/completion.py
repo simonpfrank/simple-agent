@@ -58,6 +58,11 @@ class SlashCommandCompleter(Completer):
         if " " in search_text:
             # Split into parts
             parts = search_text.split()
+
+            # Guard: if parts is empty (e.g., "/ "), return early
+            if not parts:
+                return
+
             base_command = parts[0]
 
             # Determine if we're still typing something or have completed a word
