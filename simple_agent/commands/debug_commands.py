@@ -72,20 +72,27 @@ def debug(ctx, level: str | None):
         config_dict["debug"] = {}
     config_dict["debug"]["level"] = level
 
+    # Helper to update third-party library logging levels
+    def _update_thirdparty_loggers(target_level):
+        """Update third-party library loggers to target level."""
+        third_party_loggers = [
+            "litellm", "LiteLLM", "httpcore", "httpx", "urllib3", "requests", "smolagents"
+        ]
+        for logger_name in third_party_loggers:
+            logging.getLogger(logger_name).setLevel(target_level)
+
     # Update logging based on new level
     if level == "off":
         log_level = logging.WARNING
-        # Suppress LiteLLM INFO logs
-        logging.getLogger("litellm").setLevel(logging.WARNING)
-        logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+        # Suppress third-party logs (Issue #22)
+        _update_thirdparty_loggers(logging.WARNING)
         console.print(
             "\n[green]✓[/green] Debug level set to [bold]off[/bold] (minimal output)"
         )
     elif level == "info":
         log_level = logging.INFO
-        # Reset LiteLLM to INFO
-        logging.getLogger("litellm").setLevel(logging.INFO)
-        logging.getLogger("LiteLLM").setLevel(logging.INFO)
+        # Reset third-party loggers to INFO
+        _update_thirdparty_loggers(logging.INFO)
         # Disable LiteLLM verbose mode
         try:
             import litellm
@@ -98,6 +105,8 @@ def debug(ctx, level: str | None):
         )
     elif level == "debug":
         log_level = logging.DEBUG
+        # Enable full debug for third-party loggers
+        _update_thirdparty_loggers(logging.DEBUG)
         # Enable LiteLLM debug mode
         try:
             import litellm
@@ -105,8 +114,6 @@ def debug(ctx, level: str | None):
             litellm.set_verbose = True
         except ImportError:
             pass
-        logging.getLogger("litellm").setLevel(logging.DEBUG)
-        logging.getLogger("LiteLLM").setLevel(logging.DEBUG)
         console.print(
             "\n[green]✓[/green] Debug level set to [bold]debug[/bold] (full debug mode)"
         )
