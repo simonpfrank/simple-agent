@@ -38,6 +38,9 @@ from simple_agent.commands.flow_commands_cli import flow
 # Initialize console
 console = Console(theme=APP_THEME)
 
+# Initialize logger (used throughout app.py)
+logger = logging.getLogger(__name__)
+
 # Application metadata
 APP_NAME = "Simple Agent"
 APP_VERSION = "0.1.0"
@@ -137,21 +140,27 @@ def cli(context, config, repl_mode, debug):
     # Set runtime config for tools and components to access
     from simple_agent.core.runtime_config import set_config
 
-    logger.info("Setting configuration")
+    # Only log first-time initialization (not on every command re-invocation in REPL mode)
+    is_first_run = "agent_manager" not in context.obj
+    if is_first_run:
+        logger.debug("→ First-time initialization")
+        logger.info("Setting configuration")
     set_config(config_dict)
 
     # Initialize ToolManager
     # IMPORTANT: Only create ToolManager once in REPL mode
-    logger.info("Loading tool manager")
     if "tool_manager" not in context.obj:
+        if is_first_run:
+            logger.info("Loading tool manager")
         tool_manager = ToolManager(auto_load_builtin=True)
         context.obj["tool_manager"] = tool_manager
 
     # Initialize AgentManager (business logic)
     # IMPORTANT: Only create AgentManager once in REPL mode
     # click-repl may re-invoke cli() for each command, so check if it exists
-    logger.info("Loading Agent manager")
     if "agent_manager" not in context.obj:
+        if is_first_run:
+            logger.info("Loading Agent manager")
         agent_manager = AgentManager(config_dict)
         agent_manager.tool_manager = context.obj["tool_manager"]
         context.obj["agent_manager"] = agent_manager
@@ -175,7 +184,8 @@ def cli(context, config, repl_mode, debug):
 
     # Initialize CollectionManager (RAG)
     if "collection_manager" not in context.obj:
-        logger.info("Loading rag")
+        if is_first_run:
+            logger.info("Loading rag")
         from simple_agent.rag.collection_manager import CollectionManager
 
         collections_dir = ConfigManager.get(
@@ -186,7 +196,8 @@ def cli(context, config, repl_mode, debug):
 
     # Initialize FlowManager (Multi-Agent Orchestration)
     if "flow_manager" not in context.obj:
-        logger.info("Loading flow")
+        if is_first_run:
+            logger.info("Loading flow")
         from simple_agent.orchestration.flow_manager import FlowManager
 
         flows_dir = ConfigManager.get(
