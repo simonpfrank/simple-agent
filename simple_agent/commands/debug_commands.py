@@ -9,6 +9,8 @@ import logging
 import click
 from rich.console import Console
 
+logger = logging.getLogger(__name__)
+
 
 @click.command()
 @click.argument(
@@ -62,6 +64,7 @@ def debug(ctx, level: str | None):
 
     # Set new debug level
     old_level = ctx.obj.get("debug_level", "info")
+    logger.debug(f"[COMMAND] /debug {level} - old_level={old_level}")
     ctx.obj["debug_level"] = level
 
     # Update config dict (in-memory only, not saved to file)
@@ -109,6 +112,16 @@ def debug(ctx, level: str | None):
         )
 
     # Update root logger level
-    logging.getLogger().setLevel(log_level)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
 
+    # IMPORTANT: Also update all existing handlers' levels (Issue #15)
+    # Handlers have their own level setting that can filter messages
+    # even if the logger's level allows them through
+    logger.debug(f"→ updating root logger and all handlers to {logging.getLevelName(log_level)}")
+    for handler in root_logger.handlers:
+        handler.setLevel(log_level)
+        logger.debug(f"  Updated {handler.__class__.__name__} to {logging.getLevelName(log_level)}")
+
+    logger.info(f"[COMMAND] Debug level changed: {old_level} → {level}")
     console.print(f"[dim]Changed from:[/dim] {old_level} [dim]→[/dim] {level}\n")
