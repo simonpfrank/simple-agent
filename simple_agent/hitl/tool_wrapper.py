@@ -1,9 +1,12 @@
 """Tool wrapper for human-in-the-loop approval."""
 
+import logging
 from typing import Any, Callable, Optional
 
 from simple_agent.hitl.approval_manager import ApprovalManager
 from simple_agent.hitl.exceptions import ApprovalRejected
+
+logger = logging.getLogger(__name__)
 
 
 class HITLTool:
@@ -54,9 +57,12 @@ class HITLTool:
         Raises:
             ApprovalRejected: If approval is rejected
         """
+        logger.debug(f"[TOOL] HITLTool({self.tool_name}) - requires_approval={self.requires_approval}, args_count={len(args)}, kwargs_count={len(kwargs)}")
+
         # Request approval if required
         if self.requires_approval:
             prompt = self.prompt_template.format(tool_name=self.tool_name)
+            logger.info(f"[APPROVAL] Requesting approval for tool: {self.tool_name}")
             self.approval_manager.request_approval(
                 tool_name=self.tool_name,
                 prompt=prompt,
@@ -65,7 +71,14 @@ class HITLTool:
             )
             # Note: In real usage, REPL will call approve() or reject()
             # For now, just leave the pending approval for caller to handle
+            logger.debug(f"[APPROVAL] Pending approval for {self.tool_name}")
 
         # Execute tool
-        result = self.tool(*args, **kwargs)
-        return result
+        try:
+            logger.debug(f"[TOOL] Executing {self.tool_name}")
+            result = self.tool(*args, **kwargs)
+            logger.info(f"[TOOL] {self.tool_name} completed successfully")
+            return result
+        except Exception as e:
+            logger.error(f"[TOOL] {self.tool_name} failed - {type(e).__name__}: {str(e)}")
+            raise

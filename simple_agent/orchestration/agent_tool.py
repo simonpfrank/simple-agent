@@ -1,9 +1,12 @@
 """AgentTool wrapper that exposes a SimpleAgent as a callable tool for orchestrators."""
 
+import logging
 import time
 from typing import Any, Dict
 
 from smolagents import Tool
+
+logger = logging.getLogger(__name__)
 
 
 class AgentTool(Tool):
@@ -60,11 +63,14 @@ class AgentTool(Tool):
             Agent's response as a string
         """
         start_time = time.time()
+        logger.debug(f"[TOOL] AgentTool.forward() - agent={self.agent.name}, prompt_len={len(prompt)}")
 
         try:
             # Execute wrapped agent
             output = self.agent.run(prompt)
             execution_time = time.time() - start_time
+            output_str = str(output) if output else ""
+            output_len = len(output_str)
 
             # Build result dict for history
             result = {
@@ -80,6 +86,7 @@ class AgentTool(Tool):
             # Track in history
             self.call_history.append(result)
 
+            logger.info(f"[TOOL] AgentTool.forward() completed - agent={self.agent.name}, output_len={output_len}, time={execution_time:.2f}s")
             # Return as string for SmolAgents
             return output
 
@@ -106,6 +113,7 @@ class AgentTool(Tool):
             # Track in history
             self.call_history.append(result)
 
+            logger.error(f"[TOOL] AgentTool.forward() failed - agent={self.agent.name}, {type(e).__name__}: {str(e)}, time={execution_time:.2f}s")
             # Return error as string for SmolAgents
             return error_msg
 

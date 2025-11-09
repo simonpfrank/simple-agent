@@ -4,7 +4,10 @@ Calculator tool for basic math operations.
 Provides simple arithmetic operations for agents.
 """
 
+import logging
 from smolagents import tool
+
+logger = logging.getLogger(__name__)
 
 
 @tool
@@ -19,7 +22,10 @@ def add(a: float, b: float) -> float:
     Returns:
         The sum of a and b
     """
-    return a + b
+    logger.debug(f"[TOOL] add(a={a}, b={b})")
+    result = a + b
+    logger.debug(f"[TOOL] add() = {result}")
+    return result
 
 
 @tool
@@ -34,7 +40,10 @@ def subtract(a: float, b: float) -> float:
     Returns:
         The difference a - b
     """
-    return a - b
+    logger.debug(f"[TOOL] subtract(a={a}, b={b})")
+    result = a - b
+    logger.debug(f"[TOOL] subtract() = {result}")
+    return result
 
 
 @tool
@@ -49,7 +58,10 @@ def multiply(a: float, b: float) -> float:
     Returns:
         The product of a and b
     """
-    return a * b
+    logger.debug(f"[TOOL] multiply(a={a}, b={b})")
+    result = a * b
+    logger.debug(f"[TOOL] multiply() = {result}")
+    return result
 
 
 @tool
@@ -67,6 +79,10 @@ def divide(a: float, b: float) -> float:
     Raises:
         ValueError: If b is zero
     """
+    logger.debug(f"[TOOL] divide(a={a}, b={b})")
     if b == 0:
+        logger.error("[TOOL] divide() - Cannot divide by zero")
         raise ValueError("Cannot divide by zero")
-    return a / b
+    result = a / b
+    logger.debug(f"[TOOL] divide() = {result}")
+    return result

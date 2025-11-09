@@ -1,9 +1,11 @@
 """Tavily web search tool for Simple Agent."""
 
 import os
+import logging
 import requests
 from smolagents import tool
-import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _get_verify_certificates() -> bool:
@@ -40,10 +42,11 @@ def tavily_web_search(query: str, verify_certificates: bool = None) -> dict:
     if verify_certificates is None:
         verify_certificates = _get_verify_certificates()
 
-    print(f"Verify certs:{verify_certificates}")
+    logger.debug(f"[TOOL] tavily_web_search(query={query!r}, verify_certificates={verify_certificates})")
 
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
+        logger.error("[TOOL] tavily_web_search() - TAVILY_API_KEY not set")
         return {
             "success": False,
             "data": None,
@@ -67,12 +70,15 @@ def tavily_web_search(query: str, verify_certificates: bool = None) -> dict:
         )
         response.raise_for_status()
         api_result = response.json()
+        result_count = len(api_result.get("results", [])) if isinstance(api_result, dict) else 0
+        logger.info(f"[TOOL] tavily_web_search() completed - query={query!r}, results={result_count}")
         return {
             "success": True,
             "data": api_result,
             "message": f"Tavily search completed for '{query}'",
         }
     except requests.RequestException as e:
+        logger.error(f"[TOOL] tavily_web_search() failed - {type(e).__name__}: {str(e)}")
         return {
             "success": False,
             "data": None,

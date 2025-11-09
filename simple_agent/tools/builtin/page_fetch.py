@@ -3,6 +3,7 @@
 Issue 8-D: Added input validation for URL and parameters.
 """
 
+import logging
 from random import choice
 from typing import Optional
 from urllib.parse import urlparse
@@ -15,6 +16,8 @@ import html2text
 
 from simple_agent.tools.helpers import HTMLCleaner
 from simple_agent.tools.helpers.token_counter import estimate_tokens
+
+logger = logging.getLogger(__name__)
 
 
 def _validate_url(url: str) -> Optional[str]:
@@ -131,9 +134,12 @@ def fetch_webpage_markdown(
             - was_truncated (bool): Whether content was truncated by max_chars
             - message (str): Status message
     """
+    logger.debug(f"[TOOL] fetch_webpage_markdown(url={url!r}, strip_level={strip_level}, max_chars={max_chars})")
+
     # Validate inputs (Issue 8-D)
     url_error = _validate_url(url)
     if url_error:
+        logger.error(f"[TOOL] fetch_webpage_markdown() - Invalid URL: {url_error}")
         return {
             "success": False,
             "data": None,
@@ -145,6 +151,7 @@ def fetch_webpage_markdown(
 
     strip_level_error = _validate_strip_level(strip_level)
     if strip_level_error:
+        logger.error(f"[TOOL] fetch_webpage_markdown() - Invalid strip_level: {strip_level_error}")
         return {
             "success": False,
             "data": None,
@@ -156,6 +163,7 @@ def fetch_webpage_markdown(
 
     max_chars_error = _validate_max_chars(max_chars)
     if max_chars_error:
+        logger.error(f"[TOOL] fetch_webpage_markdown() - Invalid max_chars: {max_chars_error}")
         return {
             "success": False,
             "data": None,
@@ -173,6 +181,7 @@ def fetch_webpage_markdown(
         html = resp.text
 
         if not html.strip():
+            logger.warning(f"[TOOL] fetch_webpage_markdown() - No content at {url}")
             return {
                 "success": False,
                 "data": None,
@@ -187,6 +196,7 @@ def fetch_webpage_markdown(
         markdown, stats = cleaner.clean(html)
 
         if not markdown.strip():
+            logger.warning(f"[TOOL] fetch_webpage_markdown() - No readable content at {url}")
             return {
                 "success": False,
                 "data": None,
@@ -206,6 +216,7 @@ def fetch_webpage_markdown(
         tokens_used = estimate_tokens(markdown)
         original_size = len(markdown)
 
+        logger.info(f"[TOOL] fetch_webpage_markdown() completed - url={url!r}, size={original_size}, tokens={tokens_used}, truncated={was_truncated}")
         return {
             "success": True,
             "data": markdown,
@@ -216,6 +227,7 @@ def fetch_webpage_markdown(
         }
 
     except Exception as e:
+        logger.error(f"[TOOL] fetch_webpage_markdown() failed - {type(e).__name__}: {str(e)}")
         return {
             "success": False,
             "data": None,
