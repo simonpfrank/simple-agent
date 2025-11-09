@@ -18,6 +18,11 @@ from prompt_toolkit.history import InMemoryHistory
 logger = logging.getLogger("simple_agent.commands.agent")
 
 
+def _should_log_traceback() -> bool:
+    """Check if logger is in DEBUG mode to include tracebacks."""
+    return logger.isEnabledFor(logging.DEBUG)
+
+
 @click.group()
 @click.pass_context
 def agent(ctx):
@@ -54,10 +59,10 @@ def create(ctx, name: str, provider: str, role: str):
         logger.debug(f"← create_agent() returned SimpleAgent instance: {agent.name}")
         console.print(f"[green]✓[/green] Created agent: {agent}")
     except FileNotFoundError as e:
-        logger.error(f"[COMMAND] Create agent failed - file not found: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Create agent failed - file not found: {str(e)}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
     except Exception as e:
-        logger.error(f"[COMMAND] Create agent failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Create agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -112,10 +117,10 @@ def load(ctx, agent_name: str):
         else:
             console.print(f"  Tools: (none)")
     except FileNotFoundError as e:
-        logger.error(f"[COMMAND] Load agent failed - file not found: {yaml_path}", exc_info=True)
+        logger.error(f"[COMMAND] Load agent failed - file not found: {yaml_path}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] File not found: {yaml_path}")
     except Exception as e:
-        logger.error(f"[COMMAND] Load agent failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Load agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -192,10 +197,10 @@ def run(ctx, name: str, prompt: tuple):
         logger.debug(f"← run_agent() returned response with {response_len} characters")
         console.print(f"\n[bold cyan]Response:[/bold cyan]\n{response_str}\n")
     except KeyError as e:
-        logger.error(f"[COMMAND] Run agent failed - agent not found: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Run agent failed - agent not found: {str(e)}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
     except Exception as e:
-        logger.error(f"[COMMAND] Run agent failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Run agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -252,7 +257,7 @@ def chat(ctx, name: str):
         agent_manager.get_agent(name)
         logger.debug(f"← get_agent() verified agent exists")
     except KeyError as e:
-        logger.error(f"[COMMAND] Chat failed - agent '{name}' not found", exc_info=True)
+        logger.error(f"[COMMAND] Chat failed - agent '{name}' not found", exc_info=_should_log_traceback())
         console.print(f"[red]Error:[/red] {str(e)}")
         return
 
@@ -300,7 +305,7 @@ def chat(ctx, name: str):
                     logger.debug(f"[CHAT] Message {message_count}: response_len={response_len}")
                     console.print(f"[bold green]{name}:[/bold green] {response_str}\n")
                 except Exception as e:
-                    logger.error(f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}", exc_info=True)
+                    logger.error(f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
                     console.print(f"[red]Error:[/red] {str(e)}\n")
 
             except EOFError:
@@ -360,7 +365,7 @@ def tools(ctx, name: str):
         )
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Tools command failed - agent '{name}' not found", exc_info=True)
+        logger.error(f"[COMMAND] Tools command failed - agent '{name}' not found", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -394,7 +399,7 @@ def add_tool(ctx, name: str, tool: str):
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Add-tool failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Add-tool failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -428,7 +433,7 @@ def remove_tool(ctx, name: str, tool: str):
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Remove-tool failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Remove-tool failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -476,7 +481,7 @@ def show_prompt(ctx, name: str):
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Show-prompt failed - agent '{name}' not found", exc_info=True)
+        logger.error(f"[COMMAND] Show-prompt failed - agent '{name}' not found", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -530,12 +535,12 @@ def save(ctx, name: str, path: str):
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Save failed - agent '{name}' not found", exc_info=True)
+        logger.error(f"[COMMAND] Save failed - agent '{name}' not found", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
     except Exception as e:
-        logger.error(f"[COMMAND] Save failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Save failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] Failed to save agent: {str(e)}")
         console.print()
@@ -687,7 +692,7 @@ def create_wizard(ctx):
         console.print("[yellow]Wizard cancelled[/yellow]")
         console.print()
     except Exception as e:
-        logger.error(f"[COMMAND] Wizard failed - {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(f"[COMMAND] Wizard failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
