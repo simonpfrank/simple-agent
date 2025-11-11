@@ -33,9 +33,6 @@ ENV/
 *.swo
 *~
 
-# Logs
-logs/
-*.log
 
 # REPL history
 .repl_history

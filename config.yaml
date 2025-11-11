@@ -56,11 +56,11 @@ llm:
 
   # Azure OpenAI Configuration (Enterprise/WTW)
   azure_openai:
-    model: "gpt-5-mini"  # Azure deployment name (see docs/Azure_model_names_and_versions.md)
+    model: "gpt-4o-mini"  # Azure deployment name (see docs/Azure_model_names_and_versions.md)
     azure_endpoint: "https://api.lab.ai.wtwco.com/"  # Azure OpenAI endpoint URL
     #api_version: "2024-02-01"  # API version (verified working with basic OpenAI SDK)
     api_version: "2024-10-21"
-    temperature: 0.7
+    temperature: 0
     max_tokens: 5000
     auth_type: "azure_ad"  # Authentication: "azure_ad" (recommended) or "api_key"
     # api_key: "${AZURE_OPENAI_API_KEY}"  # Only needed if auth_type="api_key"
