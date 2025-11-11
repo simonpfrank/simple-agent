@@ -66,7 +66,7 @@ class AgentManager:
         """
         logger.debug(
             f"Creating agent '{name}' - provider: {provider}, "
-            f"role: {role}, tools: {tools}"
+            f"role: {role[0:20]}, tools: {tools}"
         )
 
         # Get defaults from config if not specified
@@ -178,7 +178,9 @@ class AgentManager:
         # Store response for inspection (convert to string)
         self.last_response = str(result)
 
-        logger.debug(f"Agent '{name}' (provider={agent.model_provider}) completed - result length: {len(str(result))}")
+        logger.debug(
+            f"Agent '{name}' (provider={agent.model_provider}) completed - result length: {len(str(result))}"
+        )
         return result
 
     def _load_agents_from_config(self) -> None:
@@ -316,7 +318,7 @@ class AgentManager:
             raise FileNotFoundError(f"Agent YAML file not found: {yaml_path}")
 
         # Load YAML
-        with open(yaml_path, "r") as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             agent_data = yaml.safe_load(f)
 
         # Validate required field: name
@@ -377,7 +379,9 @@ class AgentManager:
         # Log with tool information
         tool_count = len(agent.tools) if agent.tools else 0
         tool_names = [t.name for t in agent.tools] if agent.tools else []
-        logger.info(f"Loaded agent '{name}' from YAML: {yaml_path} ({tool_count} tools: {tool_names})")
+        logger.info(
+            f"Loaded agent '{name}' from YAML: {yaml_path} ({tool_count} tools: {tool_names})"
+        )
         return agent
 
     def save_agent_to_yaml(self, agent_name: str, yaml_path: str) -> None:
@@ -432,7 +436,7 @@ class AgentManager:
         )
 
         # Write YAML
-        with open(yaml_path, "w") as f:
+        with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.dump(agent_data, f, default_flow_style=False, sort_keys=False)
 
         logger.info(f"Saved agent '{agent_name}' to YAML: {yaml_path}")

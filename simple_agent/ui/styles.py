@@ -25,7 +25,7 @@ SYMBOLS = {
     "error": "✗",
     "warning": "⚠",
     "info": "ℹ",
-    "arrow": "→",
+    "arrow": "-",
     "bullet": "•",
 }
 

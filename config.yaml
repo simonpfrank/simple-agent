@@ -15,12 +15,12 @@ paths:
 # SSL Certificate Verification
 # Set to false to disable SSL certificate verification (e.g., corporate proxies)
 # Default: true
-verify_certificates: true
+verify_certificates: false
 
 # LLM Provider Settings
 llm:
   # Active provider: openai, ollama, lmstudio, anthropic
-  provider: "openai"
+  provider: "azure_openai"
 
   # Context window and token limits (shared across all providers)
   context_window: 128000  # Max tokens the model can handle
@@ -31,38 +31,40 @@ llm:
     model: "gpt-4o-mini"
     api_key: "${OPENAI_API_KEY}"  # References .env
     temperature: 0.7
-    max_tokens: 2000  # Max output tokens per request
+    max_tokens: 5000  # Max output tokens per request
 
   # LM Studio Configuration (local, OpenAI-compatible API)
   lmstudio:
     model: "llama-3.2-1b-instruct"
     base_url: "http://localhost:1234/v1"
     temperature: 0.7
-    max_tokens: 2000  # Max output tokens per request
+    max_tokens: 5000  # Max output tokens per request
 
   # Ollama Configuration (local)
   ollama:
     model: "llama3.2:1b"
     base_url: "http://localhost:11434"
     temperature: 0.7
-    max_tokens: 2000  # Max output tokens per request
+    max_tokens: 5000  # Max output tokens per request
 
   # Anthropic Configuration
   anthropic:
     model: "claude-3-5-sonnet-20241022"
     api_key: "${ANTHROPIC_API_KEY}"  # References .env
     temperature: 0.7
-    max_tokens: 2000  # Max output tokens per request
+    max_tokens: 5000  # Max output tokens per request
 
   # Azure OpenAI Configuration (Enterprise/WTW)
   azure_openai:
-    model: "gpt-4o-mini"  # Azure deployment name (see docs/Azure_model_names_and_versions.md)
+    model: "gpt-5-mini"  # Azure deployment name (see docs/Azure_model_names_and_versions.md)
     azure_endpoint: "https://api.lab.ai.wtwco.com/"  # Azure OpenAI endpoint URL
-    api_version: "2024-02-01"  # API version (verified working with basic OpenAI SDK)
+    #api_version: "2024-02-01"  # API version (verified working with basic OpenAI SDK)
+    api_version: "2024-10-21"
     temperature: 0.7
-    max_tokens: 2000
+    max_tokens: 5000
     auth_type: "azure_ad"  # Authentication: "azure_ad" (recommended) or "api_key"
     # api_key: "${AZURE_OPENAI_API_KEY}"  # Only needed if auth_type="api_key"
+
 
 # Agent Settings
 agents:

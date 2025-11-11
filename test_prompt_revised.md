@@ -81,7 +81,7 @@ Return results as a markdown table:
 
 ---
 
-## REFERENCE COLUMN METADATA:
+## REFERENCE COLUMNS AND METADATA:
 File: reference | Columns: 27 | Rows: 1999
 
 | Name | Clean Name | Data Type | Category | Population Rate | Unique Count | Total Count | Pattern | Sample Values | Characteristics |
@@ -114,7 +114,7 @@ File: reference | Columns: 27 | Rows: 1999
 | Cash Refund Amount | Cash Refund Amount | numeric | amount | 1 | 1 | 1999 | 99999 | 0 | fully_populated, constant_value, all_numeric, consistent_pattern |
 | Death Benefit | Death Benefit | numeric | general | 1 | 1 | 1999 | 99999 | 0 | fully_populated, constant_value, all_numeric, consistent_pattern |
 
-## INPUT COLUMN METADATA:
+## INPUT COLUMNS AND METADATA:
 File: input | Columns: 43 | Rows: 2570
 
 | Name | Clean Name | Data Type | Category | Population Rate | Unique Count | Total Count | Pattern | Sample Values | Characteristics |

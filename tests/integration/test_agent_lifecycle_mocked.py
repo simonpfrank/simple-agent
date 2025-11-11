@@ -1,7 +1,7 @@
 """
 Integration test for agent lifecycle with mocked LLM.
 
-Tests the full flow: load config → create agent → run prompt
+Tests the full flow: load config - create agent - run prompt
 Uses mocked LLM responses for CI/CD compatibility.
 """
 
@@ -80,7 +80,9 @@ class TestAgentLifecycleMocked:
 
         # Verify all registered
         agents = agent_manager.list_agents()
-        assert len(agents) == 3  # Only manually created agents (not auto-loaded from config)
+        assert (
+            len(agents) == 3
+        )  # Only manually created agents (not auto-loaded from config)
         assert "agent1" in agents
         assert "agent2" in agents
         assert "agent3" in agents
@@ -113,7 +115,9 @@ class TestAgentLifecycleMocked:
         # Note: call_args gets the LAST call, which is for 'default_agent'
         # The first call was for auto-loaded 'default' agent
         call_kwargs = mock_tool_calling_agent.call_args.kwargs
-        assert call_kwargs["instructions"] == "You are a helpful AI assistant for testing."
+        assert (
+            call_kwargs["instructions"] == "You are a helpful AI assistant for testing."
+        )
         # ToolCallingAgent doesn't have verbosity_level parameter
         assert call_kwargs["max_steps"] == 10
 

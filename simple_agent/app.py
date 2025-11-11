@@ -131,6 +131,10 @@ def cli(context, config, repl_mode, debug):
 
     setup_logging(log_file, log_level, console_enabled)
 
+    # Apply logging filters for security and verbosity control
+    from simple_agent.core.logging_filters import configure_logging_filters
+    configure_logging_filters()
+
     # Control LiteLLM logging based on debug level
     import logging as std_logging
 
@@ -149,7 +153,7 @@ def cli(context, config, repl_mode, debug):
     # Only log first-time initialization (not on every command re-invocation in REPL mode)
     is_first_run = "agent_manager" not in context.obj
     if is_first_run:
-        logger.debug("→ First-time initialization")
+        logger.debug("First-time initialization")
         logger.info("Setting configuration")
     set_config(config_dict)
 
@@ -188,17 +192,13 @@ def cli(context, config, repl_mode, debug):
             else:
                 logger.debug(f"Agents directory not found: {agents_dir}")
 
-    # Initialize CollectionManager (RAG)
+    # Initialize CollectionManager (RAG) - lazy loaded on first use
+    # Store config for lazy initialization, don't create CollectionManager yet
     if "collection_manager" not in context.obj:
-        if is_first_run:
-            logger.info("Loading rag")
-        from simple_agent.rag.collection_manager import CollectionManager
-
-        collections_dir = ConfigManager.get(
+        context.obj["collection_manager"] = None  # Mark as not initialized
+        context.obj["collections_dir"] = ConfigManager.get(
             config_dict, "rag.collections_dir", "./chroma_db"
         )
-        collection_manager = CollectionManager(collections_dir)
-        context.obj["collection_manager"] = collection_manager
 
     # Initialize FlowManager (Multi-Agent Orchestration)
     if "flow_manager" not in context.obj:

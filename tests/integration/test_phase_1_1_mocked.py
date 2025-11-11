@@ -32,7 +32,7 @@ class TestPhase1_1InspectionMocked:
         mock_litellm: MagicMock,
         test_config: dict,
     ) -> None:
-        """Test full lifecycle: create agent → run → track prompt/response."""
+        """Test full lifecycle: create agent - run - track prompt/response."""
         # Setup mock agent response
         mock_agent_instance = MagicMock()
         mock_agent_instance.run.return_value = "The capital of France is Paris"
@@ -55,7 +55,9 @@ class TestPhase1_1InspectionMocked:
         assert agent_manager.last_prompt == prompt
         assert agent_manager.last_response == "The capital of France is Paris"
         assert agent_manager.last_agent == "test_agent"
-        assert str(response) == "The capital of France is Paris"  # AgentResult supports string conversion
+        assert (
+            str(response) == "The capital of France is Paris"
+        )  # AgentResult supports string conversion
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
@@ -196,4 +198,6 @@ class TestPhase1_1InspectionMocked:
         assert agent_manager.last_agent == "default"
         assert agent_manager.last_prompt == "Test with default agent"
         assert agent_manager.last_response == "Auto-loaded response"
-        assert str(response) == "Auto-loaded response"  # AgentResult supports string conversion
+        assert (
+            str(response) == "Auto-loaded response"
+        )  # AgentResult supports string conversion

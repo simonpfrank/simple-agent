@@ -1,10 +1,35 @@
 """REPL commands for RAG collection management."""
 
 import click
+import logging
 from rich.console import Console
 from rich.table import Table
 
 from simple_agent.rag.collection_manager import CollectionManager
+
+logger = logging.getLogger(__name__)
+
+
+def get_collection_manager(ctx) -> CollectionManager:
+    """
+    Get collection manager, initializing lazily if needed.
+    
+    Args:
+        ctx: Click context
+        
+    Returns:
+        CollectionManager instance
+    """
+    collection_manager = ctx.obj.get("collection_manager")
+    
+    # Lazy initialization on first access
+    if collection_manager is None:
+        logger.info("Lazy loading RAG collection manager")
+        collections_dir = ctx.obj.get("collections_dir", "./chroma_db")
+        collection_manager = CollectionManager(collections_dir)
+        ctx.obj["collection_manager"] = collection_manager
+    
+    return collection_manager
 
 
 @click.group()
@@ -24,11 +49,7 @@ def collection(ctx):
 def create(ctx, name: str, path: str, embedding_model: str, chunk_size: int, chunk_overlap: int):
     """Create a new collection."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     try:
         collection = collection_manager.create_collection(
@@ -50,11 +71,7 @@ def create(ctx, name: str, path: str, embedding_model: str, chunk_size: int, chu
 def list_collections(ctx):
     """List all collections."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     collections = collection_manager.list_collections()
 
@@ -85,11 +102,7 @@ def list_collections(ctx):
 def info(ctx, name: str):
     """Show collection information."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     try:
         col = collection_manager.get_collection(name)
@@ -114,11 +127,7 @@ def info(ctx, name: str):
 def delete(ctx, name: str):
     """Delete a collection."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     try:
         collection_manager.delete_collection(name)
@@ -134,11 +143,7 @@ def delete(ctx, name: str):
 def connect(ctx, agent_name: str, collection_name: str):
     """Connect agent to a collection."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     try:
         collection_manager.connect_agent(agent_name, collection_name)
@@ -153,11 +158,7 @@ def connect(ctx, agent_name: str, collection_name: str):
 def disconnect(ctx, agent_name: str):
     """Disconnect agent from collection."""
     console: Console = ctx.obj["console"]
-    collection_manager: CollectionManager = ctx.obj.get("collection_manager")
-
-    if not collection_manager:
-        console.print("[red]Error:[/red] Collection manager not initialized")
-        return
+    collection_manager = get_collection_manager(ctx)
 
     collection_manager.disconnect_agent(agent_name)
     console.print(f"[green]✓[/green] Disconnected {agent_name} from collection")

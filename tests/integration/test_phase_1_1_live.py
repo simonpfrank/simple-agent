@@ -43,7 +43,7 @@ class TestPhase1_1InspectionLive:
 
     def test_prompt_response_tracking_with_real_llm(self, test_config: dict) -> None:
         """
-        Test full lifecycle with REAL LLM: create agent → run → track prompt/response.
+        Test full lifecycle with REAL LLM: create agent - run - track prompt/response.
 
         This is the definitive test - no mocks.
         """
@@ -83,7 +83,9 @@ class TestPhase1_1InspectionLive:
         prompt1 = "What is 1+1? Just the number."
         response1 = agent_manager.run_agent("math_agent", prompt1)
         assert agent_manager.last_prompt == prompt1
-        assert agent_manager.last_response == str(response1)  # AgentResult string conversion
+        assert agent_manager.last_response == str(
+            response1
+        )  # AgentResult string conversion
         assert agent_manager.last_agent == "math_agent"
         assert "2" in str(response1) or "two" in str(response1).lower()
 
@@ -91,7 +93,9 @@ class TestPhase1_1InspectionLive:
         prompt2 = "What is 3+3? Just the number."
         response2 = agent_manager.run_agent("math_agent", prompt2)
         assert agent_manager.last_prompt == prompt2
-        assert agent_manager.last_response == str(response2)  # AgentResult string conversion
+        assert agent_manager.last_response == str(
+            response2
+        )  # AgentResult string conversion
         assert agent_manager.last_agent == "math_agent"
         assert "6" in str(response2) or "six" in str(response2).lower()
 
@@ -116,14 +120,18 @@ class TestPhase1_1InspectionLive:
         response1 = agent_manager.run_agent("agent1", prompt1)
         assert agent_manager.last_agent == "agent1"
         assert agent_manager.last_prompt == prompt1
-        assert agent_manager.last_response == str(response1)  # AgentResult string conversion
+        assert agent_manager.last_response == str(
+            response1
+        )  # AgentResult string conversion
 
         # Run with agent2 - tracking should switch
         prompt2 = "Say 'Hello from agent 2'"
         response2 = agent_manager.run_agent("agent2", prompt2)
         assert agent_manager.last_agent == "agent2"
         assert agent_manager.last_prompt == prompt2
-        assert agent_manager.last_response == str(response2)  # AgentResult string conversion
+        assert agent_manager.last_response == str(
+            response2
+        )  # AgentResult string conversion
 
         # Verify responses are different
         assert str(response1) != str(response2)
@@ -148,7 +156,9 @@ class TestPhase1_1InspectionLive:
         # Verify tracking works
         assert agent_manager.last_agent == "default"
         assert agent_manager.last_prompt == prompt
-        assert agent_manager.last_response == str(response)  # AgentResult string conversion
+        assert agent_manager.last_response == str(
+            response
+        )  # AgentResult string conversion
         assert len(str(response)) > 0
 
         # Verify response is reasonable

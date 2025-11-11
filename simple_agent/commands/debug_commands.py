@@ -76,7 +76,13 @@ def debug(ctx, level: str | None):
     def _update_thirdparty_loggers(target_level):
         """Update third-party library loggers to target level."""
         third_party_loggers = [
-            "litellm", "LiteLLM", "httpcore", "httpx", "urllib3", "requests", "smolagents"
+            "litellm",
+            "LiteLLM",
+            "httpcore",
+            "httpx",
+            "urllib3",
+            "requests",
+            "smolagents",
         ]
         for logger_name in third_party_loggers:
             logging.getLogger(logger_name).setLevel(target_level)
@@ -125,10 +131,14 @@ def debug(ctx, level: str | None):
     # IMPORTANT: Also update all existing handlers' levels (Issue #15)
     # Handlers have their own level setting that can filter messages
     # even if the logger's level allows them through
-    logger.debug(f"→ updating root logger and all handlers to {logging.getLevelName(log_level)}")
+    logger.debug(
+        f"updating root logger and all handlers to {logging.getLevelName(log_level)}"
+    )
     for handler in root_logger.handlers:
         handler.setLevel(log_level)
-        logger.debug(f"  Updated {handler.__class__.__name__} to {logging.getLevelName(log_level)}")
+        logger.debug(
+            f"  Updated {handler.__class__.__name__} to {logging.getLevelName(log_level)}"
+        )
 
-    logger.info(f"[COMMAND] Debug level changed: {old_level} → {level}")
-    console.print(f"[dim]Changed from:[/dim] {old_level} [dim]→[/dim] {level}\n")
+    logger.info(f"[COMMAND] Debug level changed: {old_level} - {level}")
+    console.print(f"[dim]Changed from:[/dim] {old_level} [dim]-[/dim] {level}\n")

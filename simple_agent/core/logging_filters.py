@@ -1,0 +1,119 @@
+"""
+Logging filters for sensitive data masking and log verbosity control.
+
+This module provides logging filters to:
+1. Mask sensitive data (JWT tokens, API keys) in log messages
+2. Control verbosity of third-party libraries (LiteLLM, OpenAI, etc.)
+"""
+
+import logging
+import re
+from typing import List, Tuple
+
+
+class SensitiveDataFilter(logging.Filter):
+    """
+    Logging filter that masks sensitive data in log records.
+    
+    Prevents credential leakage by redacting:
+    - Azure AD JWT tokens
+    - API keys
+    - Authentication tokens
+    
+    Usage:
+        logger = logging.getLogger('my_logger')
+        logger.addFilter(SensitiveDataFilter())
+    """
+    
+    # Patterns to detect and redact (pattern, replacement)
+    SENSITIVE_PATTERNS: List[Tuple[str, str]] = [
+        # Azure AD tokens in extra_body dict
+        (r"azure_ad_token['\"]:\s*['\"]eyJ[^'\"]+['\"]", "azure_ad_token': '***REDACTED***'"),
+        # Any JWT token (starts with eyJ, 100+ chars)
+        (r"eyJ[A-Za-z0-9_-]{100,}", "***JWT_TOKEN_REDACTED***"),
+        # API keys in various formats
+        (r"api_key['\"]:\s*['\"][^'\"]{20,}['\"]", "api_key': '***REDACTED***'"),
+        # Bearer tokens
+        (r"Bearer\s+[A-Za-z0-9_-]{20,}", "Bearer ***REDACTED***"),
+    ]
+    
+    def filter(self, record: logging.LogRecord) -> bool:
+        """
+        Filter log record by masking sensitive data.
+        
+        Args:
+            record: Log record to filter
+            
+        Returns:
+            True (always allow record through after masking)
+        """
+        # Mask sensitive data in message
+        if hasattr(record, 'msg') and record.msg:
+            msg = str(record.msg)
+            for pattern, replacement in self.SENSITIVE_PATTERNS:
+                msg = re.sub(pattern, replacement, msg)
+            record.msg = msg
+        
+        # Also check args tuple (used in formatted messages)
+        if hasattr(record, 'args') and record.args:
+            if isinstance(record.args, tuple):
+                cleaned_args = []
+                for arg in record.args:
+                    if isinstance(arg, str):
+                        for pattern, replacement in self.SENSITIVE_PATTERNS:
+                            arg = re.sub(pattern, replacement, arg)
+                    cleaned_args.append(arg)
+                record.args = tuple(cleaned_args)
+        
+        return True
+
+
+def configure_logging_filters():
+    """
+    Configure logging filters for the application.
+    
+    - Applies SensitiveDataFilter to all loggers
+    - Reduces verbosity of third-party libraries (LiteLLM, OpenAI, etc.)
+    - Should be called once at application startup
+    """
+    # Apply sensitive data filter to root logger (affects all loggers)
+    root_logger = logging.getLogger()
+    root_logger.addFilter(SensitiveDataFilter())
+    
+    # Reduce verbosity of third-party libraries
+    # These generate massive logs with HTTP headers, requests, etc.
+    verbose_loggers = [
+        'LiteLLM',
+        'litellm',
+        'openai',
+        'httpcore',
+        'httpx',
+        'urllib3',
+        'azure.identity',  # Suppress verbose Azure AD credential attempts
+        'azure.core',      # Suppress Azure SDK HTTP logging
+    ]
+    
+    for logger_name in verbose_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.WARNING)  # Only show warnings and errors
+        logger.addFilter(SensitiveDataFilter())
+    
+    # Keep our own loggers at INFO
+    logging.getLogger('simple_agent').setLevel(logging.INFO)
+
+
+def mask_sensitive_string(text: str) -> str:
+    """
+    Utility function to mask sensitive data in a string.
+    
+    Useful for one-off masking without using the filter.
+    
+    Args:
+        text: String potentially containing sensitive data
+        
+    Returns:
+        String with sensitive data masked
+    """
+    for pattern, replacement in SensitiveDataFilter.SENSITIVE_PATTERNS:
+        text = re.sub(pattern, replacement, text)
+    return text

@@ -19,6 +19,7 @@ from simple_agent.tools.helpers.model_pricing import calculate_cost
 from simple_agent.core.agent_result import AgentResult
 from simple_agent.core.token_budget_context import TokenBudgetContext
 from simple_agent.agents.agent_config import AgentConfig
+from simple_agent.core.rate_limit_tracker import rate_limit_tracker
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,12 @@ class SimpleAgent:
         )
         self.token_budget = config.token_budget
         self.token_warning_threshold = config.token_warning_threshold
+        
+        # Rate limit tracking (populated from API response headers)
+        self.last_tpm_limit = None
+        self.last_rpm_limit = None
+        self.last_tpm_remaining = None
+        self.last_rpm_remaining = None
 
         # Render role template if it contains Jinja2 syntax
         if config.role:
@@ -590,6 +597,13 @@ User query: {prompt}"""
         try:
             response = self.agent.run(formatted_prompt, reset=reset)
             response_str = str(response)
+            
+            # Extract rate limit info from response headers (best effort)
+            self._extract_rate_limits_from_response()
+            
+            # Also update global rate limit tracker
+            model_name = self.model_config.get("model", "unknown")
+            rate_limit_tracker.update_from_response(response, model_name)
 
             # Estimate output tokens and calculate cost
             if track_tokens:
@@ -612,25 +626,134 @@ User query: {prompt}"""
             # Note: Token budget errors are raised BEFORE try block
             error_message = str(e)
             error_type = type(e).__name__
-            logger.error(
-                f"Agent '{self.name}' execution failed with {error_type}: {error_message}",
-                exc_info=True,
-            )
-
+            
             # Get model name with fallback for safety
             model_name = self.model_config.get("model", "unknown")
+            
+            # Special handling for rate limit errors (429)
+            if self._is_rate_limit_error(error_type, error_message):
+                # Clean rate limit error - no full traceback
+                limit_info = self._format_rate_limit_error()
+                logger.warning(f"[RATE LIMIT] {limit_info}")
+                
+                # Return AgentResult with concise error (no traceback in REPL)
+                return AgentResult.from_response(
+                    response="",
+                    input_tokens=input_tokens,
+                    output_tokens=0,
+                    cost=0.0,
+                    model=model_name,
+                    error=limit_info,
+                    error_type="RateLimitError",
+                )
+            else:
+                # Other errors - full logging with traceback
+                logger.error(
+                    f"Agent '{self.name}' execution failed with {error_type}: {error_message}",
+                    exc_info=True,
+                )
+                
+                # Return AgentResult with error information
+                return AgentResult.from_response(
+                    response="",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    cost=cost,
+                    model=model_name,
+                    error=error_message,
+                    error_type=error_type,
+                )
 
-            # Return AgentResult with error information
-            return AgentResult.from_response(
-                response="",
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                cost=cost,
-                model=model_name,
-                error=error_message,
-                error_type=error_type,
+    def _is_rate_limit_error(self, error_type: str, error_message: str) -> bool:
+        """
+        Check if error is a rate limit error.
+        
+        Args:
+            error_type: Exception type name
+            error_message: Exception message
+            
+        Returns:
+            True if this is a rate limit error (429)
+        """
+        rate_limit_indicators = [
+            "RateLimitError",
+            "429",
+            "Rate limit",
+            "Too Many Requests",
+        ]
+        return any(indicator in error_type or indicator in error_message 
+                   for indicator in rate_limit_indicators)
+    
+    def _format_rate_limit_error(self) -> str:
+        """
+        Format rate limit error message with available limit information.
+        
+        Returns:
+            Formatted error message with TPM/RPM limits if available
+        """
+        # Try instance limits first, then global tracker
+        if self.last_tpm_limit is not None:
+            # We have rate limit info from previous successful response
+            return (
+                f"Rate limit exceeded. "
+                f"TPM: {self.last_tpm_remaining}/{self.last_tpm_limit}, "
+                f"RPM: {self.last_rpm_remaining}/{self.last_rpm_limit}. "
+                f"Wait 60 seconds and try again."
             )
-
+        elif rate_limit_tracker.tpm_limit is not None:
+            # Use global tracker data
+            return (
+                f"Rate limit exceeded. "
+                f"{rate_limit_tracker.get_limits_str()}. "
+                f"Wait 60 seconds and try again."
+            )
+        else:
+            # No rate limit info captured yet
+            return (
+                "Rate limit exceeded. Limit details not available - "
+                "enable debug logging to see full error. "
+                "Wait 60 seconds and try again."
+            )
+    
+    def _extract_rate_limits_from_response(self):
+        """
+        Extract rate limit information from last API response headers.
+        
+        This attempts to access response headers through the LiteLLM/OpenAI client.
+        Rate limits are stored for use in error messages and logged separately.
+        
+        Note: This is best-effort - if headers aren't accessible, fails silently.
+        """
+        try:
+            # Try to access response headers through Smolagents model wrapper
+            if hasattr(self.agent, 'model') and hasattr(self.agent.model, '_client'):
+                # OpenAI client may store last response
+                client = self.agent.model._client
+                if hasattr(client, '_last_response'):
+                    response = client._last_response
+                    if hasattr(response, 'headers'):
+                        headers = response.headers
+                        
+                        # Extract Azure rate limit headers
+                        if 'x-ratelimit-limit-tokens' in headers:
+                            self.last_tpm_limit = int(headers['x-ratelimit-limit-tokens'])
+                        if 'x-ratelimit-limit-requests' in headers:
+                            self.last_rpm_limit = int(headers['x-ratelimit-limit-requests'])
+                        if 'x-ratelimit-remaining-tokens' in headers:
+                            self.last_tpm_remaining = int(headers['x-ratelimit-remaining-tokens'])
+                        if 'x-ratelimit-remaining-requests' in headers:
+                            self.last_rpm_remaining = int(headers['x-ratelimit-remaining-requests'])
+                        
+                        # Always log rate limits (INFO level, so visible even when azure.core is WARNING)
+                        logger.info(
+                            f"[RATE LIMITS] Agent '{self.name}' - "
+                            f"TPM: {self.last_tpm_remaining}/{self.last_tpm_limit}, "
+                            f"RPM: {self.last_rpm_remaining}/{self.last_rpm_limit}"
+                        )
+        except Exception as e:
+            # Log extraction failure at debug level
+            logger.debug(f"Failed to extract rate limits from response: {e}")
+    
     def __repr__(self) -> str:
         """Return string representation of agent."""
         return f"SimpleAgent(name='{self.name}', provider='{self.model_provider}')"

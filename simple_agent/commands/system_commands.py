@@ -85,7 +85,7 @@ def exit_command(context):
     "--model-pricing",
     "-m",
     is_flag=True,
-    help="Refresh LiteLLM model pricing/context data from GitHub"
+    help="Refresh LiteLLM model pricing/context data from GitHub",
 )
 @click.pass_context
 def refresh(context, model_pricing):
@@ -119,7 +119,7 @@ def refresh(context, model_pricing):
         return
 
     if model_pricing:
-        logger.debug("→ Refreshing LiteLLM model pricing data")
+        logger.debug("Refreshing LiteLLM model pricing data")
         try:
             import httpx
             import json
@@ -127,7 +127,9 @@ def refresh(context, model_pricing):
 
             url = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
 
-            console.print("\n[bold cyan]Fetching model pricing data from GitHub...[/bold cyan]")
+            console.print(
+                "\n[bold cyan]Fetching model pricing data from GitHub...[/bold cyan]"
+            )
             logger.info(f"[COMMAND] Fetching model pricing from {url}")
 
             # Fetch from GitHub with timeout
@@ -137,30 +139,44 @@ def refresh(context, model_pricing):
 
             # Find the backup file location
             import litellm
-            backup_path = Path(litellm.__file__).parent / "model_prices_and_context_window_backup.json"
+
+            backup_path = (
+                Path(litellm.__file__).parent
+                / "model_prices_and_context_window_backup.json"
+            )
 
             # Write to backup file
             with open(backup_path, "w") as f:
                 json.dump(data, f, indent=2)
 
             model_count = len(data)
-            logger.info(f"[COMMAND] Successfully updated {model_count} models in pricing data")
+            logger.info(
+                f"[COMMAND] Successfully updated {model_count} models in pricing data"
+            )
 
-            console.print(f"[green]✓[/green] Updated pricing data: {model_count} models")
+            console.print(
+                f"[green]✓[/green] Updated pricing data: {model_count} models"
+            )
             console.print(f"[dim]Saved to:[/dim] {backup_path}")
             console.print()
 
         except httpx.TimeoutException:
-            logger.error("[COMMAND] Model pricing refresh failed - Request timeout (10s)")
+            logger.error(
+                "[COMMAND] Model pricing refresh failed - Request timeout (10s)"
+            )
             console.print("[red]✗[/red] Failed: Request timed out (10 seconds)")
             console.print("[dim]Check your internet connection[/dim]")
             console.print()
         except httpx.HTTPError as e:
-            logger.error(f"[COMMAND] Model pricing refresh failed - HTTP error: {type(e).__name__}")
+            logger.error(
+                f"[COMMAND] Model pricing refresh failed - HTTP error: {type(e).__name__}"
+            )
             console.print(f"[red]✗[/red] Failed: {str(e)}")
             console.print("[dim]GitHub may be unavailable[/dim]")
             console.print()
         except Exception as e:
-            logger.error(f"[COMMAND] Model pricing refresh failed - {type(e).__name__}: {str(e)}")
+            logger.error(
+                f"[COMMAND] Model pricing refresh failed - {type(e).__name__}: {str(e)}"
+            )
             console.print(f"[red]✗[/red] Failed: {type(e).__name__}: {str(e)}")
             console.print()

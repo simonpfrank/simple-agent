@@ -40,7 +40,7 @@ def show(ctx):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info("[COMMAND] /prompt show")
-    logger.debug("→ display last formatted prompt")
+    logger.debug("display last formatted prompt")
 
     if not agent_manager.last_prompt:
         logger.warning("[COMMAND] Prompt show: no prompts yet")
@@ -56,8 +56,10 @@ def show(ctx):
 
     sys_prompt_len = len(system_prompt) if system_prompt else 0
     user_prompt_len = len(agent_manager.last_prompt) if agent_manager.last_prompt else 0
-    logger.info(f"[COMMAND] Displaying prompt - system_len={sys_prompt_len}, user_len={user_prompt_len}")
-    logger.debug(f"← prompt show: agent={agent_manager.last_agent}")
+    logger.info(
+        f"[COMMAND] Displaying prompt - system_len={sys_prompt_len}, user_len={user_prompt_len}"
+    )
+    logger.debug(f"prompt show: agent={agent_manager.last_agent}")
 
     console.print()
     console.print(
@@ -87,7 +89,7 @@ def raw(ctx):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info("[COMMAND] /prompt raw")
-    logger.debug("→ display raw prompt template")
+    logger.debug("display raw prompt template")
 
     if not agent_manager.last_prompt:
         logger.warning("[COMMAND] Prompt raw: no prompts yet")
@@ -103,8 +105,10 @@ def raw(ctx):
 
     sys_prompt_len = len(system_prompt) if system_prompt else 0
     user_prompt_len = len(agent_manager.last_prompt) if agent_manager.last_prompt else 0
-    logger.info(f"[COMMAND] Displaying raw prompt - system_len={sys_prompt_len}, user_len={user_prompt_len}")
-    logger.debug(f"← prompt raw: agent={agent_manager.last_agent}")
+    logger.info(
+        f"[COMMAND] Displaying raw prompt - system_len={sys_prompt_len}, user_len={user_prompt_len}"
+    )
+    logger.debug(f"prompt raw: agent={agent_manager.last_agent}")
 
     # For now, raw is the same as formatted (until Jinja2 templates in Phase 1.3)
     console.print()
@@ -141,16 +145,20 @@ def show(ctx):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info("[COMMAND] /response show")
-    logger.debug("→ display last formatted response")
+    logger.debug("display last formatted response")
 
     if not agent_manager.last_response:
         logger.warning("[COMMAND] Response show: no responses yet")
         console.print("[yellow]No responses yet.[/yellow] Run an agent first.\n")
         return
 
-    response_len = len(agent_manager.last_response) if agent_manager.last_response else 0
-    logger.info(f"[COMMAND] Displaying response - agent={agent_manager.last_agent}, len={response_len}")
-    logger.debug(f"← response show: response_len={response_len}")
+    response_len = (
+        len(agent_manager.last_response) if agent_manager.last_response else 0
+    )
+    logger.info(
+        f"[COMMAND] Displaying response - agent={agent_manager.last_agent}, len={response_len}"
+    )
+    logger.debug(f"response show: response_len={response_len}")
 
     console.print()
     console.print(
@@ -179,16 +187,20 @@ def raw(ctx):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info("[COMMAND] /response raw")
-    logger.debug("→ display raw response")
+    logger.debug("display raw response")
 
     if not agent_manager.last_response:
         logger.warning("[COMMAND] Response raw: no responses yet")
         console.print("[yellow]No responses yet.[/yellow] Run an agent first.\n")
         return
 
-    response_len = len(agent_manager.last_response) if agent_manager.last_response else 0
-    logger.info(f"[COMMAND] Displaying raw response - agent={agent_manager.last_agent}, len={response_len}")
-    logger.debug(f"← response raw: response_len={response_len}")
+    response_len = (
+        len(agent_manager.last_response) if agent_manager.last_response else 0
+    )
+    logger.info(
+        f"[COMMAND] Displaying raw response - agent={agent_manager.last_agent}, len={response_len}"
+    )
+    logger.debug(f"response raw: response_len={response_len}")
 
     # For now, raw is the same as formatted (metadata tracking could be added later)
     console.print()

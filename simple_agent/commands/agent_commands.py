@@ -50,19 +50,27 @@ def create(ctx, name: str, provider: str, role: str):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info(f"[COMMAND] /agent create - name={name}, provider={provider}")
-    logger.debug(f"→ create_agent(name={name}, provider={provider}, role_len={len(role) if role else 0})")
+    logger.debug(
+        f"create_agent(name={name}, provider={provider}, role_len={len(role) if role else 0})"
+    )
 
     try:
         # Business logic in agent_manager, not here
         agent = agent_manager.create_agent(name=name, provider=provider, role=role)
         logger.info(f"[COMMAND] Agent '{name}' created successfully")
-        logger.debug(f"← create_agent() returned SimpleAgent instance: {agent.name}")
+        logger.debug(f"create_agent() returned SimpleAgent instance: {agent.name}")
         console.print(f"[green]✓[/green] Created agent: {agent}")
     except FileNotFoundError as e:
-        logger.error(f"[COMMAND] Create agent failed - file not found: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Create agent failed - file not found: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
     except Exception as e:
-        logger.error(f"[COMMAND] Create agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Create agent failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -90,12 +98,14 @@ def load(ctx, agent_name: str):
     logger.info(f"[COMMAND] /agent load - name={agent_name}")
 
     # Resolve the actual file path
-    logger.debug(f"→ _resolve_agent_path({agent_name})")
+    logger.debug(f"_resolve_agent_path({agent_name})")
     yaml_path = _resolve_agent_path(agent_name)
-    logger.debug(f"← _resolve_agent_path() returned: {yaml_path}")
+    logger.debug(f"_resolve_agent_path() returned: {yaml_path}")
 
     if not yaml_path:
-        logger.warning(f"[COMMAND] Agent '{agent_name}' not found in config/agents/ or as path")
+        logger.warning(
+            f"[COMMAND] Agent '{agent_name}' not found in config/agents/ or as path"
+        )
         console.print(
             f"[red]Error:[/red] Agent '{agent_name}' not found\n"
             f"  Tried:\n"
@@ -106,21 +116,31 @@ def load(ctx, agent_name: str):
         return
 
     try:
-        logger.debug(f"→ load_agent_from_yaml({yaml_path})")
+        logger.debug(f"load_agent_from_yaml({yaml_path})")
         agent = agent_manager.load_agent_from_yaml(yaml_path)
         tool_count = len(agent.tools) if agent.tools else 0
-        logger.info(f"[COMMAND] Agent '{agent.name}' loaded successfully ({tool_count} tools)")
-        logger.debug(f"← load_agent_from_yaml() returned: {agent.name} with tools: {[t.name for t in (agent.tools or [])]}")
+        logger.info(
+            f"[COMMAND] Agent '{agent.name}' loaded successfully ({tool_count} tools)"
+        )
+        logger.debug(
+            f"load_agent_from_yaml() returned: {agent.name} with tools: {[t.name for t in (agent.tools or [])]}"
+        )
         console.print(f"[green]✓[/green] Loaded agent: {agent.name}")
         if agent.tools:
             console.print(f"  Tools: {[t.name for t in agent.tools]}")
         else:
             console.print(f"  Tools: (none)")
     except FileNotFoundError as e:
-        logger.error(f"[COMMAND] Load agent failed - file not found: {yaml_path}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Load agent failed - file not found: {yaml_path}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] File not found: {yaml_path}")
     except Exception as e:
-        logger.error(f"[COMMAND] Load agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Load agent failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -140,7 +160,11 @@ def _resolve_agent_path(agent_name: str) -> str:
         Resolved file path, or None if not found
     """
     # Strategy 1: If it looks like a path (contains / or \ or file extension), try as-is
-    if "/" in agent_name or "\\" in agent_name or agent_name.endswith((".yaml", ".yml")):
+    if (
+        "/" in agent_name
+        or "\\" in agent_name
+        or agent_name.endswith((".yaml", ".yml"))
+    ):
         if os.path.exists(agent_name):
             return agent_name
         # If it doesn't exist, fall through to other strategies
@@ -158,7 +182,11 @@ def _resolve_agent_path(agent_name: str) -> str:
 
     # Strategy 4: If full path was provided but doesn't exist, return it anyway
     # (let agent_manager.load_agent_from_yaml handle the error)
-    if "/" in agent_name or "\\" in agent_name or agent_name.endswith((".yaml", ".yml")):
+    if (
+        "/" in agent_name
+        or "\\" in agent_name
+        or agent_name.endswith((".yaml", ".yml"))
+    ):
         return agent_name
 
     # Not found
@@ -184,7 +212,7 @@ def run(ctx, name: str, prompt: tuple):
     prompt_text = " ".join(prompt)
 
     logger.info(f"[COMMAND] /agent run - name={name}, prompt_len={len(prompt_text)}")
-    logger.debug(f"→ run_agent(name={name}, prompt_len={len(prompt_text)}, reset=True)")
+    logger.debug(f"run_agent(name={name}, prompt_len={len(prompt_text)}, reset=True)")
 
     try:
         # Business logic in agent_manager, not here
@@ -193,14 +221,22 @@ def run(ctx, name: str, prompt: tuple):
         # Convert response to string (could be AgentResult or string)
         response_str = str(response) if response else ""
         response_len = len(response_str)
-        logger.info(f"[COMMAND] Agent '{name}' ran successfully (response_len={response_len})")
-        logger.debug(f"← run_agent() returned response with {response_len} characters")
+        logger.info(
+            f"[COMMAND] Agent '{name}' ran successfully (response_len={response_len})"
+        )
+        logger.debug(f"run_agent() returned response with {response_len} characters")
         console.print(f"\n[bold cyan]Response:[/bold cyan]\n{response_str}\n")
     except KeyError as e:
-        logger.error(f"[COMMAND] Run agent failed - agent not found: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Run agent failed - agent not found: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
     except Exception as e:
-        logger.error(f"[COMMAND] Run agent failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Run agent failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
@@ -217,10 +253,10 @@ def list_agents(ctx):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info("[COMMAND] /agent list")
-    logger.debug("→ list_agents()")
+    logger.debug("list_agents()")
 
     agents = agent_manager.list_agents()
-    logger.debug(f"← list_agents() returned {len(agents)} agents: {agents}")
+    logger.debug(f"list_agents() returned {len(agents)} agents: {agents}")
     logger.info(f"[COMMAND] Listed {len(agents)} agent(s)")
 
     if agents:
@@ -253,11 +289,14 @@ def chat(ctx, name: str):
 
     # Verify agent exists
     try:
-        logger.debug(f"→ get_agent({name})")
+        logger.debug(f"get_agent({name})")
         agent_manager.get_agent(name)
-        logger.debug(f"← get_agent() verified agent exists")
+        logger.debug(f"get_agent() verified agent exists")
     except KeyError as e:
-        logger.error(f"[COMMAND] Chat failed - agent '{name}' not found", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Chat failed - agent '{name}' not found",
+            exc_info=_should_log_traceback(),
+        )
         console.print(f"[red]Error:[/red] {str(e)}")
         return
 
@@ -297,15 +336,22 @@ def chat(ctx, name: str):
                 # Run through agent with reset=False to preserve memory across turns
                 try:
                     message_count += 1
-                    logger.debug(f"[CHAT] Message {message_count}: prompt_len={len(user_input)}")
+                    logger.debug(
+                        f"[CHAT] Message {message_count}: prompt_len={len(user_input)}"
+                    )
                     response = agent_manager.run_agent(name, user_input, reset=False)
                     # Convert response to string (could be AgentResult or string)
                     response_str = str(response) if response else ""
                     response_len = len(response_str)
-                    logger.debug(f"[CHAT] Message {message_count}: response_len={response_len}")
+                    logger.debug(
+                        f"[CHAT] Message {message_count}: response_len={response_len}"
+                    )
                     console.print(f"[bold green]{name}:[/bold green] {response_str}\n")
                 except Exception as e:
-                    logger.error(f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+                    logger.error(
+                        f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}",
+                        exc_info=_should_log_traceback(),
+                    )
                     console.print(f"[red]Error:[/red] {str(e)}\n")
 
             except EOFError:
@@ -319,7 +365,9 @@ def chat(ctx, name: str):
                 break
 
     finally:
-        logger.info(f"[COMMAND] Exited chat mode for agent '{name}' ({message_count} messages)")
+        logger.info(
+            f"[COMMAND] Exited chat mode for agent '{name}' ({message_count} messages)"
+        )
         console.print()
         console.print("[dim]Exited chat mode.[/dim]\n")
 
@@ -339,12 +387,14 @@ def tools(ctx, name: str):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info(f"[COMMAND] /agent tools - name={name}")
-    logger.debug(f"→ get_agent_tools({name})")
+    logger.debug(f"get_agent_tools({name})")
 
     try:
         # Get tools from agent_manager
         tool_names = agent_manager.get_agent_tools(name)
-        logger.debug(f"← get_agent_tools() returned {len(tool_names)} tools: {tool_names}")
+        logger.debug(
+            f"get_agent_tools() returned {len(tool_names)} tools: {tool_names}"
+        )
         logger.info(f"[COMMAND] Listed {len(tool_names)} tool(s) for agent '{name}'")
 
         if not tool_names:
@@ -365,7 +415,10 @@ def tools(ctx, name: str):
         )
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Tools command failed - agent '{name}' not found", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Tools command failed - agent '{name}' not found",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -387,19 +440,22 @@ def add_tool(ctx, name: str, tool: str):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info(f"[COMMAND] /agent add-tool - name={name}, tool={tool}")
-    logger.debug(f"→ add_tool_to_agent({name}, {tool})")
+    logger.debug(f"add_tool_to_agent({name}, {tool})")
 
     try:
         # Add tool via agent_manager
         agent_manager.add_tool_to_agent(name, tool)
         logger.info(f"[COMMAND] Tool '{tool}' added to agent '{name}'")
-        logger.debug(f"← add_tool_to_agent() completed successfully")
+        logger.debug(f"add_tool_to_agent() completed successfully")
         console.print()
         console.print(f"[green]✓[/green] Added tool '{tool}' to agent '{name}'")
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Add-tool failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Add-tool failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -421,19 +477,22 @@ def remove_tool(ctx, name: str, tool: str):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info(f"[COMMAND] /agent remove-tool - name={name}, tool={tool}")
-    logger.debug(f"→ remove_tool_from_agent({name}, {tool})")
+    logger.debug(f"remove_tool_from_agent({name}, {tool})")
 
     try:
         # Remove tool via agent_manager
         agent_manager.remove_tool_from_agent(name, tool)
         logger.info(f"[COMMAND] Tool '{tool}' removed from agent '{name}'")
-        logger.debug(f"← remove_tool_from_agent() completed successfully")
+        logger.debug(f"remove_tool_from_agent() completed successfully")
         console.print()
         console.print(f"[green]✓[/green] Removed tool '{tool}' from agent '{name}'")
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Remove-tool failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Remove-tool failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
@@ -457,12 +516,12 @@ def show_prompt(ctx, name: str):
     agent_manager = ctx.obj["agent_manager"]
 
     logger.info(f"[COMMAND] /agent show-prompt - name={name}")
-    logger.debug(f"→ get_agent({name})")
+    logger.debug(f"get_agent({name})")
 
     try:
         # Get agent
         agent = agent_manager.get_agent(name)
-        logger.debug(f"← get_agent() returned agent: {agent.name}")
+        logger.debug(f"get_agent() returned agent: {agent.name}")
 
         # Get system prompt from underlying SmolAgents agent
         system_prompt = agent.agent.system_prompt
@@ -481,12 +540,17 @@ def show_prompt(ctx, name: str):
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Show-prompt failed - agent '{name}' not found", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Show-prompt failed - agent '{name}' not found",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
     except AttributeError:
-        logger.warning(f"[COMMAND] Show-prompt - agent '{name}' missing system_prompt attribute")
+        logger.warning(
+            f"[COMMAND] Show-prompt - agent '{name}' missing system_prompt attribute"
+        )
         console.print()
         console.print(
             f"[yellow]Warning:[/yellow] Agent '{name}' does not have a system_prompt attribute"
@@ -524,23 +588,29 @@ def save(ctx, name: str, path: str):
         if path is None:
             path = f"config/agents/{name}.yaml"
 
-        logger.debug(f"→ save_agent_to_yaml({name}, {path})")
+        logger.debug(f"save_agent_to_yaml({name}, {path})")
         # Save agent
         agent_manager.save_agent_to_yaml(name, path)
         logger.info(f"[COMMAND] Agent '{name}' saved to: {path}")
-        logger.debug(f"← save_agent_to_yaml() completed successfully")
+        logger.debug(f"save_agent_to_yaml() completed successfully")
 
         console.print()
         console.print(f"[green]✓[/green] Saved agent '{name}' to: [cyan]{path}[/cyan]")
         console.print()
 
     except KeyError as e:
-        logger.error(f"[COMMAND] Save failed - agent '{name}' not found", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Save failed - agent '{name}' not found",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()
     except Exception as e:
-        logger.error(f"[COMMAND] Save failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Save failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] Failed to save agent: {str(e)}")
         console.print()
@@ -578,9 +648,9 @@ def create_wizard(ctx):
 
     try:
         # Step 1: Agent name
-        logger.debug("→ Wizard step 1: agent name")
+        logger.debug("Wizard step 1: agent name")
         name = click.prompt("Agent name", type=str)
-        logger.debug(f"← Wizard input: name={name}")
+        logger.debug(f"Wizard input: name={name}")
 
         # Step 2: Agent role/persona
         console.print()
@@ -588,11 +658,11 @@ def create_wizard(ctx):
         console.print(
             "[dim]Enter the agent's system prompt or press Enter for default[/dim]"
         )
-        logger.debug("→ Wizard step 2: agent role")
+        logger.debug("Wizard step 2: agent role")
         role = click.prompt(
             "Role", default="You are a helpful AI assistant.", show_default=True
         )
-        logger.debug(f"← Wizard input: role_len={len(role)}")
+        logger.debug(f"Wizard input: role_len={len(role)}")
 
         # Step 3: LLM provider
         console.print()
@@ -602,9 +672,12 @@ def create_wizard(ctx):
         llm_config = config.get("llm", {})
         # Filter out non-provider keys (keys with dict values that have config like model, api_key, etc.)
         providers = [
-            key for key in llm_config.keys()
-            if isinstance(llm_config[key], dict) and any(
-                k in llm_config[key] for k in ["model", "api_key", "base_url", "azure_endpoint"]
+            key
+            for key in llm_config.keys()
+            if isinstance(llm_config[key], dict)
+            and any(
+                k in llm_config[key]
+                for k in ["model", "api_key", "base_url", "azure_endpoint"]
             )
         ]
         # Sort for consistent ordering, with default first
@@ -613,7 +686,7 @@ def create_wizard(ctx):
             providers.remove(default_provider)
             providers.insert(0, default_provider)
 
-        logger.debug(f"→ Wizard step 3: LLM provider - available={providers}")
+        logger.debug(f"Wizard step 3: LLM provider - available={providers}")
         for i, provider in enumerate(providers, 1):
             console.print(f"  {i}. {provider}")
 
@@ -624,13 +697,13 @@ def create_wizard(ctx):
             show_default=True,
         )
         provider = providers[provider_idx - 1]
-        logger.debug(f"← Wizard input: provider={provider}")
+        logger.debug(f"Wizard input: provider={provider}")
 
         # Step 4: Tools (if tool_manager available)
         tools = []
         if tool_manager:
             console.print()
-            logger.debug("→ Wizard step 4: tools selection")
+            logger.debug("Wizard step 4: tools selection")
             add_tools = click.confirm("Add tools to this agent?", default=False)
 
             if add_tools:
@@ -658,26 +731,30 @@ def create_wizard(ctx):
                             for idx in tool_indices
                             if 0 <= idx < len(available_tools)
                         ]
-            logger.debug(f"← Wizard step 4: selected {len(tools)} tools: {tools}")
+            logger.debug(f"Wizard step 4: selected {len(tools)} tools: {tools}")
 
         # Step 5: Save to YAML
         console.print()
-        logger.debug("→ Wizard step 5: save to YAML")
+        logger.debug("Wizard step 5: save to YAML")
         save_yaml = click.confirm("Save agent configuration to YAML?", default=True)
-        logger.debug(f"← Wizard input: save_yaml={save_yaml}")
+        logger.debug(f"Wizard input: save_yaml={save_yaml}")
 
         # Create the agent
         console.print()
         console.print("[dim]Creating agent...[/dim]")
-        logger.debug(f"→ create_agent(name={name}, provider={provider}, role_len={len(role)}, tools={tools})")
+        logger.debug(
+            f"create_agent(name={name}, provider={provider}, role_len={len(role)}, tools={tools})"
+        )
         agent_manager.create_agent(
             name=name,
             provider=provider,
             role=role,
             tools=tools if tools else None,
         )
-        logger.info(f"[COMMAND] Wizard: Agent '{name}' created (provider={provider}, tools={len(tools)})")
-        logger.debug(f"← create_agent() completed successfully")
+        logger.info(
+            f"[COMMAND] Wizard: Agent '{name}' created (provider={provider}, tools={len(tools)})"
+        )
+        logger.debug(f"create_agent() completed successfully")
 
         console.print()
         console.print(f"[green]✓[/green] Created agent: [bold]{name}[/bold]")
@@ -688,10 +765,10 @@ def create_wizard(ctx):
         # Save to YAML if requested
         if save_yaml:
             yaml_path = f"config/agents/{name}.yaml"
-            logger.debug(f"→ save_agent_to_yaml({name}, {yaml_path})")
+            logger.debug(f"save_agent_to_yaml({name}, {yaml_path})")
             agent_manager.save_agent_to_yaml(name, yaml_path)
             logger.info(f"[COMMAND] Wizard: Agent '{name}' saved to {yaml_path}")
-            logger.debug(f"← save_agent_to_yaml() completed successfully")
+            logger.debug(f"save_agent_to_yaml() completed successfully")
             console.print(f"  Saved to: [cyan]{yaml_path}[/cyan]")
 
         console.print()
@@ -702,7 +779,10 @@ def create_wizard(ctx):
         console.print("[yellow]Wizard cancelled[/yellow]")
         console.print()
     except Exception as e:
-        logger.error(f"[COMMAND] Wizard failed - {type(e).__name__}: {str(e)}", exc_info=_should_log_traceback())
+        logger.error(
+            f"[COMMAND] Wizard failed - {type(e).__name__}: {str(e)}",
+            exc_info=_should_log_traceback(),
+        )
         console.print()
         console.print(f"[red]Error:[/red] {str(e)}")
         console.print()

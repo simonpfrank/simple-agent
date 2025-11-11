@@ -146,8 +146,8 @@ tools:
   - tavily_web_search
 
 model:
-  provider: "openai"
-  model: "gpt-4o"
+  provider: "azure_openai"
+  model: "gpt-4.1-mini"
   temperature: 0.7
   max_tokens: 5000
 
