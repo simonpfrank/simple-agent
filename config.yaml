@@ -61,7 +61,7 @@ llm:
     #api_version: "2024-02-01"  # API version (verified working with basic OpenAI SDK)
     api_version: "2024-10-21"
     temperature: 0
-    max_tokens: 5000
+    max_tokens: 16383
     auth_type: "azure_ad"  # Authentication: "azure_ad" (recommended) or "api_key"
     # api_key: "${AZURE_OPENAI_API_KEY}"  # Only needed if auth_type="api_key"
 
@@ -111,6 +111,6 @@ debug:
 
 # Logging
 logging:
-  level: "INFO"
+  level: "DEBUG"
   file: "logs/app.log"
   console_enabled: false

@@ -112,7 +112,7 @@ class SimpleAgent:
         )
         self.token_budget = config.token_budget
         self.token_warning_threshold = config.token_warning_threshold
-        
+
         # Rate limit tracking (populated from API response headers)
         self.last_tpm_limit = None
         self.last_rpm_limit = None
@@ -521,12 +521,17 @@ User query: {prompt}"""
             if token_warning_threshold_override is not None
             else self.token_warning_threshold
         )
+        logger.debug(
+            f"Budget:{effective_budget}, Warning:{effective_warning_threshold}"
+        )
 
         # Inject RAG context if collection is connected
+        logger.debug("Injecting rag if any")
         prompt_with_context = self._inject_rag_context(prompt)
 
         # Apply user_prompt_template if set
         if self.user_prompt_template:
+            logger.debug("rendering user template")
             formatted_prompt = self._render_template(
                 self.user_prompt_template, user_input=prompt_with_context
             )
@@ -535,6 +540,7 @@ User query: {prompt}"""
                 f"{prompt[:30]}... -> {formatted_prompt[:50]}..."
             )
         else:
+            logger.debug("Not using user template")
             formatted_prompt = prompt_with_context
 
         # Inject budget context into user prompt if budget is set
@@ -555,6 +561,7 @@ User query: {prompt}"""
             if self.role:
                 full_prompt_for_counting = self.role + "\n" + formatted_prompt
             input_tokens = estimate_tokens(full_prompt_for_counting)
+            logger.debug(f"Input tokens:{input_tokens}")
 
         # Token budget guard: check prompt size before sending to LLM
         # NOTE: Token budget errors RAISE (hard limit), not captured in try-except
@@ -595,12 +602,17 @@ User query: {prompt}"""
         )
 
         try:
+            logger.debug("Sending prompt")
             response = self.agent.run(formatted_prompt, reset=reset)
+            logger.debug("Response received")
             response_str = str(response)
-            
+
             # Extract rate limit info from response headers (best effort)
             self._extract_rate_limits_from_response()
-            
+
+            logger.info(
+                f"last tpm:{self.last_tpm_limit}, last rpm:{self.last_rpm_limit},tpm renaming:{self.last_tpm_remaining},rpm remaining{self.last_rpm_remaining}"
+            )
             # Also update global rate limit tracker
             model_name = self.model_config.get("model", "unknown")
             rate_limit_tracker.update_from_response(response, model_name)
@@ -613,6 +625,7 @@ User query: {prompt}"""
                 cost = calculate_cost(model_name, input_tokens, output_tokens)
 
             # Return AgentResult with backward compatibility (works as string)
+            logger.debug("Extracting result")
             return AgentResult.from_response(
                 response=response_str,
                 input_tokens=input_tokens,
@@ -626,16 +639,16 @@ User query: {prompt}"""
             # Note: Token budget errors are raised BEFORE try block
             error_message = str(e)
             error_type = type(e).__name__
-            
+
             # Get model name with fallback for safety
             model_name = self.model_config.get("model", "unknown")
-            
+
             # Special handling for rate limit errors (429)
             if self._is_rate_limit_error(error_type, error_message):
                 # Clean rate limit error - no full traceback
                 limit_info = self._format_rate_limit_error()
                 logger.warning(f"[RATE LIMIT] {limit_info}")
-                
+
                 # Return AgentResult with concise error (no traceback in REPL)
                 return AgentResult.from_response(
                     response="",
@@ -652,7 +665,7 @@ User query: {prompt}"""
                     f"Agent '{self.name}' execution failed with {error_type}: {error_message}",
                     exc_info=True,
                 )
-                
+
                 # Return AgentResult with error information
                 return AgentResult.from_response(
                     response="",
@@ -667,11 +680,11 @@ User query: {prompt}"""
     def _is_rate_limit_error(self, error_type: str, error_message: str) -> bool:
         """
         Check if error is a rate limit error.
-        
+
         Args:
             error_type: Exception type name
             error_message: Exception message
-            
+
         Returns:
             True if this is a rate limit error (429)
         """
@@ -681,13 +694,15 @@ User query: {prompt}"""
             "Rate limit",
             "Too Many Requests",
         ]
-        return any(indicator in error_type or indicator in error_message 
-                   for indicator in rate_limit_indicators)
-    
+        return any(
+            indicator in error_type or indicator in error_message
+            for indicator in rate_limit_indicators
+        )
+
     def _format_rate_limit_error(self) -> str:
         """
         Format rate limit error message with available limit information.
-        
+
         Returns:
             Formatted error message with TPM/RPM limits if available
         """
@@ -714,36 +729,44 @@ User query: {prompt}"""
                 "enable debug logging to see full error. "
                 "Wait 60 seconds and try again."
             )
-    
+
     def _extract_rate_limits_from_response(self):
         """
         Extract rate limit information from last API response headers.
-        
+
         This attempts to access response headers through the LiteLLM/OpenAI client.
         Rate limits are stored for use in error messages and logged separately.
-        
+
         Note: This is best-effort - if headers aren't accessible, fails silently.
         """
         try:
             # Try to access response headers through Smolagents model wrapper
-            if hasattr(self.agent, 'model') and hasattr(self.agent.model, '_client'):
+            if hasattr(self.agent, "model") and hasattr(self.agent.model, "_client"):
                 # OpenAI client may store last response
                 client = self.agent.model._client
-                if hasattr(client, '_last_response'):
+                if hasattr(client, "_last_response"):
                     response = client._last_response
-                    if hasattr(response, 'headers'):
+                    if hasattr(response, "headers"):
                         headers = response.headers
-                        
+
                         # Extract Azure rate limit headers
-                        if 'x-ratelimit-limit-tokens' in headers:
-                            self.last_tpm_limit = int(headers['x-ratelimit-limit-tokens'])
-                        if 'x-ratelimit-limit-requests' in headers:
-                            self.last_rpm_limit = int(headers['x-ratelimit-limit-requests'])
-                        if 'x-ratelimit-remaining-tokens' in headers:
-                            self.last_tpm_remaining = int(headers['x-ratelimit-remaining-tokens'])
-                        if 'x-ratelimit-remaining-requests' in headers:
-                            self.last_rpm_remaining = int(headers['x-ratelimit-remaining-requests'])
-                        
+                        if "x-ratelimit-limit-tokens" in headers:
+                            self.last_tpm_limit = int(
+                                headers["x-ratelimit-limit-tokens"]
+                            )
+                        if "x-ratelimit-limit-requests" in headers:
+                            self.last_rpm_limit = int(
+                                headers["x-ratelimit-limit-requests"]
+                            )
+                        if "x-ratelimit-remaining-tokens" in headers:
+                            self.last_tpm_remaining = int(
+                                headers["x-ratelimit-remaining-tokens"]
+                            )
+                        if "x-ratelimit-remaining-requests" in headers:
+                            self.last_rpm_remaining = int(
+                                headers["x-ratelimit-remaining-requests"]
+                            )
+
                         # Always log rate limits (INFO level, so visible even when azure.core is WARNING)
                         logger.info(
                             f"[RATE LIMITS] Agent '{self.name}' - "
@@ -753,7 +776,7 @@ User query: {prompt}"""
         except Exception as e:
             # Log extraction failure at debug level
             logger.debug(f"Failed to extract rate limits from response: {e}")
-    
+
     def __repr__(self) -> str:
         """Return string representation of agent."""
         return f"SimpleAgent(name='{self.name}', provider='{self.model_provider}')"

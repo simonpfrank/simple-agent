@@ -280,7 +280,7 @@ role: |
 
 
 tools:
-- tavily_web_search
+
 model:
   provider: azure_openai
 metadata:

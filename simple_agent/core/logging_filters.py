@@ -74,32 +74,38 @@ def configure_logging_filters():
     
     - Applies SensitiveDataFilter to all loggers
     - Reduces verbosity of third-party libraries (LiteLLM, OpenAI, etc.)
+    - Respects the root logger's level (set by config or --debug flag)
     - Should be called once at application startup
     """
     # Apply sensitive data filter to root logger (affects all loggers)
     root_logger = logging.getLogger()
     root_logger.addFilter(SensitiveDataFilter())
     
-    # Reduce verbosity of third-party libraries
-    # These generate massive logs with HTTP headers, requests, etc.
-    verbose_loggers = [
-        'LiteLLM',
-        'litellm',
-        'openai',
-        'httpcore',
-        'httpx',
-        'urllib3',
-        'azure.identity',  # Suppress verbose Azure AD credential attempts
-        'azure.core',      # Suppress Azure SDK HTTP logging
-    ]
+    # Get root logger's level to respect user's debug setting
+    root_level = root_logger.getEffectiveLevel()
     
-    for logger_name in verbose_loggers:
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(logging.WARNING)  # Only show warnings and errors
-        logger.addFilter(SensitiveDataFilter())
+    # Only suppress third-party libraries if we're NOT in DEBUG mode
+    if root_level > logging.DEBUG:
+        # Reduce verbosity of third-party libraries
+        # These generate massive logs with HTTP headers, requests, etc.
+        verbose_loggers = [
+            'LiteLLM',
+            'litellm',
+            'openai',
+            'httpcore',
+            'httpx',
+            'urllib3',
+            'azure.identity',  # Suppress verbose Azure AD credential attempts
+            'azure.core',      # Suppress Azure SDK HTTP logging
+        ]
+        
+        for logger_name in verbose_loggers:
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(logging.WARNING)  # Only show warnings and errors
+            logger.addFilter(SensitiveDataFilter())
     
-    # Keep our own loggers at INFO
-    logging.getLogger('simple_agent').setLevel(logging.INFO)
+    # Don't override simple_agent logger level - let it inherit from root
+    # This respects --debug flag and config settings
 
 
 def mask_sensitive_string(text: str) -> str:
