@@ -55,3 +55,6 @@ data/
 Thumbs.db
 .archive
 .envbak
+
+log
+.log

@@ -40,6 +40,7 @@ from simple_agent.commands.tool_commands import tool
 from simple_agent.commands.token_stats_commands import token
 from simple_agent.commands.collection_commands import collection
 from simple_agent.commands.flow_commands_cli import flow
+from simple_agent.commands.llm import llm_command
 
 # Initialize console
 console = Console(theme=APP_THEME)
@@ -118,12 +119,15 @@ def cli(context, config, repl_mode, debug):
     # Setup logging
     log_file = ConfigManager.get(config_dict, "logging.file", "logs/app.log")
 
-    # Set log level based on debug level
+    # Set log level based on debug level (--debug flag ALWAYS overrides config)
     if debug_level == "off":
         log_level = "WARNING"  # Minimal output
     elif debug_level == "debug":
         log_level = "DEBUG"  # Full debug mode
-    else:  # "info" is default
+    elif debug_level == "info":
+        log_level = "INFO"  # Normal output
+    else:
+        # No --debug flag provided, use config
         log_level = ConfigManager.get(config_dict, "logging.level", "INFO")
 
     # Enable console logging only if NOT in REPL mode
@@ -451,6 +455,7 @@ cli.add_command(tool, name="tool")
 cli.add_command(token, name="token")
 cli.add_command(collection, name="collection")
 cli.add_command(flow, name="flow")
+cli.add_command(llm_command, name="llm")
 
 
 def main():

@@ -11,6 +11,44 @@ import re
 from typing import List, Tuple
 
 
+class AzureIdentityFilter(logging.Filter):
+    """
+    Filter to suppress noisy Azure identity credential attempts.
+    
+    Azure DefaultAzureCredential tries multiple auth methods sequentially,
+    logging failures for each unavailable method. These are expected and noisy.
+    """
+    
+    def filter(self, record: logging.LogRecord) -> bool:
+        """
+        Suppress Azure credential failure logs.
+        
+        Args:
+            record: Log record to filter
+            
+        Returns:
+            False to suppress, True to allow
+        """
+        # Suppress CredentialUnavailableError tracebacks (expected failures during auth chain)
+        if record.exc_info:
+            exc_type = record.exc_info[0]
+            if exc_type and exc_type.__name__ == 'CredentialUnavailableError':
+                return False  # Suppress this log
+        
+        # Suppress specific noisy messages
+        noisy_patterns = [
+            'failed: Failed to invoke PowerShell',
+            'CredentialUnavailableError',
+            'Enable debug logging for additional information',
+        ]
+        
+        msg = str(record.msg)
+        if any(pattern in msg for pattern in noisy_patterns):
+            return False  # Suppress
+        
+        return True  # Allow other logs
+
+
 class SensitiveDataFilter(logging.Filter):
     """
     Logging filter that masks sensitive data in log records.
@@ -29,12 +67,16 @@ class SensitiveDataFilter(logging.Filter):
     SENSITIVE_PATTERNS: List[Tuple[str, str]] = [
         # Azure AD tokens in extra_body dict
         (r"azure_ad_token['\"]:\s*['\"]eyJ[^'\"]+['\"]", "azure_ad_token': '***REDACTED***'"),
-        # Any JWT token (starts with eyJ, 100+ chars)
-        (r"eyJ[A-Za-z0-9_-]{100,}", "***JWT_TOKEN_REDACTED***"),
+        # Azure AD tokens in plain text (ey****sg format in logs)
+        (r"azure_ad_token['\"]:\s*['\"]?ey[A-Za-z0-9_\.\-]{10,}['\"]?", "azure_ad_token': 'ey****REDACTED'"),
+        # Any JWT token (starts with eyJ, 100+ chars) - more aggressive
+        (r"eyJ[A-Za-z0-9_\.\-]{100,}", "ey****REDACTED"),
+        # Shorter JWT patterns (catch abbreviated logs)
+        (r"ey[A-Za-z0-9_\.\-]{50,}", "ey****REDACTED"),
         # API keys in various formats
         (r"api_key['\"]:\s*['\"][^'\"]{20,}['\"]", "api_key': '***REDACTED***'"),
         # Bearer tokens
-        (r"Bearer\s+[A-Za-z0-9_-]{20,}", "Bearer ***REDACTED***"),
+        (r"Bearer\s+[A-Za-z0-9_\-]{20,}", "Bearer ***REDACTED***"),
     ]
     
     def filter(self, record: logging.LogRecord) -> bool:
@@ -103,6 +145,20 @@ def configure_logging_filters():
             logger = logging.getLogger(logger_name)
             logger.setLevel(logging.WARNING)  # Only show warnings and errors
             logger.addFilter(SensitiveDataFilter())
+    
+    # Always remove console handlers from third-party loggers to prevent console spam
+    # They should only log to our file handler
+    for logger_name in ['LiteLLM', 'litellm', 'openai', 'httpcore', 'httpx', 'urllib3', 'azure.identity', 'azure.core']:
+        lib_logger = logging.getLogger(logger_name)
+        lib_logger.addFilter(SensitiveDataFilter())
+        
+        # Apply AzureIdentityFilter to azure.identity logger to suppress credential attempt noise
+        if logger_name == 'azure.identity':
+            lib_logger.addFilter(AzureIdentityFilter())
+        
+        # Remove any console/stream handlers to prevent duplicate console output
+        lib_logger.handlers = [h for h in lib_logger.handlers if not isinstance(h, logging.StreamHandler)]
+        lib_logger.propagate = True  # Let messages propagate to root (which goes to file only)
     
     # Don't override simple_agent logger level - let it inherit from root
     # This respects --debug flag and config settings

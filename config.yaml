@@ -111,6 +111,6 @@ debug:
 
 # Logging
 logging:
-  level: "DEBUG"
+  level: "INFO"
   file: "logs/app.log"
   console_enabled: false
