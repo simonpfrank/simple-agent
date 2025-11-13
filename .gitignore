@@ -46,6 +46,14 @@ htmlcov/
 # Data directories
 data/
 
+# Logs
+logs/
+*.log
+app.log
+
+# Temporary experiment files
+temp/
+
 # Environment variables (API keys)
 .env
 .env.local
@@ -56,5 +64,3 @@ Thumbs.db
 .archive
 .envbak
 
-log
-.log
