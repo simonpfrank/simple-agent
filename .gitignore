@@ -51,8 +51,6 @@ logs/
 *.log
 app.log
 
-# Temporary experiment files
-temp/
 
 # Environment variables (API keys)
 .env
