@@ -61,4 +61,5 @@ app.log
 Thumbs.db
 .archive
 .envbak
-
+# Excel files
+*.xlsx
