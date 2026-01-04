@@ -274,38 +274,60 @@ def start_repl(context: click.Context) -> None:
 
     completer = SlashCommandCompleter(commands_dict, cli_group=context.command)
 
-    # Custom style for completion dropdown - transparent backgrounds, bright highlight
+    # Custom style for completion dropdown - Claude Code purple theme
     completion_style = Style.from_dict(
         {
-            "completion-menu": "",  # No background
-            "completion-menu.completion": "noinherit #5fafff",  # Unhighlighted command: blue, transparent bg
-            "completion-menu.completion.current": "noinherit #00ffff bold",  # Highlighted: bright cyan, bold, transparent bg
-            "completion-menu.meta": "",  # No background for meta area
-            "completion-menu.meta.completion": "noinherit #808080",  # Unhighlighted help: gray, transparent bg
-            "completion-menu.meta.completion.current": "noinherit #ffffff",  # Highlighted help: white, transparent bg
+            "completion-menu": "",  # Transparent/black background
+            "completion-menu.completion": "noinherit #808080",  # Light grey text for unselected command
+            "completion-menu.completion.current": "noinherit #6B4FBB bold",  # Purple text for selected command (NO background)
+            "completion-menu.meta": "",  # Transparent/black background for meta area
+            "completion-menu.meta.completion": "noinherit #808080",  # Light grey text for unselected help
+            "completion-menu.meta.completion.current": "noinherit #6B4FBB",  # Purple text for selected help (NO background)
+            "bottom-toolbar": "noinherit bg:black #808080",  # Black background, grey text for toolbar
         }
     )
 
     # Configure prompt_toolkit with history, auto-completion, and styling
     from prompt_toolkit.key_binding import KeyBindings
 
-    # No custom key bindings - use prompt_toolkit defaults
-    # This gives us standard, predictable completion behavior:
-    # - Tab: accept completion
-    # - Arrows: navigate
-    # - Enter: accept completion (if showing) then submit
-    # - Backspace: auto-refilters
+    # Custom key bindings
+    # Ctrl+J: insert newline without submitting
+    # Note: Shift+Enter is not supported - no standard terminal escape sequence
     kb = KeyBindings()
+
+    @kb.add('c-j')
+    def _(event):
+        """Handle Ctrl+J to insert newline without submitting."""
+        event.current_buffer.insert_text('\n')
+
+    # Custom prompt with grey line above
+    from prompt_toolkit.formatted_text import FormattedText
+    line = '─' * 200  # Long enough to fill most terminal widths
+
+    # Get prompt from config (default to "> " if not set)
+    prompt_text = ConfigManager.get(config_dict, "ui.prompt", "> ")
+
+    # Top grey line as part of prompt message
+    prompt_message = FormattedText([
+        ('#808080', line),  # Grey line above
+        ('', '\n' + prompt_text)  # Newline then configured prompt
+    ])
+
+    # History file in user's home directory
+    from pathlib import Path
+    history_dir = Path.home() / ".simple-agent"
+    history_dir.mkdir(exist_ok=True)
+    history_file = history_dir / "history"
 
     # Custom prompt - just "> " with separator handled separately
     prompt_kwargs = {
-        "message": "> ",  # Simple prompt
-        "history": FileHistory(".repl_history"),
+        "message": prompt_message,  # Prompt with grey line above
+        "history": FileHistory(str(history_file)),
         "completer": completer,
         "complete_while_typing": True,  # Show completions as you type (standard behavior)
         "complete_in_thread": False,  # Sync completion for faster response
         "style": completion_style,
-        "key_bindings": kb,  # Empty key bindings - use defaults
+        "key_bindings": kb,  # Custom key bindings (Shift+Enter for newline)
         "complete_style": "COLUMN",  # Single column - one command per line
         "reserve_space_for_menu": COMPLETION_MENU_HEIGHT,
     }

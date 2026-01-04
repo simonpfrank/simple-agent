@@ -15,6 +15,7 @@ Note: Provider names come from config.yaml under 'llm:' section
 """
 
 import logging
+from pathlib import Path
 import click
 from rich.console import Console
 from smolagents import LiteLLMModel
@@ -88,11 +89,24 @@ def llm_command(ctx, provider, prompt_file, prompt):
             response_text = response.content
         else:
             response_text = str(response)
-        
+
+        # Save response to file
+        temp_dir = Path("temp")
+        temp_dir.mkdir(exist_ok=True)
+        response_file = temp_dir / "llm_response.md"
+
+        try:
+            with open(response_file, 'w', encoding='utf-8') as f:
+                f.write(response_text)
+            logger.info(f"Response saved to {response_file}")
+        except Exception as e:
+            logger.warning(f"Failed to save response to file: {e}")
+
         # Display response
         console.print("\n[bold cyan]Response:[/bold cyan]")
         console.print(response_text)
-        
+        console.print(f"\n[dim]Response saved to: {response_file}[/dim]")
+
         logger.info(f"[COMMAND] LLM call completed (response_len={len(response_text)})")
         
     except KeyError as e:

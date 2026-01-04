@@ -104,7 +104,7 @@ class SlashCommandCompleter(Completer):
                                 yield Completion(
                                     text=subcmd_name,
                                     start_position=start_position,
-                                    display=subcmd_name,
+                                    display=f"{subcmd_name:<20}",
                                     display_meta=help_text,
                                 )
                         return
@@ -163,7 +163,7 @@ class SlashCommandCompleter(Completer):
                                             text=display_opt
                                             + " ",  # Add space after option
                                             start_position=start_position,
-                                            display=display_opt,
+                                            display=f"{display_opt:<20}",
                                             display_meta=help_text,
                                         )
             return
@@ -182,6 +182,6 @@ class SlashCommandCompleter(Completer):
                 yield Completion(
                     text=cmd_name,
                     start_position=start_position,
-                    display=f"/{cmd_name}",
+                    display=f"/{cmd_name:<20}",
                     display_meta=cmd_help or "",
                 )

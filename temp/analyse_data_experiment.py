@@ -481,7 +481,8 @@ def read_and_analyze(file_path: str, sheet_name: str | None = None) -> dict:
 
 if __name__ == "__main__":
     import argparse
-    
+    from pathlib import Path
+
     parser = argparse.ArgumentParser(description="Analyze data file and generate prompt for LLM")
     parser.add_argument(
         "--data-file",
@@ -494,32 +495,34 @@ if __name__ == "__main__":
         help="Path to system prompt file"
     )
     parser.add_argument(
-        "--output",
-        default="temp/test_prompt.md",
-        help="Output file path for combined prompt"
-    )
-    parser.add_argument(
         "--sheet-name",
         default=None,
         help="Excel sheet name (if None, uses first sheet)"
     )
-    
+
     args = parser.parse_args()
-    
+
+    # Determine output filename based on whether data file contains 'reference'
+    data_file_path = Path(args.data_file)
+    if 'reference' in data_file_path.name.lower():
+        output_file = Path("temp/reference_prompt.md")
+    else:
+        output_file = Path("temp") / f"input_{data_file_path.stem}.md"
+
     # Read the system prompt
     with open(args.prompt_file, 'r', encoding='utf-8') as f:
         system_prompt = f.read()
-    
+
     # Analyze the data file and capture JSON output
     print(f"\nAnalyzing: {args.data_file}")
     analysis_result = read_and_analyze(args.data_file, args.sheet_name)
-    
+
     # Create combined output with system prompt + analysis JSON
     combined_output = f"{system_prompt}\n\n---\n\n# DATA TO ANALYZE\n\n```json\n{json.dumps(analysis_result, indent=2)}\n```\n"
-    
+
     # Write to output file
-    with open(args.output, 'w', encoding='utf-8') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         f.write(combined_output)
-    
-    print(f"\nCombined prompt written to: {args.output}")
-    print(f"You can now use: /llm <provider> $(Get-Content {args.output} -Raw)")
+
+    print(f"\nCombined prompt written to: {output_file}")
+    print(f"You can now use: /llm <provider> $(Get-Content {output_file} -Raw)")

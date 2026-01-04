@@ -5,6 +5,13 @@ app:
   name: "Simple Agent"
   version: "0.1.0"
 
+# UI Settings (REPL Interface)
+ui:
+  prompt: "> "  # REPL prompt (supports {agent} placeholder for dynamic agent name)
+  # Examples:
+  # prompt: "simple-agent > "
+  # prompt: "[{agent}] > "  # Shows current agent name in chat mode
+
 # Paths Configuration
 paths:
   data_dir: "./data"
@@ -20,7 +27,7 @@ verify_certificates: false
 # LLM Provider Settings
 llm:
   # Active provider: openai, ollama, lmstudio, anthropic
-  provider: "azure_openai"
+  provider: "openai"
 
   # Context window and token limits (shared across all providers)
   context_window: 128000  # Max tokens the model can handle
@@ -31,7 +38,7 @@ llm:
     model: "gpt-4o-mini"
     api_key: "${OPENAI_API_KEY}"  # References .env
     temperature: 0.7
-    max_tokens: 5000  # Max output tokens per request
+    max_tokens: 16383  # Max output tokens per request
 
   # LM Studio Configuration (local, OpenAI-compatible API)
   lmstudio:
