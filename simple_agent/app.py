@@ -67,8 +67,11 @@ def main() -> None:
     # Set global runtime config
     set_config(config_dict)
 
-    # Create console
-    console = Console(theme=APP_THEME)
+    # Create console with constrained width for REPL display
+    # Rich's auto-detected width can be 1-2 chars too wide for REPL output area
+    import shutil
+    terminal_width = shutil.get_terminal_size().columns
+    console = Console(theme=APP_THEME, width=terminal_width - 2)
 
     # Create context factory for dependency injection
     context_factory = create_context_factory(
