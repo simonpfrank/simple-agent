@@ -245,29 +245,57 @@ def run(ctx, name: str, prompt: tuple):
 @click.pass_context
 def list_agents(ctx):
     """
-    List all registered agents.
+    List all registered agents and available YAML files.
+
+    Shows:
+    - Loaded agents (in memory, ready to use)
+    - Available agent YAML files in config/agents/
 
     Examples:
         /agent list
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
+    config = ctx.obj.get("config", {})
 
     logger.info("[COMMAND] /agent list")
     logger.debug("list_agents()")
 
+    # Get loaded agents
     agents = agent_manager.list_agents()
     logger.debug(f"list_agents() returned {len(agents)} agents: {agents}")
-    logger.info(f"[COMMAND] Listed {len(agents)} agent(s)")
 
+    # Get available YAML files from agents directory
+    agents_dir = config.get("paths", {}).get("agents", "config/agents")
+    available_yamls = []
+    if os.path.isdir(agents_dir):
+        for filename in os.listdir(agents_dir):
+            if filename.endswith(".yaml") or filename.endswith(".yml"):
+                # Get agent name from filename (without extension)
+                agent_name = filename.rsplit(".", 1)[0]
+                available_yamls.append(agent_name)
+
+    logger.info(f"[COMMAND] Listed {len(agents)} loaded, {len(available_yamls)} available")
+
+    # Show loaded agents
     if agents:
-        console.print("\n[bold]Registered Agents:[/bold]")
+        console.print("\n[bold cyan]Loaded Agents:[/bold cyan]")
         for agent_name in agents:
-            console.print(f"  • {agent_name}")
-        console.print()
-    else:
-        console.print("[dim]No agents registered yet.[/dim]")
-        console.print("[dim]Use '/agent create <name>' to create an agent.[/dim]\n")
+            console.print(f"  [green]●[/green] {agent_name}")
+
+    # Show available YAML files (not yet loaded)
+    not_loaded = [name for name in available_yamls if name not in agents]
+    if not_loaded:
+        console.print("\n[bold]Available (not loaded):[/bold]")
+        for agent_name in sorted(not_loaded):
+            console.print(f"  [dim]○[/dim] {agent_name}")
+        console.print("\n[dim]Use '/agent load <name>' to load an agent.[/dim]")
+
+    if not agents and not not_loaded:
+        console.print("[dim]No agents found.[/dim]")
+        console.print("[dim]Use '/agent create <name>' to create an agent.[/dim]")
+
+    console.print()
 
 
 @agent.command()
