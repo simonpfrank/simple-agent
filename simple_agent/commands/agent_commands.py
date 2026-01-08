@@ -229,7 +229,12 @@ def run(ctx, name: str, prompt: tuple):
     try:
         # Business logic in agent_manager, not here
         console.print(f"\n[dim]Running agent '{name}'...[/dim]")
-        response = agent_manager.run_agent(name, prompt_text)
+
+        # Run in thread to isolate SmolAgents' asyncio.run() and stdout from prompt_toolkit
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(agent_manager.run_agent, name, prompt_text)
+            response = future.result()
+
         # Convert response to string (could be AgentResult or string)
         response_str = str(response) if response else ""
         response_len = len(response_str)
