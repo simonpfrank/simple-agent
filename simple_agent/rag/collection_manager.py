@@ -68,6 +68,8 @@ class CollectionManager:
     def get_collection(self, name: str) -> Collection:
         """Get a collection by name.
 
+        Loads from ChromaDB if not already in memory.
+
         Args:
             name: Collection name
 
@@ -77,6 +79,10 @@ class CollectionManager:
         Raises:
             KeyError: If collection not found
         """
+        # Try to load from ChromaDB if not in memory
+        if name not in self.collections:
+            self._load_existing_collections()
+
         if name not in self.collections:
             raise KeyError(f"Collection '{name}' not found")
         return self.collections[name]
@@ -84,9 +90,14 @@ class CollectionManager:
     def list_collections(self) -> List[dict]:
         """List all collections with metadata.
 
+        Loads collections from ChromaDB if not already in memory.
+
         Returns:
             List of collection metadata dicts
         """
+        # First, sync with ChromaDB to pick up any persisted collections
+        self._load_existing_collections()
+
         collections_list = []
         for name, collection in self.collections.items():
             collections_list.append({
@@ -99,8 +110,29 @@ class CollectionManager:
             })
         return collections_list
 
+    def _load_existing_collections(self) -> None:
+        """Load existing collections from ChromaDB into memory.
+
+        This ensures collections persisted in previous sessions are available.
+        """
+        chroma_names = self.chroma_wrapper.list_collections()
+        for name in chroma_names:
+            if name not in self.collections:
+                chroma_col = self.chroma_wrapper.get_collection(name)
+                if chroma_col is not None:
+                    # Extract metadata from Chroma collection
+                    metadata = dict(chroma_col.metadata) if chroma_col.metadata else {}
+                    collection = Collection(
+                        name=name,
+                        chroma_collection=chroma_col,
+                        metadata=metadata,
+                    )
+                    self.collections[name] = collection
+
     def delete_collection(self, name: str) -> None:
         """Delete a collection.
+
+        Deletes from both in-memory cache and ChromaDB.
 
         Args:
             name: Collection name
@@ -108,6 +140,10 @@ class CollectionManager:
         Raises:
             KeyError: If collection not found
         """
+        # Load from ChromaDB if not in memory
+        if name not in self.collections:
+            self._load_existing_collections()
+
         if name not in self.collections:
             raise KeyError(f"Collection '{name}' not found")
 
@@ -119,6 +155,10 @@ class CollectionManager:
         for agent in agents_to_disconnect:
             del self.agent_connections[agent]
 
+        # Delete from ChromaDB
+        self.chroma_wrapper.delete_collection(name)
+
+        # Remove from in-memory cache
         del self.collections[name]
 
     def connect_agent(self, agent_name: str, collection_name: str) -> None:
@@ -131,6 +171,10 @@ class CollectionManager:
         Raises:
             KeyError: If collection not found
         """
+        # Load from ChromaDB if not in memory
+        if collection_name not in self.collections:
+            self._load_existing_collections()
+
         if collection_name not in self.collections:
             raise KeyError(f"Collection '{collection_name}' not found")
 

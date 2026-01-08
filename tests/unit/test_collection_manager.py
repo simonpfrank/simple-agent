@@ -11,9 +11,10 @@ class TestCollectionManager:
     """Test CollectionManager CRUD and agent connection operations."""
 
     @pytest.fixture
-    def collection_manager(self):
-        """Create CollectionManager instance."""
-        return CollectionManager(collections_dir="./test_chroma_db")
+    def collection_manager(self, tmp_path):
+        """Create CollectionManager instance with clean temp directory."""
+        collections_dir = str(tmp_path / "test_chroma_db")
+        return CollectionManager(collections_dir=collections_dir)
 
     @pytest.fixture
     def mock_chroma_wrapper(self):
@@ -22,7 +23,8 @@ class TestCollectionManager:
 
     def test_collection_manager_initialization(self, collection_manager):
         """Test CollectionManager initializes correctly."""
-        assert collection_manager.collections_dir == "./test_chroma_db"
+        assert collection_manager.collections_dir is not None
+        assert "test_chroma_db" in collection_manager.collections_dir
         assert isinstance(collection_manager.collections, dict)
         assert len(collection_manager.collections) == 0
 
@@ -182,3 +184,29 @@ class TestCollectionManager:
         assert collection.metadata["chunk_size"] == 2000
         assert collection.metadata["chunk_overlap"] == 300
         assert collection.metadata["embedding_model"] == "ollama"
+
+    def test_list_collections_loads_from_chromadb(self, tmp_path):
+        """Test that list_collections loads existing collections from ChromaDB.
+
+        Bug #30: Collections created in one session weren't visible after
+        creating a new CollectionManager instance because list_collections
+        only read from the in-memory dict, not from the persisted ChromaDB.
+        """
+        collections_dir = str(tmp_path / "chroma_db")
+
+        # Create collection with first manager
+        manager1 = CollectionManager(collections_dir=collections_dir)
+        manager1.create_collection(name="persistent_collection")
+
+        # Verify it exists in first manager
+        collections = manager1.list_collections()
+        assert len(collections) == 1
+        assert collections[0]["name"] == "persistent_collection"
+
+        # Create new manager instance (simulating REPL restart or lazy loading)
+        manager2 = CollectionManager(collections_dir=collections_dir)
+
+        # Should still see the collection
+        collections = manager2.list_collections()
+        assert len(collections) == 1, "Collections should be loaded from ChromaDB"
+        assert collections[0]["name"] == "persistent_collection"
