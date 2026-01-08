@@ -98,6 +98,17 @@ def load(ctx, agent_name: str):
 
     logger.info(f"[COMMAND] /agent load - name={agent_name}")
 
+    # Check if agent is already loaded
+    if agent_name in agent_manager.agents:
+        existing_agent = agent_manager.agents[agent_name]
+        tool_count = len(existing_agent.tools) if existing_agent.tools else 0
+        logger.info(f"[COMMAND] Agent '{agent_name}' is already loaded")
+        console.print(f"[yellow]ℹ[/yellow] Agent '{agent_name}' is already loaded")
+        console.print(f"  Provider: {existing_agent.model_provider}")
+        if existing_agent.tools:
+            console.print(f"  Tools: {[t.name for t in existing_agent.tools]}")
+        return
+
     # Resolve the actual file path
     logger.debug(f"_resolve_agent_path({agent_name})")
     yaml_path = _resolve_agent_path(agent_name)
