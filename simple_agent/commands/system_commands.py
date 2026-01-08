@@ -6,8 +6,7 @@ import logging
 import click
 from rich.console import Console
 from rich.table import Table
-from simple_agent.ui.styles import APP_THEME, format_info
-from simple_agent.ui.welcome import show_goodbye
+from simple_agent.commands.common import APP_THEME, format_info
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +63,8 @@ def quit_command(context):
     from click_repl import ExitReplException
 
     console = _get_console(context)
-    show_goodbye(console)
+    console.print()
+    console.print("[bold yellow]Goodbye![/bold yellow]")
     raise ExitReplException()
 
 
@@ -76,7 +76,8 @@ def exit_command(context):
     from click_repl import ExitReplException
 
     console = _get_console(context)
-    show_goodbye(console)
+    console.print()
+    console.print("[bold yellow]Goodbye![/bold yellow]")
     raise ExitReplException()
 
 

@@ -1,0 +1,45 @@
+# Simple Agent REPL Configuration
+# This configures the cli_repl_kit REPL appearance only.
+# App/LLM settings remain in config.yaml
+
+# Override appearance settings
+appearance:
+  box_width: 140
+  full_screen: true
+  ascii_art_text: "REPL CLI"  # Matches existing welcome.py banner
+
+# Use simple_agent's history location
+history:
+  enabled: true
+  file_location: "~/.simple-agent/history"
+
+# Colors - match existing theme
+colors:
+  highlight: "#6B4FBB"    # Claude Code purple
+  grey: "#808080"
+  error: "red"
+  success: "green"
+  warning: "yellow"
+  info: "cyan"
+  prompt: "bold"
+
+# Prompt settings
+prompt:
+  character: "> "         # Matches existing ui.prompt default
+  continuation: "  "
+
+# Windows configuration
+windows:
+  output:
+    scrollable: true
+    wrap_lines: true
+  status:
+    height: 1
+    visible: true
+  input:
+    initial_height: 1
+    enable_multiline: true
+    enable_history: true
+  menu:
+    height: 8             # Show more completion options
+    can_push_down: true

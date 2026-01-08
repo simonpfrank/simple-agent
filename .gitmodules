@@ -1,0 +1,3 @@
+[submodule "simple_agent/lib/cli_repl_kit"]
+	path = simple_agent/lib/cli_repl_kit
+	url = https://github.com/simonpfrank/cli-repl-kit.git

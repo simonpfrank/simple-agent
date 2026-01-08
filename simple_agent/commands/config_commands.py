@@ -10,8 +10,8 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 
 from simple_agent.core.config_manager import ConfigManager
-from simple_agent.commands.common import get_console
-from simple_agent.ui.styles import (
+from simple_agent.commands.common import (
+    get_console,
     format_success,
     format_error,
     format_info,

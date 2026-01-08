@@ -7,6 +7,7 @@ NO business logic - all logic delegated to AgentManager.
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import click
@@ -318,58 +319,65 @@ def chat(ctx, name: str):
     session = PromptSession(history=InMemoryHistory())
     message_count = 0
 
-    try:
-        while True:
-            try:
-                # Get user input
-                user_input = session.prompt("Chat> ")
+    # Single executor for entire chat session (avoids creating/destroying threads per message)
+    # Runs agent in separate thread to avoid event loop conflict with prompt_toolkit
+    # (SmolAgents uses asyncio.run() which conflicts with prompt_toolkit's loop)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        try:
+            while True:
+                try:
+                    # Get user input
+                    user_input = session.prompt("Chat> ")
 
-                # Check for exit command
-                if user_input.strip().lower() == "/exit":
-                    logger.debug("Chat: User issued /exit command")
+                    # Check for exit command
+                    if user_input.strip().lower() == "/exit":
+                        logger.debug("Chat: User issued /exit command")
+                        break
+
+                    # Skip empty input
+                    if not user_input.strip():
+                        continue
+
+                    # Run through agent with reset=False to preserve memory across turns
+                    try:
+                        message_count += 1
+                        logger.debug(
+                            f"[CHAT] Message {message_count}: prompt_len={len(user_input)}"
+                        )
+                        future = executor.submit(
+                            agent_manager.run_agent, name, user_input, reset=False
+                        )
+                        response = future.result()
+                        # Convert response to string (could be AgentResult or string)
+                        response_str = str(response) if response else ""
+                        response_len = len(response_str)
+                        logger.debug(
+                            f"[CHAT] Message {message_count}: response_len={response_len}"
+                        )
+                        console.print(f"[bold green]{name}:[/bold green] {response_str}\n")
+                    except Exception as e:
+                        logger.error(
+                            f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}",
+                            exc_info=_should_log_traceback(),
+                        )
+                        console.print(f"[red]Error:[/red] {str(e)}\n")
+
+                except EOFError:
+                    # Ctrl+D pressed
+                    logger.debug("Chat: User pressed Ctrl+D (EOF)")
+                    break
+                except KeyboardInterrupt:
+                    # Ctrl+C pressed
+                    logger.debug("Chat: User pressed Ctrl+C (interrupt)")
+                    console.print()
                     break
 
-                # Skip empty input
-                if not user_input.strip():
-                    continue
-
-                # Run through agent with reset=False to preserve memory across turns
-                try:
-                    message_count += 1
-                    logger.debug(
-                        f"[CHAT] Message {message_count}: prompt_len={len(user_input)}"
-                    )
-                    response = agent_manager.run_agent(name, user_input, reset=False)
-                    # Convert response to string (could be AgentResult or string)
-                    response_str = str(response) if response else ""
-                    response_len = len(response_str)
-                    logger.debug(
-                        f"[CHAT] Message {message_count}: response_len={response_len}"
-                    )
-                    console.print(f"[bold green]{name}:[/bold green] {response_str}\n")
-                except Exception as e:
-                    logger.error(
-                        f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}",
-                        exc_info=_should_log_traceback(),
-                    )
-                    console.print(f"[red]Error:[/red] {str(e)}\n")
-
-            except EOFError:
-                # Ctrl+D pressed
-                logger.debug("Chat: User pressed Ctrl+D (EOF)")
-                break
-            except KeyboardInterrupt:
-                # Ctrl+C pressed
-                logger.debug("Chat: User pressed Ctrl+C (interrupt)")
-                console.print()
-                break
-
-    finally:
-        logger.info(
-            f"[COMMAND] Exited chat mode for agent '{name}' ({message_count} messages)"
-        )
-        console.print()
-        console.print("[dim]Exited chat mode.[/dim]\n")
+        finally:
+            logger.info(
+                f"[COMMAND] Exited chat mode for agent '{name}' ({message_count} messages)"
+            )
+            console.print()
+            console.print("[dim]Exited chat mode.[/dim]\n")
 
 
 @agent.command()

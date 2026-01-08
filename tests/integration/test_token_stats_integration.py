@@ -16,7 +16,7 @@ from rich.console import Console
 
 from simple_agent.core.token_tracker_persistence import TokenTrackerManager
 from simple_agent.commands.token_stats_commands import token
-from simple_agent.ui.styles import APP_THEME
+from simple_agent.commands.common import APP_THEME
 
 
 class TestTokenStatsCommand:

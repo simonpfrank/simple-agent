@@ -73,6 +73,10 @@ llm:
     # api_key: "${AZURE_OPENAI_API_KEY}"  # Only needed if auth_type="api_key"
 
 
+# Agent Mode Settings (cli_repl_kit free text routing)
+agent:
+  enabled: true  # Enable free text input to route to active agent
+
 # Agent Settings
 agents:
   # Agent auto-loading from config/agents/ directory

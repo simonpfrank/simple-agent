@@ -20,23 +20,7 @@ logger = logging.getLogger(__name__)
 )
 @click.pass_context
 def debug(ctx, level: str | None):
-    """
-    View or change debug level.
-
-    \b
-    Levels:
-      off    - Minimal output (suppress LiteLLM INFO logs)
-      info   - Normal output (show LiteLLM INFO logs)
-      debug  - Full debug mode (verbose + LiteLLM debug)
-      status - Show current debug level (default if no argument)
-
-    \b
-    Examples:
-      /debug status  (or just: /debug)
-      /debug off
-      /debug info
-      /debug debug
-    """
+    """View or change debug level. (off, info, debug, status)"""
     console: Console = ctx.obj["console"]
     config_dict = ctx.obj["config"]
 

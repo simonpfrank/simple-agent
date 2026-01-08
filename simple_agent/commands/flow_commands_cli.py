@@ -8,15 +8,7 @@ from simple_agent.commands.flow_commands import FlowCommands
 @click.group()
 @click.pass_context
 def flow(context: click.Context) -> None:
-    """Manage and execute multi-agent orchestration flows.
-
-    Available commands:
-        list    - List all available flows
-        show    - Display flow definition
-        run     - Execute a flow with input
-        debug   - Run flow in debug mode
-        delete  - Delete a flow
-    """
+    """Manage and execute multi-agent orchestration flows. (list,show, run, debug, debug)"""
     # Ensure FlowCommands is initialized
     if "flow_manager" not in context.obj:
         raise click.ClickException("FlowManager not initialized")
