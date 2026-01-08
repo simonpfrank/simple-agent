@@ -693,10 +693,28 @@ def create_wizard(ctx):
     )
     console.print()
 
+    # Use prompt_toolkit PromptSession to avoid blocking the event loop
+    session = PromptSession()
+
+    def prompt_with_default(message: str, default: str = "") -> str:
+        """Prompt with optional default value."""
+        if default:
+            prompt_text = f"{message} [{default}]: "
+        else:
+            prompt_text = f"{message}: "
+        try:
+            result = session.prompt(prompt_text)
+            return result.strip() if result.strip() else default
+        except (EOFError, KeyboardInterrupt):
+            raise click.Abort()
+
     try:
         # Step 1: Agent name
         logger.debug("Wizard step 1: agent name")
-        name = click.prompt("Agent name", type=str)
+        name = prompt_with_default("Agent name")
+        if not name:
+            console.print("[red]Error:[/red] Agent name is required")
+            return
         logger.debug(f"Wizard input: name={name}")
 
         # Step 2: Agent role/persona
@@ -706,9 +724,7 @@ def create_wizard(ctx):
             "[dim]Enter the agent's system prompt or press Enter for default[/dim]"
         )
         logger.debug("Wizard step 2: agent role")
-        role = click.prompt(
-            "Role", default="You are a helpful AI assistant.", show_default=True
-        )
+        role = prompt_with_default("Role", "You are a helpful AI assistant.")
         logger.debug(f"Wizard input: role_len={len(role)}")
 
         # Step 3: LLM provider
@@ -737,12 +753,13 @@ def create_wizard(ctx):
         for i, provider in enumerate(providers, 1):
             console.print(f"  {i}. {provider}")
 
-        provider_idx = click.prompt(
-            "Provider choice",
-            type=click.IntRange(1, len(providers)),
-            default=1,
-            show_default=True,
-        )
+        provider_choice = prompt_with_default("Provider choice (number)", "1")
+        try:
+            provider_idx = int(provider_choice)
+            if provider_idx < 1 or provider_idx > len(providers):
+                provider_idx = 1
+        except ValueError:
+            provider_idx = 1
         provider = providers[provider_idx - 1]
         logger.debug(f"Wizard input: provider={provider}")
 
@@ -751,7 +768,8 @@ def create_wizard(ctx):
         if tool_manager:
             console.print()
             logger.debug("Wizard step 4: tools selection")
-            add_tools = click.confirm("Add tools to this agent?", default=False)
+            add_tools_choice = prompt_with_default("Add tools to this agent? (y/n)", "n")
+            add_tools = add_tools_choice.lower() in ("y", "yes")
 
             if add_tools:
                 available_tools = tool_manager.list_tools()
@@ -765,25 +783,27 @@ def create_wizard(ctx):
                     console.print(
                         "[dim]Enter tool numbers separated by commas (e.g., 1,3,4)[/dim]"
                     )
-                    tool_selection = click.prompt(
-                        "Tool selection", default="", show_default=False
-                    )
+                    tool_selection = prompt_with_default("Tool selection", "")
 
                     if tool_selection:
-                        tool_indices = [
-                            int(idx.strip()) - 1 for idx in tool_selection.split(",")
-                        ]
-                        tools = [
-                            available_tools[idx]
-                            for idx in tool_indices
-                            if 0 <= idx < len(available_tools)
-                        ]
+                        try:
+                            tool_indices = [
+                                int(idx.strip()) - 1 for idx in tool_selection.split(",")
+                            ]
+                            tools = [
+                                available_tools[idx]
+                                for idx in tool_indices
+                                if 0 <= idx < len(available_tools)
+                            ]
+                        except ValueError:
+                            console.print("[yellow]Invalid selection, skipping tools[/yellow]")
             logger.debug(f"Wizard step 4: selected {len(tools)} tools: {tools}")
 
         # Step 5: Save to YAML
         console.print()
         logger.debug("Wizard step 5: save to YAML")
-        save_yaml = click.confirm("Save agent configuration to YAML?", default=True)
+        save_yaml_choice = prompt_with_default("Save agent configuration to YAML? (y/n)", "y")
+        save_yaml = save_yaml_choice.lower() in ("y", "yes")
         logger.debug(f"Wizard input: save_yaml={save_yaml}")
 
         # Create the agent
