@@ -13,8 +13,6 @@ from pathlib import Path
 import click
 from rich.console import Console
 from rich.panel import Panel
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import InMemoryHistory
 
 logger = logging.getLogger("simple_agent.commands.agent")
 
@@ -107,6 +105,8 @@ def load(ctx, agent_name: str):
         console.print(f"  Provider: {existing_agent.model_provider}")
         if existing_agent.tools:
             console.print(f"  Tools: {[t.name for t in existing_agent.tools]}")
+        # Set as active agent for agent mode
+        agent_manager.set_active_agent(agent_name)
         return
 
     # Resolve the actual file path
@@ -142,6 +142,8 @@ def load(ctx, agent_name: str):
             console.print(f"  Tools: {[t.name for t in agent.tools]}")
         else:
             console.print(f"  Tools: (none)")
+        # Set as active agent for agent mode
+        agent_manager.set_active_agent(agent.name)
     except FileNotFoundError as e:
         logger.error(
             f"[COMMAND] Load agent failed - file not found: {yaml_path}",
@@ -208,14 +210,16 @@ def _resolve_agent_path(agent_name: str) -> str:
 @agent.command()
 @click.argument("name")
 @click.argument("prompt", nargs=-1, required=True)
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose output for this run")
 @click.pass_context
-def run(ctx, name: str, prompt: tuple):
+def run(ctx, name: str, prompt: tuple, verbose: bool):
     """
     Run a prompt through an agent.
 
     Examples:
         /agent run my_agent What is the capital of France?
         /agent run researcher Explain quantum computing
+        /agent run default "tell me a joke" -v
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
@@ -230,7 +234,7 @@ def run(ctx, name: str, prompt: tuple):
         # Business logic in agent_manager, not here
         console.print(f"\n[dim]Running agent '{name}'...[/dim]")
 
-        # Run in thread to isolate SmolAgents' asyncio.run() and stdout from prompt_toolkit
+        # Run in thread to isolate SmolAgents' asyncio.run() from prompt_toolkit
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(agent_manager.run_agent, name, prompt_text)
             response = future.result()
@@ -243,6 +247,30 @@ def run(ctx, name: str, prompt: tuple):
         )
         logger.debug(f"run_agent() returned response with {response_len} characters")
         console.print(f"\n[bold cyan]Response:[/bold cyan]\n{response_str}\n")
+
+        # Display token usage if available (AgentResult has token info)
+        if hasattr(response, "total_tokens") and response.total_tokens > 0:
+            token_info = (
+                f"[dim]Tokens: {response.input_tokens:,} in / "
+                f"{response.output_tokens:,} out = {response.total_tokens:,} total"
+            )
+            if hasattr(response, "cost") and float(response.cost) > 0:
+                token_info += f" | Cost: ${float(response.cost):.6f}"
+            token_info += "[/dim]"
+            console.print(token_info)
+            console.print()
+
+            # Persist stats to token manager if available
+            token_manager = ctx.obj.get("token_manager")
+            if token_manager:
+                token_manager.add_execution(
+                    agent_name=name,
+                    input_tokens=response.input_tokens,
+                    output_tokens=response.output_tokens,
+                    cost=float(response.cost) if hasattr(response, "cost") else 0.0,
+                    model=response.model if hasattr(response, "model") else "unknown",
+                )
+                token_manager.save()
     except KeyError as e:
         logger.error(
             f"[COMMAND] Run agent failed - agent not found: {str(e)}",
@@ -321,7 +349,7 @@ def chat(ctx, name: str):
     """
     Enter interactive chat mode with an agent.
 
-    Type your messages without the / prefix. Use /exit or Ctrl+D to exit.
+    Type your messages without the / prefix. Use /exit to exit chat mode.
 
     Examples:
         /agent chat default
@@ -329,6 +357,7 @@ def chat(ctx, name: str):
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
+    repl_state = ctx.obj.get("repl_state")
 
     logger.info(f"[COMMAND] /agent chat - name={name}")
 
@@ -345,83 +374,26 @@ def chat(ctx, name: str):
         console.print(f"[red]Error:[/red] {str(e)}")
         return
 
+    # Check if repl_state is available
+    if repl_state is None:
+        console.print("[red]Error:[/red] Chat mode not available (REPL state not initialized)")
+        return
+
+    # Set chat mode in state - REPL will route input to this agent
+    repl_state.chat_mode_agent = name
+    logger.info(f"[COMMAND] Entered chat mode for agent '{name}'")
+
     # Display welcome message
-    logger.info(f"[COMMAND] Entering chat mode for agent '{name}'")
     console.print()
     console.print(
         Panel(
             f"[bold cyan]Chat Mode:[/bold cyan] '{name}'\n"
             f"[dim]Type your messages without / prefix\n"
-            f"Commands: /exit to exit, Ctrl+D or Ctrl+C to quit[/dim]",
+            f"Use /exit to return to normal mode[/dim]",
             title="Interactive Chat",
             border_style="cyan",
         )
     )
-    console.print()
-
-    # Create chat session with history
-    session = PromptSession(history=InMemoryHistory())
-    message_count = 0
-
-    # Single executor for entire chat session (avoids creating/destroying threads per message)
-    # Runs agent in separate thread to avoid event loop conflict with prompt_toolkit
-    # (SmolAgents uses asyncio.run() which conflicts with prompt_toolkit's loop)
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        try:
-            while True:
-                try:
-                    # Get user input
-                    user_input = session.prompt("Chat> ")
-
-                    # Check for exit command
-                    if user_input.strip().lower() == "/exit":
-                        logger.debug("Chat: User issued /exit command")
-                        break
-
-                    # Skip empty input
-                    if not user_input.strip():
-                        continue
-
-                    # Run through agent with reset=False to preserve memory across turns
-                    try:
-                        message_count += 1
-                        logger.debug(
-                            f"[CHAT] Message {message_count}: prompt_len={len(user_input)}"
-                        )
-                        future = executor.submit(
-                            agent_manager.run_agent, name, user_input, reset=False
-                        )
-                        response = future.result()
-                        # Convert response to string (could be AgentResult or string)
-                        response_str = str(response) if response else ""
-                        response_len = len(response_str)
-                        logger.debug(
-                            f"[CHAT] Message {message_count}: response_len={response_len}"
-                        )
-                        console.print(f"[bold green]{name}:[/bold green] {response_str}\n")
-                    except Exception as e:
-                        logger.error(
-                            f"[CHAT] Message {message_count} failed - {type(e).__name__}: {str(e)}",
-                            exc_info=_should_log_traceback(),
-                        )
-                        console.print(f"[red]Error:[/red] {str(e)}\n")
-
-                except EOFError:
-                    # Ctrl+D pressed
-                    logger.debug("Chat: User pressed Ctrl+D (EOF)")
-                    break
-                except KeyboardInterrupt:
-                    # Ctrl+C pressed
-                    logger.debug("Chat: User pressed Ctrl+C (interrupt)")
-                    console.print()
-                    break
-
-        finally:
-            logger.info(
-                f"[COMMAND] Exited chat mode for agent '{name}' ({message_count} messages)"
-            )
-            console.print()
-            console.print("[dim]Exited chat mode.[/dim]\n")
 
 
 @agent.command()
@@ -677,15 +649,37 @@ def create_wizard(ctx):
     Walks you through all agent configuration options with prompts
     and defaults. Optionally saves the agent to a YAML file.
 
-    Example:
-        /agent create-wizard
+    NOTE: This command only works in CLI mode, not in the REPL.
+    In the REPL, use: /agent create <name> --provider <provider> --role "role"
+
+    Example (CLI only):
+        simple-agent agent create-wizard
     """
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
     tool_manager = ctx.obj.get("tool_manager")
     config = ctx.obj["config"]
+    repl_state = ctx.obj.get("repl_state")
 
     logger.info("[COMMAND] /agent create-wizard - started")
+
+    # Check if running in REPL mode - interactive prompts don't work there
+    if repl_state is not None:
+        console.print()
+        console.print(
+            Panel(
+                "[yellow]The wizard requires interactive input which doesn't work in the REPL.[/yellow]\n\n"
+                "[bold]Use instead:[/bold]\n"
+                "  /agent create <name> --provider <provider> --role \"Your role\"\n\n"
+                "[bold]Examples:[/bold]\n"
+                "  /agent create my_agent\n"
+                "  /agent create coder --role \"You are a Python expert\"\n"
+                "  /agent create local --provider ollama",
+                title="Wizard Not Available in REPL",
+                border_style="yellow",
+            )
+        )
+        return
 
     console.print()
     console.print(
@@ -698,19 +692,13 @@ def create_wizard(ctx):
     )
     console.print()
 
-    # Use prompt_toolkit PromptSession to avoid blocking the event loop
-    session = PromptSession()
-
     def prompt_with_default(message: str, default: str = "") -> str:
-        """Prompt with optional default value."""
-        if default:
-            prompt_text = f"{message} [{default}]: "
-        else:
-            prompt_text = f"{message}: "
+        """Prompt with optional default value using click.prompt."""
         try:
-            result = session.prompt(prompt_text)
-            return result.strip() if result.strip() else default
-        except (EOFError, KeyboardInterrupt):
+            # Use click.prompt which works in CLI context
+            result = click.prompt(message, default=default, show_default=bool(default))
+            return result.strip() if result else default
+        except (EOFError, KeyboardInterrupt, click.Abort):
             raise click.Abort()
 
     try:

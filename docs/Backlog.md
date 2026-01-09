@@ -546,6 +546,34 @@ Debug mode shows useful metadata like:
 
 ## Debug Output Improvements
 
+### LiteLLM Console Output Suppression
+**Priority:** Medium
+**Complexity:** Medium (2-3 hours)
+**Status:** Partial fix in place
+
+LiteLLM writes directly to stdout in some code paths, bypassing Python's logging system. This can interfere with REPL display when `debug.level` is set to `info`.
+
+**Current State:**
+- `debug.level: "off"` (default) works cleanly - no LiteLLM output
+- `debug.level: "info"` still shows some LiteLLM output mixed with response
+- Settings applied: `litellm.set_verbose = False`, `litellm.suppress_debug_info = True`
+- Python logging configured to file-only for LiteLLM logger
+
+**Investigation Needed:**
+- Identify which LiteLLM code paths write directly to stdout
+- Check if there are additional LiteLLM settings to suppress output
+- Consider patching stdout during agent execution (complex due to REPL)
+- Check LiteLLM GitHub issues for similar reports
+
+**Workaround:**
+Use `debug.level: "off"` (default) for clean REPL output.
+
+**Related Code:**
+- `simple_agent/agents/simple_agent.py` lines 144-158 (current suppression code)
+- LiteLLM source: `litellm/utils.py` (direct print statements)
+
+---
+
 ### Better Debug Formatting
 **Priority:** Low
 **Complexity:** Low

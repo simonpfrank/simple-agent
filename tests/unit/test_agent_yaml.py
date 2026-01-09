@@ -280,7 +280,7 @@ class TestSaveAgentToYAML:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml_file = f.name
 
-        with pytest.raises(KeyError, match="not found"):
+        with pytest.raises(KeyError, match="not loaded"):
             manager.save_agent_to_yaml("nonexistent", yaml_file)
 
         # Cleanup

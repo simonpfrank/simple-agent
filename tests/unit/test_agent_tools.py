@@ -145,7 +145,7 @@ class TestAgentManagerToolSupport:
         config = {}
         manager = AgentManager(config)
 
-        with pytest.raises(KeyError, match="Agent 'missing' not found"):
+        with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             manager.add_tool_to_agent("missing", "add")
 
     def test_remove_tool_from_nonexistent_agent(self) -> None:
@@ -153,7 +153,7 @@ class TestAgentManagerToolSupport:
         config = {}
         manager = AgentManager(config)
 
-        with pytest.raises(KeyError, match="Agent 'missing' not found"):
+        with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             manager.remove_tool_from_agent("missing", "add")
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")

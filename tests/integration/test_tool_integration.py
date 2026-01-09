@@ -200,13 +200,13 @@ class TestToolManagementIntegration:
     ) -> None:
         """Test error handling when modifying nonexistent agent."""
         # Try to add tool to nonexistent agent
-        with pytest.raises(KeyError, match="Agent 'nonexistent' not found"):
+        with pytest.raises(KeyError, match="Agent 'nonexistent' not loaded"):
             agent_manager.add_tool_to_agent("nonexistent", "add")
 
         # Try to remove tool from nonexistent agent
-        with pytest.raises(KeyError, match="Agent 'nonexistent' not found"):
+        with pytest.raises(KeyError, match="Agent 'nonexistent' not loaded"):
             agent_manager.remove_tool_from_agent("nonexistent", "add")
 
         # Try to get tools from nonexistent agent
-        with pytest.raises(KeyError, match="Agent 'nonexistent' not found"):
+        with pytest.raises(KeyError, match="Agent 'nonexistent' not loaded"):
             agent_manager.get_agent_tools("nonexistent")

@@ -203,7 +203,7 @@ class TestAgentManagerGetAgent:
         config = {}
         manager = AgentManager(config)
 
-        with pytest.raises(KeyError, match="Agent 'nonexistent' not found"):
+        with pytest.raises(KeyError, match="Agent 'nonexistent' not loaded"):
             manager.get_agent("nonexistent")
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")
@@ -299,7 +299,7 @@ class TestAgentManagerRunAgent:
         config = {}
         manager = AgentManager(config)
 
-        with pytest.raises(KeyError, match="Agent 'missing' not found"):
+        with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             manager.run_agent("missing", "test prompt")
 
     @patch("simple_agent.core.agent_manager.SimpleAgent")

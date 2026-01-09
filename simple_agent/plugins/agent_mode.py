@@ -64,7 +64,8 @@ def create_agent_callback(
             agent_manager.last_prompt = text
             agent_manager.last_response = response
 
-            return response
+            # Convert AgentResult to string for display
+            return str(response)
 
         except Exception as e:
             logger.error(f"[AGENT_MODE] Error from agent: {e}", exc_info=True)

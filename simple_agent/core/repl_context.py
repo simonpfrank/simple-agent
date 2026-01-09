@@ -57,7 +57,19 @@ def create_context_factory(
             "flow_manager": _cache.get("flow_manager"),
             "collection_manager": _cache.get("collection_manager"),
             "collections_dir": _cache.get("collections_dir"),
+            "repl_state": _cache.get("repl_state"),  # Set by REPL after state creation
+            "token_manager": _cache.get("token_manager"),
         }
+
+    def set_repl_state(state: Any) -> None:
+        """Set the REPL state for commands to access.
+
+        Called by REPL after state is created.
+        """
+        _cache["repl_state"] = state
+
+    # Attach setter to factory function for external access
+    context_factory.set_repl_state = set_repl_state  # type: ignore
 
     def _initialize_managers() -> None:
         """Initialize all managers (called once on first context access)."""
@@ -65,6 +77,7 @@ def create_context_factory(
         from simple_agent.core.agent_manager import AgentManager
         from simple_agent.core.config_manager import ConfigManager
         from simple_agent.core.tool_manager import ToolManager
+        from simple_agent.core.token_tracker_persistence import TokenTrackerManager
         from simple_agent.orchestration.flow_manager import FlowManager
 
         logger.info("Initializing managers for REPL context")
@@ -112,6 +125,12 @@ def create_context_factory(
             agent_manager=agent_manager, flows_dir=flows_dir
         )
         _cache["flow_manager"] = flow_manager
+
+        # Initialize TokenTrackerManager for token usage persistence
+        logger.debug("Loading token tracker manager")
+        token_manager = TokenTrackerManager()
+        token_manager.load()
+        _cache["token_manager"] = token_manager
 
         logger.info("Manager initialization complete")
 

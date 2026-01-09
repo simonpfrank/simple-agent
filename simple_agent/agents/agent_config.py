@@ -25,7 +25,8 @@ class AgentConfig:
         max_steps: Maximum ReAct iterations for agent
         agent_type: Agent type - "tool_calling" (safe) or "code" (requires Docker)
         executor_type: Executor for code agents - "docker", "e2b", "modal", "wasm"
-        debug_enabled: Enable verbose debug output and logging
+        debug_enabled: Enable verbose debug output and logging (DEPRECATED, use debug_level)
+        debug_level: Verbosity level for smolagents ("off", "info", "debug")
         user_prompt_template: Optional template to wrap user input (Jinja2 or format string)
         token_budget: Hard limit on input tokens (prevents rate limits)
         token_warning_threshold: Soft warning threshold before hitting budget
@@ -41,6 +42,7 @@ class AgentConfig:
     agent_type: Literal["tool_calling", "code"] = "tool_calling"
     executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker"
     debug_enabled: bool = False
+    debug_level: Literal["off", "info", "debug"] = "off"
     user_prompt_template: Optional[str] = None
     token_budget: Optional[int] = None
     token_warning_threshold: Optional[int] = None

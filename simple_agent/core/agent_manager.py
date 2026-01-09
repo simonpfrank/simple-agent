@@ -34,6 +34,9 @@ class AgentManager:
         self.last_response: Optional[str] = None
         self.last_agent: Optional[str] = None
 
+        # Active agent for agent mode (free text routing)
+        self.active_agent_name: Optional[str] = None
+
         # Tool manager (set by app.py after initialization)
         self.tool_manager = None
 
@@ -66,7 +69,7 @@ class AgentManager:
         """
         logger.debug(
             f"Creating agent '{name}' - provider: {provider}, "
-            f"role: {role[0:20]}, tools: {tools}"
+            f"role: {role[:20] if role else None}, tools: {tools}"
         )
 
         # Get defaults from config if not specified
@@ -88,6 +91,8 @@ class AgentManager:
 
         # Get debug mode from config
         debug_enabled = self.config.get("debug", {}).get("enabled", False)
+        # Get debug level for smolagents verbosity (off/info/debug)
+        debug_level = self.config.get("debug", {}).get("level", "off")
 
         # Convert tool names to tool objects
         tool_objects = []
@@ -109,6 +114,7 @@ class AgentManager:
             agent_type=agent_type,
             executor_type=executor_type,
             debug_enabled=debug_enabled,
+            debug_level=debug_level,
             user_prompt_template=user_prompt_template,
             token_budget=token_budget,
             token_warning_threshold=token_warning_threshold,
@@ -147,6 +153,36 @@ class AgentManager:
             List of agent name strings
         """
         return list(self.agents.keys())
+
+    def get_active_agent(self) -> Optional[SimpleAgent]:
+        """
+        Get the currently active agent for agent mode.
+
+        Returns:
+            Active SimpleAgent instance or None if no agent is active
+        """
+        if self.active_agent_name and self.active_agent_name in self.agents:
+            return self.agents[self.active_agent_name]
+        return None
+
+    def set_active_agent(self, name: Optional[str]) -> None:
+        """
+        Set the active agent for agent mode.
+
+        Args:
+            name: Agent name to set as active, or None to clear
+
+        Raises:
+            KeyError: If agent name doesn't exist
+        """
+        if name is not None and name not in self.agents:
+            available = list(self.agents.keys())
+            raise KeyError(f"Agent '{name}' not loaded. Available: {available}")
+        self.active_agent_name = name
+        if name:
+            logger.info(f"Active agent set to '{name}'")
+        else:
+            logger.info("Active agent cleared")
 
     def run_agent(self, name: str, prompt: str, reset: bool = True) -> str:
         """

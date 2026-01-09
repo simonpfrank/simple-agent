@@ -116,7 +116,7 @@ class TestAgentLifecycleMocked:
         # The first call was for auto-loaded 'default' agent
         call_kwargs = mock_tool_calling_agent.call_args.kwargs
         assert (
-            call_kwargs["instructions"] == "You are a helpful AI assistant for testing."
+            call_kwargs["instructions"] == "You are a test assistant."
         )
         # ToolCallingAgent doesn't have verbosity_level parameter
         assert call_kwargs["max_steps"] == 10
@@ -126,11 +126,11 @@ class TestAgentLifecycleMocked:
         agent_manager = AgentManager(test_config)
 
         # Try to get non-existent agent
-        with pytest.raises(KeyError, match="Agent 'missing' not found"):
+        with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             agent_manager.get_agent("missing")
 
         # Try to run non-existent agent
-        with pytest.raises(KeyError, match="Agent 'missing' not found"):
+        with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             agent_manager.run_agent("missing", "test")
 
     @patch("simple_agent.agents.simple_agent.LiteLLMModel")

@@ -91,17 +91,7 @@ def exit_command(context):
 @click.pass_context
 def refresh(context, model_pricing):
     """
-    Refresh application data and caches.
-
-    \b
-    Options:
-      --model-pricing (-m)  Fetch latest model pricing data from GitHub
-                            (Requires internet connection)
-
-    \b
-    Examples:
-      /refresh              (shows this help)
-      /refresh --model-pricing  (fetch latest pricing from GitHub)
+    Refresh application data and caches. (--refresh reloads model prices)
     """
     console = _get_console(context)
     logger.info("[COMMAND] /refresh - model_pricing={model_pricing}")

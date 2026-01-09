@@ -40,6 +40,7 @@ class SimpleAgent:
         agent_type: Literal["tool_calling", "code"] = "tool_calling",
         executor_type: Literal["docker", "e2b", "modal", "wasm"] = "docker",
         debug_enabled: bool = False,
+        debug_level: Literal["off", "info", "debug"] = "off",
         user_prompt_template: Optional[str] = None,
         token_budget: Optional[int] = None,
         token_warning_threshold: Optional[int] = None,
@@ -57,11 +58,12 @@ class SimpleAgent:
             model_config: Dict with model settings
             role: Optional system prompt/persona
             tools: List of tool instances
-            verbosity: 0=quiet, 1=normal, 2=verbose (DEPRECATED - use debug_enabled)
+            verbosity: 0=quiet, 1=normal, 2=verbose (DEPRECATED - use debug_level)
             max_steps: Max tool call iterations
             agent_type: Agent type - "tool_calling" (safe, default) or "code" (requires Docker)
             executor_type: Executor for code agent - "docker" (default), "e2b", "modal", "wasm"
-            debug_enabled: Enable debug mode (verbose output and logging)
+            debug_enabled: Enable debug mode (DEPRECATED - use debug_level)
+            debug_level: Verbosity level for smolagents ("off", "info", "debug")
             user_prompt_template: Optional template to wrap user input. Use {user_input} placeholder.
             token_budget: Hard limit on input prompt size (prevents rate limit hits)
             token_warning_threshold: Soft warning threshold before token_budget
@@ -89,6 +91,7 @@ class SimpleAgent:
                 agent_type=agent_type,
                 executor_type=executor_type,
                 debug_enabled=debug_enabled,
+                debug_level=debug_level,
                 user_prompt_template=user_prompt_template,
                 token_budget=token_budget,
                 token_warning_threshold=token_warning_threshold,
@@ -103,6 +106,7 @@ class SimpleAgent:
         self.model_config = config.model_config  # Store model config for token tracking
         self.agent_type = config.agent_type
         self.debug_enabled = config.debug_enabled
+        self.debug_level = config.debug_level
         self.tools = config.tools or []  # Store tools list for access
         self.verbosity = config.verbosity
         self.max_steps = config.max_steps
@@ -128,13 +132,30 @@ class SimpleAgent:
         # Create LiteLLM model instance
         self.model = self._create_model(config.model_provider, config.model_config)
 
-        # Map debug mode to SmolAgents LogLevel
+        # Map debug_level to SmolAgents LogLevel
         # LogLevel: OFF=-1, ERROR=0, INFO=1, DEBUG=2
-        verbosity_level = LogLevel.DEBUG if config.debug_enabled else LogLevel.INFO
+        level_map = {"off": LogLevel.ERROR, "info": LogLevel.INFO, "debug": LogLevel.DEBUG}
+        verbosity_level = level_map.get(config.debug_level, LogLevel.ERROR)
         logger.debug(
             f"Agent '{config.name}' verbosity set to {verbosity_level.name} "
-            f"(debug_enabled={config.debug_enabled})"
+            f"(debug_level={config.debug_level})"
         )
+
+        # Suppress LiteLLM console output (it writes directly to stdout)
+        # Only show LiteLLM output in debug mode
+        import litellm
+        if config.debug_level != "debug":
+            litellm.set_verbose = False
+            litellm.suppress_debug_info = True
+        # Also configure Python logging for LiteLLM to file only
+        for logger_name in ["LiteLLM", "httpx"]:
+            lib_logger = logging.getLogger(logger_name)
+            lib_logger.propagate = False  # Don't propagate to root (console)
+            if not any(isinstance(h, logging.FileHandler) for h in lib_logger.handlers):
+                for handler in logging.getLogger().handlers:
+                    if isinstance(handler, logging.FileHandler):
+                        lib_logger.addHandler(handler)
+                        break
 
         # Create appropriate agent type
         # SmolAgents accepts tools as a list during initialization

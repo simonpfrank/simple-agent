@@ -117,7 +117,7 @@ tools:
 # Debug Settings
 debug:
   enabled: false  # Controls SmolAgents verbosity (tool calls, prompts, reasoning)
-  level: "info"   # off (minimal), info (normal), debug (verbose) - controls logging level
+  level: "off"    # off (errors only), info (step-by-step), debug (verbose) - controls smolagents output
   # Future: display_mode (full/minimal), output_template
 
 # Logging

@@ -777,6 +777,22 @@ See `CLAUDE.md` in root for development guidelines.
 - **Development Guidelines**: `docs/technical_specification.md`, `docs/product_requirements.md`, `CLAUDE.md`
 - **Archive**: `docs/backup_progress_tracker.md` (old detailed tracker, saved for reference)
 
+## Known Issues
+
+### LiteLLM Output in Info Mode
+When `debug.level` is set to `info` in `config.yaml`, LiteLLM may output logging messages directly to the console that interfere with the REPL display. This is because LiteLLM writes to stdout in some code paths, bypassing Python's logging system.
+
+**Workaround:** Use `debug.level: "off"` (the default) for clean REPL output. LiteLLM logs will still be written to `logs/app.log` for debugging.
+
+```yaml
+# config.yaml
+debug:
+  level: "off"  # Clean output (default)
+  # level: "info"  # May show LiteLLM output mixed with responses
+```
+
+See `docs/Backlog.md` for more details and future investigation plans.
+
 ## License
 
 MIT
