@@ -167,14 +167,14 @@ class QuietApprovalUI(ApprovalUIHandler):
             request_data: Request data
 
         Returns:
-            None (no decision made)
+            Default decision if set, None otherwise
         """
         self.last_request = request_data
         logger.info(
             f"Approval request: {request_data.get('tool_name')} "
-            f"(request_id={request_id}) - not shown (quiet mode)"
+            f"(request_id={request_id}) - quiet mode, default_decision={self.last_decision}"
         )
-        return None
+        return self.last_decision
 
     def show_message(self, message: str, level: str = "info") -> None:
         """Log a message.

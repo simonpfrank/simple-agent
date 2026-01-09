@@ -10,13 +10,39 @@ Run with: pytest tests/integration/test_azure_openai_integration.py -v
 Skip if no credentials: pytest tests/integration/test_azure_openai_integration.py -v -m "not requires_azure"
 """
 
+import os
+
 import pytest
 from simple_agent.agents.simple_agent import SimpleAgent
 from simple_agent.core.agent_result import AgentResult
 
 
-# Mark all tests in this module as requiring Azure credentials
-pytestmark = pytest.mark.requires_azure
+def _azure_credentials_available() -> bool:
+    """Check if Azure credentials are available."""
+    # Check for Azure CLI or environment variables
+    if os.environ.get("AZURE_CLIENT_ID") and os.environ.get("AZURE_CLIENT_SECRET"):
+        return True
+    if os.environ.get("AZURE_OPENAI_API_KEY"):
+        return True
+    # Try Azure CLI
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["az", "account", "show"], capture_output=True, timeout=5
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+# Skip entire module if Azure credentials are not available
+pytestmark = [
+    pytest.mark.requires_azure,
+    pytest.mark.skipif(
+        not _azure_credentials_available(),
+        reason="Azure credentials not available (set AZURE_CLIENT_ID/SECRET or run 'az login')"
+    ),
+]
 
 
 class TestAzureOpenAIIntegration:

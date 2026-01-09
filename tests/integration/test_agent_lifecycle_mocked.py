@@ -24,7 +24,7 @@ class TestAgentLifecycleMocked:
         config = ConfigManager.load(str(config_path))
         return config
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_full_lifecycle_default_agent(
         self,
@@ -56,7 +56,7 @@ class TestAgentLifecycleMocked:
         assert str(response) == "The answer is 4"
         mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_multiple_agents(
         self,
@@ -92,7 +92,7 @@ class TestAgentLifecycleMocked:
         assert agent_manager.get_agent("agent2") == agent2
         assert agent_manager.get_agent("agent3") == agent3
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_config_loading_and_defaults(
         self,
@@ -133,7 +133,7 @@ class TestAgentLifecycleMocked:
         with pytest.raises(KeyError, match="Agent 'missing' not loaded"):
             agent_manager.run_agent("missing", "test")
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_user_prompt_template_integration(
         self,

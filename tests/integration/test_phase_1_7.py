@@ -12,7 +12,7 @@ from simple_agent.core.agent_manager import AgentManager
 class TestPhase1_7Jinja2Integration:
     """Integration tests for Jinja2 template rendering in YAML workflows."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_full_workflow(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -66,7 +66,7 @@ Please show your work step by step.
 Please show your work step by step."""
         mock_agent_instance.run.assert_called_once_with(expected_prompt, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_with_yaml_style_templates(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -118,7 +118,7 @@ Provide detailed explanations.
         assert "Be extremely concise." not in agent.role
         assert "Provide detailed explanations." not in agent.role
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_backward_compatibility_with_format_strings(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock

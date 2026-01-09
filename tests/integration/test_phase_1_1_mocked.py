@@ -24,7 +24,7 @@ class TestPhase1_1InspectionMocked:
         config = ConfigManager.load(str(config_path))
         return config
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_prompt_response_tracking_lifecycle(
         self,
@@ -59,7 +59,7 @@ class TestPhase1_1InspectionMocked:
             str(response) == "The capital of France is Paris"
         )  # AgentResult supports string conversion
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_tracking_updates_on_multiple_runs(
         self,
@@ -94,7 +94,7 @@ class TestPhase1_1InspectionMocked:
         assert agent_manager.last_response == "Response 3"
         assert agent_manager.last_agent == "agent1"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_tracking_across_multiple_agents(
         self,
@@ -134,7 +134,7 @@ class TestPhase1_1InspectionMocked:
         assert agent_manager.last_prompt == "Another prompt for agent1"
         assert agent_manager.last_response == "Another from agent1"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_tracking_handles_non_string_responses(
         self,
@@ -170,7 +170,7 @@ class TestPhase1_1InspectionMocked:
         assert "item1" in agent_manager.last_response
         assert isinstance(agent_manager.last_response, str)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_auto_loaded_agent_tracking(
         self,

@@ -15,11 +15,17 @@ class TestPhase22Integration:
 
     @pytest.fixture
     def approval_manager(self, tmp_path):
-        """Create ApprovalManager for testing."""
+        """Create ApprovalManager for testing with QuietApprovalUI."""
+        from simple_agent.hitl.approval_ui import QuietApprovalUI
+
         persistence = FileApprovalPersistence(storage_dir=str(tmp_path))
+        ui_handler = QuietApprovalUI()
+        # enable_interactive=True so UI handler is called, but QuietApprovalUI
+        # doesn't actually prompt - it returns the programmatic default decision
         return ApprovalManager(
             persistence=persistence,
-            enable_interactive=False,
+            ui_handler=ui_handler,
+            enable_interactive=True,
         )
 
     def test_approval_workflow_approve(self, approval_manager):
@@ -37,14 +43,14 @@ class TestPhase22Integration:
             default_action="reject",
         )
 
-        # Tool execution (requests approval)
+        # Set auto-approve for testing
+        approval_manager.ui_handler.set_default_decision(True)
+
+        # Tool execution (requests approval, auto-approved)
         result = tool("user@example.com", "Hello")
 
-        # Verify tool still executed
+        # Verify tool executed
         assert result == "Email sent to user@example.com with subject Hello"
-
-        # User approves
-        approval_manager.approve()
 
         # Verify in history
         history = approval_manager.get_history()
@@ -66,14 +72,12 @@ class TestPhase22Integration:
             default_action="reject",
         )
 
-        # Tool execution (requests approval)
-        result = tool("important.txt")
+        # Set auto-reject for testing
+        approval_manager.ui_handler.set_default_decision(False)
 
-        # Tool executed, but approval pending
-        assert result == "File deleted: important.txt"
-
-        # User rejects
-        approval_manager.reject()
+        # Tool execution should raise ApprovalRejected
+        with pytest.raises(ApprovalRejected):
+            tool("important.txt")
 
         # Verify rejection in history
         history = approval_manager.get_history()
@@ -93,15 +97,15 @@ class TestPhase22Integration:
             requires_approval=True,
         )
 
-        # First request
+        # First request - auto-approve
+        approval_manager.ui_handler.set_default_decision(True)
         result1 = tool("First message")
         assert "First message" in result1
-        approval_manager.approve()
 
-        # Second request
-        result2 = tool("Second message")
-        assert "Second message" in result2
-        approval_manager.reject()
+        # Second request - auto-reject
+        approval_manager.ui_handler.set_default_decision(False)
+        with pytest.raises(ApprovalRejected):
+            tool("Second message")
 
         # Verify history
         history = approval_manager.get_history()
@@ -165,12 +169,16 @@ class TestPhase22Integration:
             prompt_template="Approve {tool_name}?",
         )
 
+        # Set auto-approve for testing
+        approval_manager.ui_handler.set_default_decision(True)
+
         result = tool(100.50)
         assert "Payment sent: $100.5" in result
 
-        # Check pending approval has custom prompt
-        pending = approval_manager.pending_approval
-        assert "send_payment" in pending["prompt"]
+        # Check approval history has custom prompt
+        history = approval_manager.get_history()
+        assert len(history) == 1
+        assert "send_payment" in history[0]["prompt"]
 
     def test_approval_history_clearing(self, approval_manager):
         """Test clearing approval history."""

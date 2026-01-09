@@ -25,7 +25,7 @@ class TestPhase1_2HistoryMocked:
         config = ConfigManager.load(str(config_path))
         return config
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_memory_persists_across_runs(
         self,
@@ -87,7 +87,7 @@ class TestPhase1_2HistoryMocked:
         assert memory_steps[0]["type"] == "task"
         assert memory_steps[1]["type"] == "action"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_history_retrieval_from_smolagents_memory(
         self,
@@ -146,7 +146,7 @@ class TestPhase1_2HistoryMocked:
         assert retrieved_steps[2]["task"] == "What is the capital of France?"
         assert retrieved_steps[3]["result"] == "Paris"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_memory_reset_clears_history(
         self,
@@ -189,7 +189,7 @@ class TestPhase1_2HistoryMocked:
         mock_memory.get_full_steps.return_value = []  # Update mock return value
         assert len(agent_wrapper.agent.memory.get_full_steps()) == 0
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_memory_export_to_json(
         self,
@@ -244,7 +244,7 @@ class TestPhase1_2HistoryMocked:
         assert loaded_data["steps"][0]["task"] == "What is Python?"
         assert loaded_data["steps"][1]["result"] == "Python is a programming language"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_separate_memory_per_agent(
         self,
