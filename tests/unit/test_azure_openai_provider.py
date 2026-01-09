@@ -18,7 +18,7 @@ class TestAzureOpenAIProvider:
 
     @patch('azure.identity.DefaultAzureCredential')
     @patch('azure.identity.get_bearer_token_provider')
-    @patch('simple_agent.agents.simple_agent.LiteLLMModel')
+    @patch('simple_agent.agents.model_factory.LiteLLMModel')
     def test_azure_openai_with_azure_ad_auth(
         self, mock_litellm, mock_token_provider, mock_credential
     ):
@@ -74,7 +74,7 @@ class TestAzureOpenAIProvider:
                 model_config=config,
             )
 
-    @patch('simple_agent.agents.simple_agent.LiteLLMModel')
+    @patch('simple_agent.agents.model_factory.LiteLLMModel')
     def test_azure_openai_with_api_key(self, mock_litellm):
         """Test Azure OpenAI with API key authentication."""
         mock_model_instance = Mock()
@@ -145,7 +145,7 @@ class TestAzureOpenAIProvider:
 
     @patch('azure.identity.DefaultAzureCredential')
     @patch('azure.identity.get_bearer_token_provider')
-    @patch('simple_agent.agents.simple_agent.LiteLLMModel')
+    @patch('simple_agent.agents.model_factory.LiteLLMModel')
     def test_azure_openai_default_api_version(
         self, mock_litellm, mock_token_provider, mock_credential
     ):
@@ -173,7 +173,7 @@ class TestAzureOpenAIProvider:
 
     @patch('azure.identity.DefaultAzureCredential')
     @patch('azure.identity.get_bearer_token_provider')
-    @patch('simple_agent.agents.simple_agent.LiteLLMModel')
+    @patch('simple_agent.agents.model_factory.LiteLLMModel')
     def test_azure_openai_default_auth_type(
         self, mock_litellm, mock_token_provider, mock_credential
     ):
@@ -199,8 +199,8 @@ class TestAzureOpenAIProvider:
         mock_credential.assert_called_once()
         mock_token_provider.assert_called_once()
 
-    @patch('simple_agent.agents.simple_agent.ConfigManager')
-    @patch('simple_agent.agents.simple_agent.LiteLLMModel')
+    @patch('simple_agent.agents.model_factory.ConfigManager')
+    @patch('simple_agent.agents.model_factory.LiteLLMModel')
     def test_azure_openai_env_var_resolution(self, mock_litellm, mock_config_manager):
         """Test that environment variables in azure_endpoint are resolved."""
         mock_model_instance = Mock()

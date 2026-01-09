@@ -14,7 +14,7 @@ from simple_agent.agents.simple_agent import SimpleAgent
 class TestSimpleAgentInitialization:
     """Test SimpleAgent initialization."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_init_with_explicit_role(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -36,7 +36,7 @@ class TestSimpleAgentInitialization:
         mock_litellm.assert_called_once()
         mock_tool_calling_agent.assert_called_once()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_init_with_custom_verbosity_and_max_steps(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -63,7 +63,7 @@ class TestSimpleAgentInitialization:
 class TestSimpleAgentModelCreation:
     """Test LiteLLM model creation for different providers."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_create_model_openai(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -87,7 +87,7 @@ class TestSimpleAgentModelCreation:
         call_args = mock_litellm.call_args
         assert "gpt-4o-mini" in str(call_args)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_create_model_ollama(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -112,7 +112,7 @@ class TestSimpleAgentModelCreation:
 class TestSimpleAgentRun:
     """Test agent run method."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_run_returns_string_response(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -137,7 +137,7 @@ class TestSimpleAgentRun:
         assert str(result) == "This is the agent response"
         mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_run_converts_non_string_to_string(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -168,7 +168,7 @@ class TestSimpleAgentRun:
 class TestSimpleAgentRepr:
     """Test SimpleAgent string representation."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_repr_format(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -193,7 +193,7 @@ class TestSimpleAgentRepr:
 class TestSimpleAgentTypes:
     """Test SimpleAgent with different agent types."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_init_with_tool_calling_agent_type(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -220,7 +220,7 @@ class TestSimpleAgentTypes:
         assert call_kwargs["instructions"] == role
         assert call_kwargs["max_steps"] == 10
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.CodeAgent")
     def test_init_with_code_agent_type_docker(
         self, mock_code_agent: Mock, mock_litellm: Mock
@@ -247,7 +247,7 @@ class TestSimpleAgentTypes:
         assert call_kwargs["executor_type"] == "docker"
         assert call_kwargs["instructions"] == role
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_init_defaults_to_tool_calling_agent(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -266,7 +266,7 @@ class TestSimpleAgentTypes:
         assert agent.agent_type == "tool_calling"
         mock_tool_calling_agent.assert_called_once()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.CodeAgent")
     def test_code_agent_rejects_local_executor(
         self, mock_code_agent: Mock, mock_litellm: Mock
@@ -290,7 +290,7 @@ class TestSimpleAgentTypes:
             assert "local" in str(e).lower()
             assert "security" in str(e).lower() or "unsafe" in str(e).lower()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_invalid_agent_type_raises_error(self, mock_litellm: Mock) -> None:
         """Test that invalid agent_type raises ValueError."""
         model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
@@ -312,7 +312,7 @@ class TestSimpleAgentTypes:
 class TestSimpleAgentUserPromptTemplate:
     """Test user_prompt_template functionality."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_user_prompt_template_formats_input(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -342,7 +342,7 @@ class TestSimpleAgentUserPromptTemplate:
             "What is 2+2?\n\nPlease answer concisely.", reset=True
         )
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_user_prompt_template_none_uses_direct_input(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -369,7 +369,7 @@ class TestSimpleAgentUserPromptTemplate:
         # Verify the input was passed directly (no formatting)
         mock_agent_instance.run.assert_called_once_with("What is 2+2?", reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_user_prompt_template_multiline(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -411,7 +411,7 @@ Let's think through this step by step:
 """
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_user_prompt_template_with_chat_mode(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -445,7 +445,7 @@ Let's think through this step by step:
 class TestSimpleAgentJinja2:
     """Test Jinja2 template rendering in SimpleAgent."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_role_with_variables(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -470,7 +470,7 @@ class TestSimpleAgentJinja2:
         # Verify role was rendered with agent_name
         assert agent.role == "You are TestBot, a helpful assistant."
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_user_prompt_template_with_conditionals(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -509,7 +509,7 @@ Please be concise.
 Please provide detailed step-by-step reasoning."""
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_with_loops(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -557,7 +557,7 @@ Available tools:
 - web_search"""
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_with_filters(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -587,7 +587,7 @@ Available tools:
         expected = "Agent: MYBOT - Hello"
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_with_date_formatting(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -613,7 +613,7 @@ Available tools:
         assert agent.role.startswith("You are TestBot. Today is ")
         assert len(agent.role.split("Today is ")[1]) == 11  # YYYY-MM-DD + period = 11 chars
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_backward_compatibility_format_string(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -643,7 +643,7 @@ Available tools:
         expected = "What is AI?\n\nPlease be concise."
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_error_handling(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -666,7 +666,7 @@ Available tools:
         except ValueError as e:
             assert "jinja2" in str(e).lower() or "template" in str(e).lower()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_jinja2_context_variables(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -710,7 +710,7 @@ Help"""
 class TestSimpleAgentJinja2Security:
     """Test Jinja2 sandbox security in SimpleAgent."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_sandbox_blocks_subclasses_access(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -737,7 +737,7 @@ class TestSimpleAgentJinja2Security:
         with pytest.raises((ValueError, SecurityError)):
             agent.run("test")
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_sandbox_blocks_mro_access(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock
@@ -763,7 +763,7 @@ class TestSimpleAgentJinja2Security:
         with pytest.raises((ValueError, SecurityError)):
             agent.run("test")
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
     def test_safe_templates_still_work(
         self, mock_tool_calling_agent: Mock, mock_litellm: Mock

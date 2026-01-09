@@ -12,7 +12,8 @@ import os
 import pytest
 from click.testing import CliRunner
 
-from simple_agent.commands.agent_commands import agent, _resolve_agent_path
+from simple_agent.commands.agent_commands import agent
+from simple_agent.commands.agent_persistence import resolve_agent_path
 
 
 class TestAgentToolsCommand:
@@ -358,7 +359,7 @@ class TestAgentSaveCommand:
 
 
 class TestResolveAgentPath:
-    """Test _resolve_agent_path helper function."""
+    """Test resolve_agent_path helper function."""
 
     def test_resolve_agent_name_with_yaml_extension(self) -> None:
         """Test resolving agent name finds .yaml file in config/agents/."""
@@ -373,7 +374,7 @@ class TestResolveAgentPath:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("column_matcher")
+                result = resolve_agent_path("column_matcher")
                 # Returns absolute resolved path for security
                 assert result is not None
                 assert result.endswith("column_matcher.yaml")
@@ -394,7 +395,7 @@ class TestResolveAgentPath:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("researcher")
+                result = resolve_agent_path("researcher")
                 # Returns absolute resolved path for security
                 assert result is not None
                 assert result.endswith("researcher.yml")
@@ -410,7 +411,7 @@ class TestResolveAgentPath:
             agent_file.parent.mkdir(parents=True)
             agent_file.write_text("name: custom")
 
-            result = _resolve_agent_path(str(agent_file))
+            result = resolve_agent_path(str(agent_file))
             # Returns resolved path - may differ from input on macOS (/var vs /private/var)
             assert result is not None
             assert result.endswith("custom/agent.yaml") or result.endswith("custom\\agent.yaml")
@@ -428,7 +429,7 @@ class TestResolveAgentPath:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("agents/agent.yaml")
+                result = resolve_agent_path("agents/agent.yaml")
                 # Returns resolved absolute path for security
                 assert result is not None
                 assert result.endswith("agents/agent.yaml") or result.endswith("agents\\agent.yaml")
@@ -446,7 +447,7 @@ class TestResolveAgentPath:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("nonexistent")
+                result = resolve_agent_path("nonexistent")
                 assert result is None
             finally:
                 os.chdir(original_cwd)
@@ -463,7 +464,7 @@ class TestResolveAgentPath:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("agent")
+                result = resolve_agent_path("agent")
                 # Returns absolute resolved path, preferring .yaml
                 assert result is not None
                 assert result.endswith("agent.yaml")
@@ -594,21 +595,21 @@ class TestAgentLoadCommand:
 
 
 class TestResolveAgentPathSecurity:
-    """Test path traversal security in _resolve_agent_path."""
+    """Test path traversal security in resolve_agent_path."""
 
     def test_rejects_double_dot_path_traversal(self) -> None:
         """Test that .. path traversal is rejected."""
-        result = _resolve_agent_path("../../../etc/passwd")
+        result = resolve_agent_path("../../../etc/passwd")
         assert result is None, "Path traversal with .. should be rejected"
 
     def test_rejects_double_dot_in_middle(self) -> None:
         """Test that .. in the middle of path is rejected."""
-        result = _resolve_agent_path("agents/../../../secret")
+        result = resolve_agent_path("agents/../../../secret")
         assert result is None, "Path with .. in middle should be rejected"
 
     def test_rejects_double_dot_with_extension(self) -> None:
         """Test that .. with yaml extension is rejected."""
-        result = _resolve_agent_path("../../config.yaml")
+        result = resolve_agent_path("../../config.yaml")
         assert result is None, "Path traversal with extension should be rejected"
 
     def test_allows_valid_agent_name(self) -> None:
@@ -621,7 +622,7 @@ class TestResolveAgentPathSecurity:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("valid_agent")
+                result = resolve_agent_path("valid_agent")
                 assert result is not None, "Valid agent name should be resolved"
                 assert "valid_agent.yaml" in result
             finally:
@@ -638,7 +639,7 @@ class TestResolveAgentPathSecurity:
             try:
                 os.chdir(tmpdir)
                 # Even if agent name could resolve elsewhere, it should be bounded
-                result = _resolve_agent_path("nested")
+                result = resolve_agent_path("nested")
                 if result is not None:
                     resolved = Path(result).resolve()
                     assert str(resolved).startswith(str(agents_dir.resolve())), \
@@ -656,7 +657,7 @@ class TestResolveAgentPathSecurity:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
-                result = _resolve_agent_path("agent.v1.0")
+                result = resolve_agent_path("agent.v1.0")
                 assert result is not None, "Single dots in name should be allowed"
             finally:
                 os.chdir(original_cwd)

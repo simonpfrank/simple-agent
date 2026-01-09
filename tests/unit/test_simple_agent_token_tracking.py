@@ -11,7 +11,7 @@ from simple_agent.core.agent_result import AgentResult
 class TestSimpleAgentTokenTracking:
     """Test SimpleAgent token tracking functionality."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_returns_agent_result(self, mock_model: MagicMock) -> None:
         """SimpleAgent.run() should return AgentResult."""
         agent = SimpleAgent(
@@ -31,7 +31,7 @@ class TestSimpleAgentTokenTracking:
             assert isinstance(result, AgentResult)
             assert str(result) == "Test response"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_tracks_input_tokens(self, mock_model: MagicMock) -> None:
         """SimpleAgent should track input tokens."""
         agent = SimpleAgent(
@@ -49,7 +49,7 @@ class TestSimpleAgentTokenTracking:
 
             assert result.input_tokens == 500
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_tracks_output_tokens(self, mock_model: MagicMock) -> None:
         """SimpleAgent should track output tokens."""
         agent = SimpleAgent(
@@ -67,7 +67,7 @@ class TestSimpleAgentTokenTracking:
 
             assert result.output_tokens == 150
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_calculates_cost(self, mock_model: MagicMock) -> None:
         """SimpleAgent should calculate cost."""
         agent = SimpleAgent(
@@ -87,7 +87,7 @@ class TestSimpleAgentTokenTracking:
             assert isinstance(result.cost, Decimal)
             assert result.cost >= Decimal("0")
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_backward_compat_string(self, mock_model: MagicMock) -> None:
         """AgentResult should work as string (backward compatibility)."""
         agent = SimpleAgent(
@@ -107,7 +107,7 @@ class TestSimpleAgentTokenTracking:
             assert isinstance(str(result), str)
             assert "Test response" in str(result)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_backward_compat_string_concat(self, mock_model: MagicMock) -> None:
         """AgentResult should support string concatenation (backward compatibility)."""
         agent = SimpleAgent(
@@ -127,7 +127,7 @@ class TestSimpleAgentTokenTracking:
             message = "Agent said: " + str(result)
             assert message == "Agent said: Test response"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_disable_token_tracking(self, mock_model: MagicMock) -> None:
         """SimpleAgent should support disabling token tracking."""
         agent = SimpleAgent(
@@ -147,7 +147,7 @@ class TestSimpleAgentTokenTracking:
             assert result.input_tokens == 0
             assert result.output_tokens == 0
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_model_info_in_result(self, mock_model: MagicMock) -> None:
         """AgentResult should include model information."""
         agent = SimpleAgent(
@@ -165,7 +165,7 @@ class TestSimpleAgentTokenTracking:
 
             assert result.model == "gpt-4o-mini"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_to_dict(self, mock_model: MagicMock) -> None:
         """AgentResult should convert to dict."""
         agent = SimpleAgent(
@@ -187,7 +187,7 @@ class TestSimpleAgentTokenTracking:
             assert result_dict["tokens"]["input_tokens"] == 500
             assert result_dict["tokens"]["output_tokens"] == 150
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_with_role_includes_role_in_count(self, mock_model: MagicMock) -> None:
         """SimpleAgent should include role in token count."""
         agent = SimpleAgent(
@@ -211,7 +211,7 @@ class TestSimpleAgentTokenTracking:
             assert "You are a helpful assistant" in first_call_args
             assert "test prompt" in first_call_args
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_simple_agent_token_budget_still_enforced(self, mock_model: MagicMock) -> None:
         """SimpleAgent should still enforce token budget."""
         agent = SimpleAgent(

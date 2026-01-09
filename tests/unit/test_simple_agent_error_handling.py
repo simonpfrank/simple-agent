@@ -10,7 +10,7 @@ from simple_agent.core.agent_result import AgentResult
 class TestSimpleAgentErrorHandling:
     """Test SimpleAgent error handling and reporting."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_agent_returns_error_on_exception(self, mock_model: Mock) -> None:
         """SimpleAgent.run() should return AgentResult with error on exception."""
         agent = SimpleAgent(
@@ -31,7 +31,7 @@ class TestSimpleAgentErrorHandling:
             assert result.error == "Test error"
             assert result.error_type == "RuntimeError"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_agent_error_does_not_raise(self, mock_model: Mock) -> None:
         """SimpleAgent.run() should not raise exception, only return error."""
         agent = SimpleAgent(
@@ -51,7 +51,7 @@ class TestSimpleAgentErrorHandling:
             assert result.error is not None
             assert isinstance(result, AgentResult)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_agent_error_with_token_tracking(self, mock_model: Mock) -> None:
         """Error tracking should preserve input token count."""
         agent = SimpleAgent(
@@ -70,7 +70,7 @@ class TestSimpleAgentErrorHandling:
             assert result.input_tokens == 500
             assert result.error_type == "RuntimeError"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_budget_error_raises(self, mock_model: Mock) -> None:
         """Token budget error should RAISE (hard limit, not captured)."""
         agent = SimpleAgent(
@@ -89,7 +89,7 @@ class TestSimpleAgentErrorHandling:
 
             assert "Token budget exceeded" in str(exc_info.value)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_agent_error_with_partial_tokens(self, mock_model: Mock) -> None:
         """Error after partial token estimation should record tokens."""
         agent = SimpleAgent(
@@ -110,7 +110,7 @@ class TestSimpleAgentErrorHandling:
             assert result.output_tokens == 0  # No output due to error
             assert result.error_type == "RuntimeError"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_agent_error_to_dict_includes_error(self, mock_model: Mock) -> None:
         """AgentResult.to_dict() should include error information."""
         agent = SimpleAgent(
@@ -132,7 +132,7 @@ class TestSimpleAgentErrorHandling:
             assert result_dict["error"]["error_message"] == "Test error"
             assert result_dict["error"]["execution_halted"] is True
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_successful_execution_has_no_error(self, mock_model: Mock) -> None:
         """Successful execution should not have error fields."""
         agent = SimpleAgent(
@@ -153,7 +153,7 @@ class TestSimpleAgentErrorHandling:
             result_dict = result.to_dict()
             assert "error" not in result_dict
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_different_error_types_captured(self, mock_model: Mock) -> None:
         """Different exception types should be captured correctly."""
         agent = SimpleAgent(
@@ -181,7 +181,7 @@ class TestSimpleAgentErrorHandling:
                 assert result.error_type == expected_type
                 assert result.error == str(exception)
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_error_with_empty_response(self, mock_model: Mock) -> None:
         """Error case should have empty response."""
         agent = SimpleAgent(
@@ -200,7 +200,7 @@ class TestSimpleAgentErrorHandling:
             assert result.response == ""
             assert result.error == "Failed"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_error_preserves_model_info(self, mock_model: Mock) -> None:
         """Error result should still include model information."""
         agent = SimpleAgent(

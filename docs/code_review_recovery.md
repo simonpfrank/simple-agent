@@ -358,7 +358,7 @@ After each phase:
 | Phase 1: Critical Security | ✅ Complete | 2026-01-09 | 2026-01-09 |
 | Phase 2: Type Safety | ✅ Complete | 2026-01-09 | 2026-01-09 |
 | Phase 3.1: Fix Coupling | ✅ Complete | 2026-01-09 | 2026-01-09 |
-| Phase 3.2: Split Files | Deferred | - | - |
+| Phase 3.2: Split Files | ✅ Complete | 2026-01-09 | 2026-01-09 |
 | Phase 4: Error Handling | Deferred | - | - |
 | Phase 5.1: Jinja2 Sandbox | ✅ Complete | 2026-01-09 | 2026-01-09 |
 | Phase 6: Performance & Polish | ✅ Complete | 2026-01-09 | 2026-01-09 |
@@ -370,7 +370,7 @@ After each phase:
 
 - [x] `mypy simple_agent/` passes with no errors (pragmatic config)
 - [ ] `ruff check simple_agent/` passes with no errors
-- [ ] All files under 500 lines
+- [x] All files under 500 lines
 - [ ] 90%+ branch coverage
 - [ ] No silent exception handlers
 - [x] HITL actually blocks until approval

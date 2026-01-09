@@ -8,12 +8,14 @@ NO business logic - all logic delegated to AgentManager.
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
 from rich.panel import Panel
+
+from simple_agent.commands.agent_persistence import register_persistence_commands
+from simple_agent.commands.agent_tools import register_tool_commands
+from simple_agent.commands.agent_wizard import register_wizard_command
 
 logger = logging.getLogger("simple_agent.commands.agent")
 
@@ -25,9 +27,15 @@ def _should_log_traceback() -> bool:
 
 @click.group()
 @click.pass_context
-def agent(ctx):
+def agent(ctx: click.Context) -> None:
     """Agent management commands."""
     pass
+
+
+# Register commands from extracted modules
+register_persistence_commands(agent)
+register_tool_commands(agent)
+register_wizard_command(agent)
 
 
 @agent.command()
@@ -37,7 +45,7 @@ def agent(ctx):
 )
 @click.option("--role", "-r", default=None, help="Agent role/persona")
 @click.pass_context
-def create(ctx, name: str, provider: str, role: str):
+def create(ctx: click.Context, name: str, provider: str, role: str) -> None:
     """
     Create a new agent.
 
@@ -51,15 +59,15 @@ def create(ctx, name: str, provider: str, role: str):
 
     logger.info(f"[COMMAND] /agent create - name={name}, provider={provider}")
     logger.debug(
-        f"create_agent(name={name}, provider={provider}, role_len={len(role) if role else 0})"
+        f"create_agent(name={name}, provider={provider}, "
+        f"role_len={len(role) if role else 0})"
     )
 
     try:
-        # Business logic in agent_manager, not here
-        agent = agent_manager.create_agent(name=name, provider=provider, role=role)
+        agent_obj = agent_manager.create_agent(name=name, provider=provider, role=role)
         logger.info(f"[COMMAND] Agent '{name}' created successfully")
-        logger.debug(f"create_agent() returned SimpleAgent instance: {agent.name}")
-        console.print(f"[green]✓[/green] Created agent: {agent}")
+        logger.debug(f"create_agent() returned SimpleAgent instance: {agent_obj.name}")
+        console.print(f"[green]✓[/green] Created agent: {agent_obj}")
     except FileNotFoundError as e:
         logger.error(
             f"[COMMAND] Create agent failed - file not found: {str(e)}",
@@ -76,162 +84,12 @@ def create(ctx, name: str, provider: str, role: str):
 
 @agent.command()
 @click.argument("agent_name")
-@click.pass_context
-def load(ctx, agent_name: str):
-    """
-    Load an agent from a YAML file.
-
-    Intelligently resolves agent names to file paths:
-    - If agent_name is a full path, uses it as-is
-    - If agent_name is in config/agents/, searches there with .yaml or .yml extension
-    - Otherwise, tries to find it in config/agents/ directory
-
-    Examples:
-        /agent load column_matcher          # Loads config/agents/column_matcher.yaml
-        /agent load researcher              # Loads config/agents/researcher.yaml
-        /agent load /path/to/custom.yaml    # Loads absolute path
-        /agent load ./agents/my_agent       # Loads relative path
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-
-    logger.info(f"[COMMAND] /agent load - name={agent_name}")
-
-    # Check if agent is already loaded
-    if agent_name in agent_manager.agents:
-        existing_agent = agent_manager.agents[agent_name]
-        tool_count = len(existing_agent.tools) if existing_agent.tools else 0
-        logger.info(f"[COMMAND] Agent '{agent_name}' is already loaded")
-        console.print(f"[yellow]ℹ[/yellow] Agent '{agent_name}' is already loaded")
-        console.print(f"  Provider: {existing_agent.model_provider}")
-        if existing_agent.tools:
-            console.print(f"  Tools: {[t.name for t in existing_agent.tools]}")
-        # Set as active agent for agent mode
-        agent_manager.set_active_agent(agent_name)
-        return
-
-    # Resolve the actual file path
-    logger.debug(f"_resolve_agent_path({agent_name})")
-    yaml_path = _resolve_agent_path(agent_name)
-    logger.debug(f"_resolve_agent_path() returned: {yaml_path}")
-
-    if not yaml_path:
-        logger.warning(
-            f"[COMMAND] Agent '{agent_name}' not found in config/agents/ or as path"
-        )
-        console.print(
-            f"[red]Error:[/red] Agent '{agent_name}' not found\n"
-            f"  Tried:\n"
-            f"    - config/agents/{agent_name}.yaml\n"
-            f"    - config/agents/{agent_name}.yml\n"
-            f"    - {agent_name} (as-is)"
-        )
-        return
-
-    try:
-        logger.debug(f"load_agent_from_yaml({yaml_path})")
-        agent = agent_manager.load_agent_from_yaml(yaml_path)
-        tool_count = len(agent.tools) if agent.tools else 0
-        logger.info(
-            f"[COMMAND] Agent '{agent.name}' loaded successfully ({tool_count} tools)"
-        )
-        logger.debug(
-            f"load_agent_from_yaml() returned: {agent.name} with tools: {[t.name for t in (agent.tools or [])]}"
-        )
-        console.print(f"[green]✓[/green] Loaded agent: {agent.name}")
-        if agent.tools:
-            console.print(f"  Tools: {[t.name for t in agent.tools]}")
-        else:
-            console.print("  Tools: (none)")
-        # Set as active agent for agent mode
-        agent_manager.set_active_agent(agent.name)
-    except FileNotFoundError:
-        logger.error(
-            f"[COMMAND] Load agent failed - file not found: {yaml_path}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print(f"[red]Error:[/red] File not found: {yaml_path}")
-    except Exception as e:
-        logger.error(
-            f"[COMMAND] Load agent failed - {type(e).__name__}: {str(e)}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print(f"[red]Error:[/red] {str(e)}")
-
-
-def _resolve_agent_path(agent_name: str) -> Optional[str]:
-    """
-    Resolve agent name to actual file path with path traversal protection.
-
-    Tries multiple strategies:
-    1. If it's a full/relative path, return if it exists (with security checks)
-    2. If it's just a name, look in config/agents/ with .yaml or .yml extension
-    3. Return None if not found
-
-    Args:
-        agent_name: Agent name or path
-
-    Returns:
-        Resolved file path, or None if not found or path traversal detected
-
-    Security:
-        - Rejects any input containing ".." to prevent path traversal
-        - Validates that resolved paths in config/agents stay within that directory
-    """
-    # SECURITY: Reject any path traversal attempts
-    if ".." in agent_name:
-        logger.warning(f"Path traversal attempt detected in agent name: {agent_name}")
-        return None
-
-    agents_dir = Path("config/agents").resolve()
-
-    # Strategy 1: If it looks like a path (contains / or \ or file extension), try as-is
-    if (
-        "/" in agent_name
-        or "\\" in agent_name
-        or agent_name.endswith((".yaml", ".yml"))
-    ):
-        candidate = Path(agent_name).resolve()
-        if candidate.exists():
-            # SECURITY: If within agents_dir, verify it stays there
-            if str(candidate).startswith(str(agents_dir)):
-                return str(candidate)
-            # Allow loading from outside agents_dir for explicit full paths
-            # (user explicitly provided path, so they intend it)
-            return str(candidate)
-        # If it doesn't exist, fall through to other strategies
-
-    # Strategy 2: Try in config/agents/ with .yaml extension
-    yaml_path = (agents_dir / f"{agent_name}.yaml").resolve()
-    # SECURITY: Verify resolved path is still within agents_dir
-    if str(yaml_path).startswith(str(agents_dir)) and yaml_path.exists():
-        return str(yaml_path)
-
-    # Strategy 3: Try in config/agents/ with .yml extension
-    yml_path = (agents_dir / f"{agent_name}.yml").resolve()
-    # SECURITY: Verify resolved path is still within agents_dir
-    if str(yml_path).startswith(str(agents_dir)) and yml_path.exists():
-        return str(yml_path)
-
-    # Strategy 4: If full path was provided but doesn't exist, return it anyway
-    # (let agent_manager.load_agent_from_yaml handle the error)
-    if (
-        "/" in agent_name
-        or "\\" in agent_name
-        or agent_name.endswith((".yaml", ".yml"))
-    ):
-        return agent_name
-
-    # Not found
-    return None
-
-
-@agent.command()
-@click.argument("name")
 @click.argument("prompt", nargs=-1, required=True)
-@click.option("-v", "--verbose", is_flag=True, help="Enable verbose output for this run")
+@click.option(
+    "-v", "--verbose", is_flag=True, help="Enable verbose output for this run"
+)
 @click.pass_context
-def run(ctx, name: str, prompt: tuple, verbose: bool):
+def run(ctx: click.Context, agent_name: str, prompt: tuple, verbose: bool) -> None:
     """
     Run a prompt through an agent.
 
@@ -243,31 +101,33 @@ def run(ctx, name: str, prompt: tuple, verbose: bool):
     console: Console = ctx.obj["console"]
     agent_manager = ctx.obj["agent_manager"]
 
-    # Join prompt parts into single string
     prompt_text = " ".join(prompt)
 
-    logger.info(f"[COMMAND] /agent run - name={name}, prompt_len={len(prompt_text)}")
-    logger.debug(f"run_agent(name={name}, prompt_len={len(prompt_text)}, reset=True)")
+    logger.info(
+        f"[COMMAND] /agent run - name={agent_name}, prompt_len={len(prompt_text)}"
+    )
+    logger.debug(
+        f"run_agent(name={agent_name}, prompt_len={len(prompt_text)}, reset=True)"
+    )
 
     try:
-        # Business logic in agent_manager, not here
-        console.print(f"\n[dim]Running agent '{name}'...[/dim]")
+        console.print(f"\n[dim]Running agent '{agent_name}'...[/dim]")
 
         # Run in thread to isolate SmolAgents' asyncio.run() from prompt_toolkit
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(agent_manager.run_agent, name, prompt_text)
+            future = executor.submit(agent_manager.run_agent, agent_name, prompt_text)
             response = future.result()
 
-        # Convert response to string (could be AgentResult or string)
         response_str = str(response) if response else ""
         response_len = len(response_str)
         logger.info(
-            f"[COMMAND] Agent '{name}' ran successfully (response_len={response_len})"
+            f"[COMMAND] Agent '{agent_name}' ran successfully "
+            f"(response_len={response_len})"
         )
         logger.debug(f"run_agent() returned response with {response_len} characters")
         console.print(f"\n[bold cyan]Response:[/bold cyan]\n{response_str}\n")
 
-        # Display token usage if available (AgentResult has token info)
+        # Display token usage if available
         if hasattr(response, "total_tokens") and response.total_tokens > 0:
             token_info = (
                 f"[dim]Tokens: {response.input_tokens:,} in / "
@@ -283,7 +143,7 @@ def run(ctx, name: str, prompt: tuple, verbose: bool):
             token_manager = ctx.obj.get("token_manager")
             if token_manager:
                 token_manager.add_execution(
-                    agent_name=name,
+                    agent_name=agent_name,
                     input_tokens=response.input_tokens,
                     output_tokens=response.output_tokens,
                     cost=float(response.cost) if hasattr(response, "cost") else 0.0,
@@ -306,7 +166,7 @@ def run(ctx, name: str, prompt: tuple, verbose: bool):
 
 @agent.command(name="list")
 @click.pass_context
-def list_agents(ctx):
+def list_agents(ctx: click.Context) -> None:
     """
     List all registered agents and available YAML files.
 
@@ -324,7 +184,6 @@ def list_agents(ctx):
     logger.info("[COMMAND] /agent list")
     logger.debug("list_agents()")
 
-    # Get loaded agents
     agents = agent_manager.list_agents()
     logger.debug(f"list_agents() returned {len(agents)} agents: {agents}")
 
@@ -334,19 +193,18 @@ def list_agents(ctx):
     if os.path.isdir(agents_dir):
         for filename in os.listdir(agents_dir):
             if filename.endswith(".yaml") or filename.endswith(".yml"):
-                # Get agent name from filename (without extension)
                 agent_name = filename.rsplit(".", 1)[0]
                 available_yamls.append(agent_name)
 
-    logger.info(f"[COMMAND] Listed {len(agents)} loaded, {len(available_yamls)} available")
+    logger.info(
+        f"[COMMAND] Listed {len(agents)} loaded, {len(available_yamls)} available"
+    )
 
-    # Show loaded agents
     if agents:
         console.print("\n[bold cyan]Loaded Agents:[/bold cyan]")
         for agent_name in agents:
             console.print(f"  [green]●[/green] {agent_name}")
 
-    # Show available YAML files (not yet loaded)
     not_loaded = [name for name in available_yamls if name not in agents]
     if not_loaded:
         console.print("\n[bold]Available (not loaded):[/bold]")
@@ -364,7 +222,7 @@ def list_agents(ctx):
 @agent.command()
 @click.argument("name")
 @click.pass_context
-def chat(ctx, name: str):
+def chat(ctx: click.Context, name: str) -> None:
     """
     Enter interactive chat mode with an agent.
 
@@ -380,7 +238,6 @@ def chat(ctx, name: str):
 
     logger.info(f"[COMMAND] /agent chat - name={name}")
 
-    # Verify agent exists
     try:
         logger.debug(f"get_agent({name})")
         agent_manager.get_agent(name)
@@ -393,16 +250,15 @@ def chat(ctx, name: str):
         console.print(f"[red]Error:[/red] {str(e)}")
         return
 
-    # Check if repl_state is available
     if repl_state is None:
-        console.print("[red]Error:[/red] Chat mode not available (REPL state not initialized)")
+        console.print(
+            "[red]Error:[/red] Chat mode not available (REPL state not initialized)"
+        )
         return
 
-    # Set chat mode in state - REPL will route input to this agent
     repl_state.chat_mode_agent = name
     logger.info(f"[COMMAND] Entered chat mode for agent '{name}'")
 
-    # Display welcome message
     console.print()
     console.print(
         Panel(
@@ -415,136 +271,10 @@ def chat(ctx, name: str):
     )
 
 
-@agent.command()
-@click.argument("name")
-@click.pass_context
-def tools(ctx, name: str):
-    """
-    List all tools attached to an agent.
-
-    Examples:
-        /agent tools my_agent
-        /agent tools default
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-
-    logger.info(f"[COMMAND] /agent tools - name={name}")
-    logger.debug(f"get_agent_tools({name})")
-
-    try:
-        # Get tools from agent_manager
-        tool_names = agent_manager.get_agent_tools(name)
-        logger.debug(
-            f"get_agent_tools() returned {len(tool_names)} tools: {tool_names}"
-        )
-        logger.info(f"[COMMAND] Listed {len(tool_names)} tool(s) for agent '{name}'")
-
-        if not tool_names:
-            console.print()
-            console.print(f"[yellow]Agent '{name}' has no tools attached.[/yellow]")
-            console.print()
-            return
-
-        # Display tools
-        console.print()
-        console.print(f"[bold]Tools for agent '{name}':[/bold]")
-        for tool_name in sorted(tool_names):
-            console.print(f"  • {tool_name}")
-        console.print()
-        console.print(f"[dim]Total: {len(tool_names)} tools[/dim]")
-        console.print(
-            "[dim]Use [cyan]/tool info --name <tool>[/cyan] for tool details[/dim]\n"
-        )
-
-    except KeyError as e:
-        logger.error(
-            f"[COMMAND] Tools command failed - agent '{name}' not found",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] {str(e)}")
-        console.print()
-
-
-@agent.command("add-tool")
-@click.argument("name")
-@click.argument("tool")
-@click.pass_context
-def add_tool(ctx, name: str, tool: str):
-    """
-    Add a tool to an existing agent.
-
-    Examples:
-        /agent add-tool my_agent calculator
-        /agent add-tool default add
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-
-    logger.info(f"[COMMAND] /agent add-tool - name={name}, tool={tool}")
-    logger.debug(f"add_tool_to_agent({name}, {tool})")
-
-    try:
-        # Add tool via agent_manager
-        agent_manager.add_tool_to_agent(name, tool)
-        logger.info(f"[COMMAND] Tool '{tool}' added to agent '{name}'")
-        logger.debug("add_tool_to_agent() completed successfully")
-        console.print()
-        console.print(f"[green]✓[/green] Added tool '{tool}' to agent '{name}'")
-        console.print()
-
-    except KeyError as e:
-        logger.error(
-            f"[COMMAND] Add-tool failed - {type(e).__name__}: {str(e)}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] {str(e)}")
-        console.print()
-
-
-@agent.command("remove-tool")
-@click.argument("name")
-@click.argument("tool")
-@click.pass_context
-def remove_tool(ctx, name: str, tool: str):
-    """
-    Remove a tool from an existing agent.
-
-    Examples:
-        /agent remove-tool my_agent calculator
-        /agent remove-tool default add
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-
-    logger.info(f"[COMMAND] /agent remove-tool - name={name}, tool={tool}")
-    logger.debug(f"remove_tool_from_agent({name}, {tool})")
-
-    try:
-        # Remove tool via agent_manager
-        agent_manager.remove_tool_from_agent(name, tool)
-        logger.info(f"[COMMAND] Tool '{tool}' removed from agent '{name}'")
-        logger.debug("remove_tool_from_agent() completed successfully")
-        console.print()
-        console.print(f"[green]✓[/green] Removed tool '{tool}' from agent '{name}'")
-        console.print()
-
-    except KeyError as e:
-        logger.error(
-            f"[COMMAND] Remove-tool failed - {type(e).__name__}: {str(e)}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] {str(e)}")
-        console.print()
-
-
 @agent.command("show-prompt")
 @click.argument("name")
 @click.pass_context
-def show_prompt(ctx, name: str):
+def show_prompt(ctx: click.Context, name: str) -> None:
     """
     Show the system prompt used by an agent.
 
@@ -562,16 +292,13 @@ def show_prompt(ctx, name: str):
     logger.debug(f"get_agent({name})")
 
     try:
-        # Get agent
-        agent = agent_manager.get_agent(name)
-        logger.debug(f"get_agent() returned agent: {agent.name}")
+        agent_obj = agent_manager.get_agent(name)
+        logger.debug(f"get_agent() returned agent: {agent_obj.name}")
 
-        # Get system prompt from underlying SmolAgents agent
-        system_prompt = agent.agent.system_prompt
+        system_prompt = agent_obj.agent.system_prompt
         prompt_len = len(system_prompt) if system_prompt else 0
         logger.debug(f"System prompt length: {prompt_len} characters")
 
-        # Display in a panel
         console.print()
         console.print(
             Panel(
@@ -596,272 +323,7 @@ def show_prompt(ctx, name: str):
         )
         console.print()
         console.print(
-            f"[yellow]Warning:[/yellow] Agent '{name}' does not have a system_prompt attribute"
+            f"[yellow]Warning:[/yellow] Agent '{name}' does not have "
+            "a system_prompt attribute"
         )
-        console.print()
-
-
-@agent.command("save")
-@click.argument("name")
-@click.option(
-    "--path",
-    "-p",
-    default=None,
-    help="Custom save path (default: config/agents/<name>.yaml)",
-)
-@click.pass_context
-def save(ctx, name: str, path: str):
-    """
-    Save agent configuration to YAML file.
-
-    Saves the agent's configuration (role, tools, settings) to a YAML file
-    in the config/agents/ directory, or to a custom path.
-
-    Examples:
-        /agent save my_agent
-        /agent save researcher --path custom/researcher.yaml
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-
-    logger.info(f"[COMMAND] /agent save - name={name}, path={path}")
-
-    try:
-        # Determine save path
-        if path is None:
-            path = f"config/agents/{name}.yaml"
-
-        logger.debug(f"save_agent_to_yaml({name}, {path})")
-        # Save agent
-        agent_manager.save_agent_to_yaml(name, path)
-        logger.info(f"[COMMAND] Agent '{name}' saved to: {path}")
-        logger.debug("save_agent_to_yaml() completed successfully")
-
-        console.print()
-        console.print(f"[green]✓[/green] Saved agent '{name}' to: [cyan]{path}[/cyan]")
-        console.print()
-
-    except KeyError as e:
-        logger.error(
-            f"[COMMAND] Save failed - agent '{name}' not found",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] {str(e)}")
-        console.print()
-    except Exception as e:
-        logger.error(
-            f"[COMMAND] Save failed - {type(e).__name__}: {str(e)}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] Failed to save agent: {str(e)}")
-        console.print()
-
-
-@agent.command("create-wizard")
-@click.pass_context
-def create_wizard(ctx):
-    """
-    Create an agent interactively using a step-by-step wizard.
-
-    Walks you through all agent configuration options with prompts
-    and defaults. Optionally saves the agent to a YAML file.
-
-    NOTE: This command only works in CLI mode, not in the REPL.
-    In the REPL, use: /agent create <name> --provider <provider> --role "role"
-
-    Example (CLI only):
-        simple-agent agent create-wizard
-    """
-    console: Console = ctx.obj["console"]
-    agent_manager = ctx.obj["agent_manager"]
-    tool_manager = ctx.obj.get("tool_manager")
-    config = ctx.obj["config"]
-    repl_state = ctx.obj.get("repl_state")
-
-    logger.info("[COMMAND] /agent create-wizard - started")
-
-    # Check if running in REPL mode - interactive prompts don't work there
-    if repl_state is not None:
-        console.print()
-        console.print(
-            Panel(
-                "[yellow]The wizard requires interactive input which doesn't work in the REPL.[/yellow]\n\n"
-                "[bold]Use instead:[/bold]\n"
-                "  /agent create <name> --provider <provider> --role \"Your role\"\n\n"
-                "[bold]Examples:[/bold]\n"
-                "  /agent create my_agent\n"
-                "  /agent create coder --role \"You are a Python expert\"\n"
-                "  /agent create local --provider ollama",
-                title="Wizard Not Available in REPL",
-                border_style="yellow",
-            )
-        )
-        return
-
-    console.print()
-    console.print(
-        Panel(
-            "[bold cyan]Interactive Agent Creation Wizard[/bold cyan]\n"
-            "[dim]Follow the prompts to create a new agent[/dim]",
-            title="Agent Wizard",
-            border_style="cyan",
-        )
-    )
-    console.print()
-
-    def prompt_with_default(message: str, default: str = "") -> str:
-        """Prompt with optional default value using click.prompt."""
-        try:
-            # Use click.prompt which works in CLI context
-            result = click.prompt(message, default=default, show_default=bool(default))
-            return result.strip() if result else default
-        except (EOFError, KeyboardInterrupt, click.Abort):
-            raise click.Abort()
-
-    try:
-        # Step 1: Agent name
-        logger.debug("Wizard step 1: agent name")
-        name = prompt_with_default("Agent name")
-        if not name:
-            console.print("[red]Error:[/red] Agent name is required")
-            return
-        logger.debug(f"Wizard input: name={name}")
-
-        # Step 2: Agent role/persona
-        console.print()
-        console.print("[bold]Agent role/persona:[/bold]")
-        console.print(
-            "[dim]Enter the agent's system prompt or press Enter for default[/dim]"
-        )
-        logger.debug("Wizard step 2: agent role")
-        role = prompt_with_default("Role", "You are a helpful AI assistant.")
-        logger.debug(f"Wizard input: role_len={len(role)}")
-
-        # Step 3: LLM provider
-        console.print()
-        console.print("[bold]Select LLM provider:[/bold]")
-
-        # Get providers from config (Issue #14: use dynamic provider list)
-        llm_config = config.get("llm", {})
-        # Filter out non-provider keys (keys with dict values that have config like model, api_key, etc.)
-        providers = [
-            key
-            for key in llm_config.keys()
-            if isinstance(llm_config[key], dict)
-            and any(
-                k in llm_config[key]
-                for k in ["model", "api_key", "base_url", "azure_endpoint"]
-            )
-        ]
-        # Sort for consistent ordering, with default first
-        default_provider = llm_config.get("provider", "openai")
-        if default_provider in providers:
-            providers.remove(default_provider)
-            providers.insert(0, default_provider)
-
-        logger.debug(f"Wizard step 3: LLM provider - available={providers}")
-        for i, provider in enumerate(providers, 1):
-            console.print(f"  {i}. {provider}")
-
-        provider_choice = prompt_with_default("Provider choice (number)", "1")
-        try:
-            provider_idx = int(provider_choice)
-            if provider_idx < 1 or provider_idx > len(providers):
-                provider_idx = 1
-        except ValueError:
-            provider_idx = 1
-        provider = providers[provider_idx - 1]
-        logger.debug(f"Wizard input: provider={provider}")
-
-        # Step 4: Tools (if tool_manager available)
-        tools = []
-        if tool_manager:
-            console.print()
-            logger.debug("Wizard step 4: tools selection")
-            add_tools_choice = prompt_with_default("Add tools to this agent? (y/n)", "n")
-            add_tools = add_tools_choice.lower() in ("y", "yes")
-
-            if add_tools:
-                available_tools = tool_manager.list_tools()
-                logger.debug(f"Available tools: {available_tools}")
-                if available_tools:
-                    console.print("[bold]Available tools:[/bold]")
-                    for i, tool_name in enumerate(available_tools, 1):
-                        console.print(f"  {i}. {tool_name}")
-
-                    console.print()
-                    console.print(
-                        "[dim]Enter tool numbers separated by commas (e.g., 1,3,4)[/dim]"
-                    )
-                    tool_selection = prompt_with_default("Tool selection", "")
-
-                    if tool_selection:
-                        try:
-                            tool_indices = [
-                                int(idx.strip()) - 1 for idx in tool_selection.split(",")
-                            ]
-                            tools = [
-                                available_tools[idx]
-                                for idx in tool_indices
-                                if 0 <= idx < len(available_tools)
-                            ]
-                        except ValueError:
-                            console.print("[yellow]Invalid selection, skipping tools[/yellow]")
-            logger.debug(f"Wizard step 4: selected {len(tools)} tools: {tools}")
-
-        # Step 5: Save to YAML
-        console.print()
-        logger.debug("Wizard step 5: save to YAML")
-        save_yaml_choice = prompt_with_default("Save agent configuration to YAML? (y/n)", "y")
-        save_yaml = save_yaml_choice.lower() in ("y", "yes")
-        logger.debug(f"Wizard input: save_yaml={save_yaml}")
-
-        # Create the agent
-        console.print()
-        console.print("[dim]Creating agent...[/dim]")
-        logger.debug(
-            f"create_agent(name={name}, provider={provider}, role_len={len(role)}, tools={tools})"
-        )
-        agent_manager.create_agent(
-            name=name,
-            provider=provider,
-            role=role,
-            tools=tools if tools else None,
-        )
-        logger.info(
-            f"[COMMAND] Wizard: Agent '{name}' created (provider={provider}, tools={len(tools)})"
-        )
-        logger.debug("create_agent() completed successfully")
-
-        console.print()
-        console.print(f"[green]✓[/green] Created agent: [bold]{name}[/bold]")
-
-        if tools:
-            console.print(f"  Tools: {', '.join(tools)}")
-
-        # Save to YAML if requested
-        if save_yaml:
-            yaml_path = f"config/agents/{name}.yaml"
-            logger.debug(f"save_agent_to_yaml({name}, {yaml_path})")
-            agent_manager.save_agent_to_yaml(name, yaml_path)
-            logger.info(f"[COMMAND] Wizard: Agent '{name}' saved to {yaml_path}")
-            logger.debug("save_agent_to_yaml() completed successfully")
-            console.print(f"  Saved to: [cyan]{yaml_path}[/cyan]")
-
-        console.print()
-
-    except click.Abort:
-        logger.info("[COMMAND] Wizard: User cancelled")
-        console.print()
-        console.print("[yellow]Wizard cancelled[/yellow]")
-        console.print()
-    except Exception as e:
-        logger.error(
-            f"[COMMAND] Wizard failed - {type(e).__name__}: {str(e)}",
-            exc_info=_should_log_traceback(),
-        )
-        console.print()
-        console.print(f"[red]Error:[/red] {str(e)}")
         console.print()

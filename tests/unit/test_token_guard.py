@@ -8,7 +8,7 @@ from simple_agent.agents.simple_agent import SimpleAgent
 class TestTokenGuardBasic:
     """Test basic token guard functionality."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_accepts_prompt_within_budget(self, mock_model: Mock) -> None:
         """Prompt within budget should execute normally."""
         agent = SimpleAgent(
@@ -29,7 +29,7 @@ class TestTokenGuardBasic:
             assert str(result) == "Response"
             agent.agent.run.assert_called_once()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_rejects_prompt_exceeding_budget(self, mock_model: Mock) -> None:
         """Prompt exceeding budget should raise error."""
         agent = SimpleAgent(
@@ -53,7 +53,7 @@ class TestTokenGuardBasic:
                 exc_info.value
             ).lower()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_logs_warning_at_threshold(self, mock_model: Mock) -> None:
         """Prompt near warning threshold should log warning."""
         agent = SimpleAgent(
@@ -77,7 +77,7 @@ class TestTokenGuardBasic:
                 # But should still execute
                 assert str(result) == "Response"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_no_warning_without_threshold(self, mock_model: Mock) -> None:
         """No warning should be logged if threshold not set."""
         agent = SimpleAgent(
@@ -105,7 +105,7 @@ class TestTokenGuardBasic:
 class TestTokenGuardDefaultBehavior:
     """Test token guard with default values."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_no_budget_set_allows_all_prompts(self, mock_model: Mock) -> None:
         """Agent without token_budget should allow all prompts."""
         agent = SimpleAgent(
@@ -126,7 +126,7 @@ class TestTokenGuardDefaultBehavior:
             assert str(result) == "Response"
             agent.agent.run.assert_called_once()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_with_none_values(self, mock_model: Mock) -> None:
         """Token guard should handle None values gracefully."""
         agent = SimpleAgent(
@@ -151,7 +151,7 @@ class TestTokenGuardDefaultBehavior:
 class TestTokenGuardPromptFormatting:
     """Test that token guard counts complete formatted prompt."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_includes_system_message(self, mock_model: Mock) -> None:
         """Token estimate should include system message."""
         agent = SimpleAgent(
@@ -172,7 +172,7 @@ class TestTokenGuardPromptFormatting:
             # estimate_tokens should be called (with formatted prompt)
             mock_estimate.assert_called()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_estimate_called_before_agent_run(self, mock_model: Mock) -> None:
         """estimate_tokens must be called BEFORE agent.run()."""
         agent = SimpleAgent(
@@ -207,7 +207,7 @@ class TestTokenGuardPromptFormatting:
 class TestTokenGuardEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_exactly_at_budget(self, mock_model: Mock) -> None:
         """Prompt exactly at budget limit should be accepted."""
         agent = SimpleAgent(
@@ -227,7 +227,7 @@ class TestTokenGuardEdgeCases:
             # Should be accepted
             assert str(result) == "Response"
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_one_over_budget(self, mock_model: Mock) -> None:
         """Prompt one token over budget should be rejected."""
         agent = SimpleAgent(
@@ -244,7 +244,7 @@ class TestTokenGuardEdgeCases:
             with pytest.raises(Exception):
                 agent.run("test prompt")
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_empty_prompt(self, mock_model: Mock) -> None:
         """Empty prompt should be counted."""
         agent = SimpleAgent(
@@ -265,7 +265,7 @@ class TestTokenGuardEdgeCases:
             assert str(result) == "Response"
             mock_estimate.assert_called()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_budget_comparison_is_strict(self, mock_model: Mock) -> None:
         """Token budget check should use > not >=."""
         agent = SimpleAgent(
@@ -288,7 +288,7 @@ class TestTokenGuardEdgeCases:
 class TestTokenGuardWithRealTokenEstimation:
     """Test token guard with real token counting."""
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_with_real_tiktoken_counting(self, mock_model: Mock) -> None:
         """Token guard should work with real token estimation."""
         agent = SimpleAgent(
@@ -311,7 +311,7 @@ class TestTokenGuardWithRealTokenEstimation:
         # Should fail due to token budget
         assert "token" in str(exc_info.value).lower() or "budget" in str(exc_info.value).lower()
 
-    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.model_factory.LiteLLMModel")
     def test_token_guard_with_small_prompt_passes(self, mock_model: Mock) -> None:
         """Small prompt should pass token guard."""
         from simple_agent.tools.helpers.token_counter import estimate_tokens
