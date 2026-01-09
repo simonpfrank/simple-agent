@@ -87,10 +87,9 @@ def create_context_factory(
         tool_manager = ToolManager(auto_load_builtin=True)
         _cache["tool_manager"] = tool_manager
 
-        # Initialize AgentManager
+        # Initialize AgentManager with tool_manager via constructor (proper DI)
         logger.debug("Loading agent manager")
-        agent_manager = AgentManager(config)
-        agent_manager.tool_manager = tool_manager
+        agent_manager = AgentManager(config, tool_manager=tool_manager)
         _cache["agent_manager"] = agent_manager
 
         # Load agents from config

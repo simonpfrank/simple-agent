@@ -7,9 +7,12 @@ Provides separation between business logic and CLI/REPL interface.
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import yaml
+
+if TYPE_CHECKING:
+    from simple_agent.core.tool_manager import ToolManager
 
 from simple_agent.agents.simple_agent import SimpleAgent
 
@@ -19,12 +22,17 @@ logger = logging.getLogger(__name__)
 class AgentManager:
     """Manages agent lifecycle (create, store, retrieve, run)."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        tool_manager: Optional["ToolManager"] = None,
+    ):
         """
         Initialize agent manager.
 
         Args:
             config: Application configuration dict
+            tool_manager: Optional ToolManager for loading tools into agents
         """
         self.config = config
         self.agents: Dict[str, SimpleAgent] = {}
@@ -37,8 +45,8 @@ class AgentManager:
         # Active agent for agent mode (free text routing)
         self.active_agent_name: Optional[str] = None
 
-        # Tool manager (set by app.py after initialization)
-        self.tool_manager = None
+        # Tool manager for loading tools into agents
+        self.tool_manager: Optional["ToolManager"] = tool_manager
 
         logger.info("AgentManager initialized")
 
