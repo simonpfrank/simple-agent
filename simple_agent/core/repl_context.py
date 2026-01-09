@@ -155,7 +155,7 @@ def get_collection_manager(context: Dict[str, Any]) -> Optional[Any]:
         from simple_agent.rag.collection_manager import CollectionManager
 
         collections_dir = context.get("collections_dir", "./chroma_db")
-        collection_manager = CollectionManager(persist_directory=collections_dir)
+        collection_manager = CollectionManager(collections_dir=collections_dir)
         context["collection_manager"] = collection_manager
         logger.info(f"Initialized CollectionManager with dir: {collections_dir}")
         return collection_manager

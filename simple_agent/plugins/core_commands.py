@@ -71,6 +71,8 @@ class CoreCommandsPlugin(CommandPlugin):
                 # Initialize ctx.obj from context_factory if not set
                 if ctx.obj is None:
                     ctx.obj = context_factory()
+                if original_callback is None:
+                    raise ValueError("Command callback is None")
                 return ctx.invoke(original_callback, *args, **kwargs)
 
             cmd.callback = wrapped_callback

@@ -6,7 +6,7 @@ from API response headers without cluttering logs with Azure SDK verbosity.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,20 +14,21 @@ logger = logging.getLogger(__name__)
 class RateLimitTracker:
     """
     Tracks rate limit information from Azure OpenAI API responses.
-    
+
     This is a singleton that stores the latest rate limit info
     and can be accessed by SimpleAgent instances.
     """
-    
-    _instance = None
-    
-    def __new__(cls):
+
+    _instance: Optional["RateLimitTracker"] = None
+    _initialized: bool = False
+
+    def __new__(cls) -> "RateLimitTracker":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         if self._initialized:
             return
         
@@ -38,10 +39,10 @@ class RateLimitTracker:
         self.last_model: Optional[str] = None
         self._initialized = True
     
-    def update_from_response(self, response_obj, model: str = "unknown"):
+    def update_from_response(self, response_obj: Any, model: str = "unknown") -> None:
         """
         Update rate limits from LiteLLM response object.
-        
+
         Args:
             response_obj: LiteLLM/OpenAI response object with headers
             model: Model name for logging

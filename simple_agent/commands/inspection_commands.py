@@ -132,7 +132,7 @@ def response(ctx):
     pass
 
 
-@response.command()
+@response.command()  # type: ignore[no-redef]
 @click.pass_context
 def show(ctx):
     """
@@ -172,7 +172,7 @@ def show(ctx):
     console.print()
 
 
-@response.command()
+@response.command()  # type: ignore[no-redef]
 @click.pass_context
 def raw(ctx):
     """

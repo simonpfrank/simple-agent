@@ -1,9 +1,11 @@
 """Input validators for guardrails."""
 
 import re
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from simple_agent.guardrails.exceptions import GuardrailViolation
+
+PIIType = Literal["email", "phone", "ssn"]
 
 
 class PIIDetector:
@@ -22,7 +24,7 @@ class PIIDetector:
         "ssn": "[SSN]",
     }
 
-    def __init__(self, types: List[Literal["email", "phone", "ssn"]] = None, redact: bool = True):
+    def __init__(self, types: Optional[List[PIIType]] = None, redact: bool = True):
         """Initialize PIIDetector.
 
         Args:

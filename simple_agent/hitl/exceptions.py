@@ -1,10 +1,12 @@
 """Exceptions for HITL system."""
 
+from typing import Optional
+
 
 class ApprovalRejected(Exception):
     """Raised when a tool execution is rejected by user."""
 
-    def __init__(self, tool_name: str, message: str = None):
+    def __init__(self, tool_name: str, message: Optional[str] = None):
         """Initialize ApprovalRejected.
 
         Args:

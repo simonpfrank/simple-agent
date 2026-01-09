@@ -23,7 +23,7 @@ class HITLTool:
         requires_approval: bool = True,
         timeout: int = 60,
         default_action: str = "reject",
-        prompt_template: str = None,
+        prompt_template: Optional[str] = None,
     ):
         """Initialize HITLTool wrapper.
 

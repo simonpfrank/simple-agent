@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from simple_agent.core.tool_manager import ToolManager
 
 from simple_agent.agents.simple_agent import SimpleAgent
+from simple_agent.core.agent_result import AgentResult
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ class AgentManager:
         else:
             logger.info("Active agent cleared")
 
-    def run_agent(self, name: str, prompt: str, reset: bool = True) -> str:
+    def run_agent(self, name: str, prompt: str, reset: bool = True) -> AgentResult:
         """
         Run prompt through specified agent.
 
@@ -445,7 +446,7 @@ class AgentManager:
         agent = self.get_agent(agent_name)
 
         # Build YAML structure
-        agent_data = {
+        agent_data: Dict[str, Any] = {
             "name": agent.name,
             "agent_type": agent.agent_type,
         }

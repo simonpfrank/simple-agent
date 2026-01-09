@@ -101,9 +101,8 @@ class Collection:
         from simple_agent.rag.embedding_provider import EmbeddingProvider
 
         # Get embedding for query
-        query_embedding = EmbeddingProvider.embed_query(
-            query, model=self.metadata.get("embedding_model")
-        )
+        embedding_model = self.metadata.get("embedding_model") or "text-embedding-ada-002"
+        query_embedding = EmbeddingProvider.embed_query(query, model=embedding_model)
 
         # Search Chroma
         results = self.chroma_collection.query(

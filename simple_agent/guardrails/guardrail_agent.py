@@ -1,6 +1,6 @@
 """GuardrailAgent wrapper for applying guardrails to SimpleAgent."""
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 
 class GuardrailAgent:
@@ -9,7 +9,7 @@ class GuardrailAgent:
     Guardrails are applied in order: each guardrail processes the output of the previous one.
     """
 
-    def __init__(self, agent: Any, input_guardrails: List = None):
+    def __init__(self, agent: Any, input_guardrails: Optional[List[Any]] = None):
         """Initialize GuardrailAgent.
 
         Args:

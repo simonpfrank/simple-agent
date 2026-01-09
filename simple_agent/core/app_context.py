@@ -68,7 +68,7 @@ class AppContext:
             AppContext instance with values from dict
         """
         return cls(
-            console=data.get("console"),
+            console=data.get("console") or Console(),
             config=data.get("config", {}),
             config_file=data.get("config_file", ""),
             debug_level=data.get("debug_level", "info"),

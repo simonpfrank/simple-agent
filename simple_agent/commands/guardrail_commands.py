@@ -1,10 +1,10 @@
 """REPL commands for guardrail management."""
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union, cast
 
 from simple_agent.guardrails.custom_rule import CustomRuleGuardrail
 from simple_agent.guardrails.exceptions import GuardrailViolation
-from simple_agent.guardrails.input_validators import PIIDetector
+from simple_agent.guardrails.input_validators import PIIDetector, PIIType
 
 
 class GuardrailCommands:
@@ -65,8 +65,8 @@ class GuardrailCommands:
         agent_name: str,
         guardrail_type: str,
         redact: bool = True,
-        pii_types: List[str] = None,
-        function: str = None,
+        pii_types: Optional[List[str]] = None,
+        function: Optional[str] = None,
     ) -> bool:
         """Add guardrail to agent.
 
@@ -87,9 +87,10 @@ class GuardrailCommands:
         if not hasattr(agent, "guardrails"):
             agent.guardrails = []
 
-        guardrail = None
+        guardrail: Optional[Union[PIIDetector, CustomRuleGuardrail]] = None
         if guardrail_type == "pii_detector":
-            guardrail = PIIDetector(types=pii_types or ["email", "phone", "ssn"], redact=redact)
+            types_list = cast(List[PIIType], pii_types or ["email", "phone", "ssn"])
+            guardrail = PIIDetector(types=types_list, redact=redact)
         elif guardrail_type == "custom":
             # Note: In real implementation, would need to import the function
             # For now, just create placeholder

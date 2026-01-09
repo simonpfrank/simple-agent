@@ -9,6 +9,7 @@ import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Optional
 
 import click
 from rich.console import Console
@@ -158,7 +159,7 @@ def load(ctx, agent_name: str):
         console.print(f"[red]Error:[/red] {str(e)}")
 
 
-def _resolve_agent_path(agent_name: str) -> str:
+def _resolve_agent_path(agent_name: str) -> Optional[str]:
     """
     Resolve agent name to actual file path with path traversal protection.
 

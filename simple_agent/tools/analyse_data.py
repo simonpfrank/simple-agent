@@ -347,7 +347,7 @@ def read_and_analyze(file_path: str, sheet_name: str | None = None) -> dict:
                 wb.close()
                 print(f"\n=== Using first sheet: {sheet_name} ===\n")
             except Exception:
-                sheet_name = 0
+                sheet_name = None  # Will default to first sheet
                 print(f"\n=== Using first sheet (index 0) ===\n")
 
         df = pd.read_excel(file_path, sheet_name=sheet_name)

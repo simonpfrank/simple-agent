@@ -2,6 +2,8 @@
 
 import os
 import logging
+from typing import Any, Dict, Optional
+
 import requests
 from smolagents import tool
 
@@ -17,14 +19,15 @@ def _get_verify_certificates() -> bool:
     try:
         from simple_agent.core.runtime_config import get_config_value
 
-        return get_config_value("verify_certificates", default=True)
+        result: Any = get_config_value("verify_certificates", default=True)
+        return bool(result)
     except ImportError:
         # Fallback if runtime_config not available
         return True
 
 
 @tool
-def tavily_web_search(query: str, verify_certificates: bool = None) -> dict:
+def tavily_web_search(query: str, verify_certificates: Optional[bool] = None) -> Dict[str, Any]:
     """Search the web using Tavily API.
 
     Use this when you need quick search results about current topics.

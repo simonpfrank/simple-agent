@@ -31,7 +31,7 @@ class SimpleAgent:
 
     def __init__(
         self,
-        name: Union[str, AgentConfig] = None,
+        name: Optional[Union[str, AgentConfig]] = None,
         model_provider: Optional[str] = None,
         model_config: Optional[Dict[str, Any]] = None,
         role: Optional[str] = None,
@@ -82,7 +82,7 @@ class SimpleAgent:
             # Build config from individual parameters
             logger.debug("From parameters")
             config = AgentConfig(
-                name=name,
+                name=name or "default",
                 model_provider=model_provider,
                 model_config=model_config or {},
                 role=role,
@@ -119,19 +119,20 @@ class SimpleAgent:
         self.token_warning_threshold = config.token_warning_threshold
 
         # Rate limit tracking (populated from API response headers)
-        self.last_tpm_limit = None
-        self.last_rpm_limit = None
-        self.last_tpm_remaining = None
-        self.last_rpm_remaining = None
+        self.last_tpm_limit: Optional[int] = None
+        self.last_rpm_limit: Optional[int] = None
+        self.last_tpm_remaining: Optional[int] = None
+        self.last_rpm_remaining: Optional[int] = None
 
         # Render role template if it contains Jinja2 syntax
         if config.role:
-            self.role = self._render_template(config.role, user_input=None)
+            self.role: Optional[str] = self._render_template(config.role, user_input=None)
         else:
             self.role = config.role
 
         # Create LiteLLM model instance
-        self.model = self._create_model(config.model_provider, config.model_config)
+        model_provider = config.model_provider or "litellm/openai"  # Default provider
+        self.model = self._create_model(model_provider, config.model_config)
 
         # Map debug_level to SmolAgents LogLevel
         # LogLevel: OFF=-1, ERROR=0, INFO=1, DEBUG=2
@@ -680,7 +681,7 @@ User query: {prompt}"""
                     response="",
                     input_tokens=input_tokens,
                     output_tokens=0,
-                    cost=0.0,
+                    cost=Decimal("0"),
                     model=model_name,
                     error=limit_info,
                     error_type="RateLimitError",

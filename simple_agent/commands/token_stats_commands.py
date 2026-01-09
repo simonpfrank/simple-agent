@@ -262,7 +262,7 @@ def token_stats(ctx, agent: Optional[str], period: int):
         # Show stats for specific agent
         agent_stats = manager.get_agent_stats_for_period(agent, hours=period)
 
-        if not _has_stats(agent_stats):
+        if not _has_stats(agent_stats) or agent_stats is None:
             console.print(f"[yellow]No stats found for agent '{agent}'[/yellow]")
             console.print()
             return

@@ -7,7 +7,7 @@ import tempfile
 import platform
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, IO, Optional
 from decimal import Decimal
 
 from simple_agent.tools.helpers.token_tracker import TokenTracker, TokenStats
@@ -23,19 +23,19 @@ else:
     import fcntl
 
 
-def _lock_file(file_obj, exclusive: bool = True):
+def _lock_file(file_obj: IO[Any], exclusive: bool = True) -> None:
     """Cross-platform file locking.
-    
+
     Args:
         file_obj: File object to lock
         exclusive: If True, acquire exclusive lock; if False, acquire shared lock
     """
     if _IS_WINDOWS:
         # Windows locking using msvcrt - lock first byte
-        mode = msvcrt.LK_NBLCK if exclusive else msvcrt.LK_NBRLCK
+        mode = msvcrt.LK_NBLCK if exclusive else msvcrt.LK_NBRLCK  # type: ignore[attr-defined]
         try:
             file_obj.seek(0)
-            msvcrt.locking(file_obj.fileno(), mode, 1)
+            msvcrt.locking(file_obj.fileno(), mode, 1)  # type: ignore[attr-defined]
         except (OSError, IOError):
             pass  # Lock not available, continue anyway
     else:
@@ -47,16 +47,16 @@ def _lock_file(file_obj, exclusive: bool = True):
             pass  # Lock not available, continue anyway
 
 
-def _unlock_file(file_obj):
+def _unlock_file(file_obj: IO[Any]) -> None:
     """Cross-platform file unlocking.
-    
+
     Args:
         file_obj: File object to unlock
     """
     if _IS_WINDOWS:
         try:
             file_obj.seek(0)
-            msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
         except (OSError, IOError):
             pass
     else:
@@ -85,7 +85,7 @@ class TokenTrackerManager:
 
         self.stats_file = stats_file
         self.tracker = TokenTracker()
-        self._agent_stats: Dict[str, Dict] = {}  # Track per-agent stats with timestamps
+        self._agent_stats: Dict[str, Dict[str, Any]] = {}  # Track per-agent stats with timestamps
 
     def add_execution_for_agent(
         self,
@@ -160,7 +160,7 @@ class TokenTrackerManager:
         else:
             self._agent_stats[agent_name]["token_budget"] = budget
 
-    def get_agent_stats(self, agent_name: str) -> Optional[Dict]:
+    def get_agent_stats(self, agent_name: str) -> Optional[Dict[str, Any]]:
         """Get aggregated stats for an agent.
 
         Args:
@@ -171,7 +171,7 @@ class TokenTrackerManager:
         """
         return self._agent_stats.get(agent_name)
 
-    def get_all_agent_stats(self) -> Dict[str, Dict]:
+    def get_all_agent_stats(self) -> Dict[str, Dict[str, Any]]:
         """Get stats for all agents.
 
         Returns:
@@ -179,7 +179,7 @@ class TokenTrackerManager:
         """
         return self._agent_stats.copy()
 
-    def get_stats_for_period(self, hours: int = 24) -> Optional[Dict]:
+    def get_stats_for_period(self, hours: int = 24) -> Dict[str, Any]:
         """Get overall stats for the last N hours.
 
         Args:
@@ -212,7 +212,7 @@ class TokenTrackerManager:
         self,
         agent_name: str,
         hours: int = 24,
-    ) -> Optional[Dict]:
+    ) -> Optional[Dict[str, Any]]:
         """Get stats for an agent for the last N hours.
 
         Args:

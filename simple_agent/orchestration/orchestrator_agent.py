@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from simple_agent.agents.simple_agent import SimpleAgent
 from simple_agent.orchestration.agent_tool import AgentTool
+from simple_agent.core.agent_result import AgentResult
 
 
 class OrchestratorAgent:
@@ -61,7 +62,7 @@ class OrchestratorAgent:
             max_steps=max_steps
         )
 
-    def run(self, prompt: str) -> str:
+    def run(self, prompt: str) -> AgentResult:
         """Run orchestrator - it reasons about which agents to call.
 
         The orchestrator uses ReAct iteration to:
