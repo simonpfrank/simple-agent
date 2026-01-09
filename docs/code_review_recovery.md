@@ -356,11 +356,12 @@ After each phase:
 | Phase | Status | Started | Completed |
 |-------|--------|---------|-----------|
 | Phase 1: Critical Security | ✅ Complete | 2026-01-09 | 2026-01-09 |
-| Phase 2: Type Safety | Not Started | - | - |
-| Phase 3: Architecture | Not Started | - | - |
-| Phase 4: Error Handling | Not Started | - | - |
-| Phase 5: Security Hardening | Not Started | - | - |
-| Phase 6: Performance & Polish | Not Started | - | - |
+| Phase 2: Type Safety | Deferred | - | - |
+| Phase 3.1: Fix Coupling | ✅ Complete | 2026-01-09 | 2026-01-09 |
+| Phase 3.2: Split Files | Deferred | - | - |
+| Phase 4: Error Handling | Deferred | - | - |
+| Phase 5.1: Jinja2 Sandbox | ✅ Complete | 2026-01-09 | 2026-01-09 |
+| Phase 6: Performance & Polish | Deferred | - | - |
 | Phase 7: Testing & Validation | Ongoing | - | - |
 
 ---
