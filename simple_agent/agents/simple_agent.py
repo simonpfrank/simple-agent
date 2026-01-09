@@ -9,7 +9,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional, Union
 
-from jinja2 import Environment, BaseLoader, TemplateError
+from jinja2 import BaseLoader, TemplateError
+from jinja2.sandbox import SandboxedEnvironment
 from smolagents import CodeAgent, ToolCallingAgent, LiteLLMModel
 from smolagents.monitoring import LogLevel
 
@@ -213,10 +214,14 @@ class SimpleAgent:
 
         return context
 
-    def _get_jinja_env(self) -> Environment:
-        """Get configured Jinja2 environment (cached)."""
+    def _get_jinja_env(self) -> SandboxedEnvironment:
+        """Get configured Jinja2 sandboxed environment (cached).
+
+        Uses SandboxedEnvironment for security - prevents template injection
+        attacks by restricting access to dangerous attributes and methods.
+        """
         if not hasattr(self, "_jinja_env"):
-            self._jinja_env = Environment(
+            self._jinja_env = SandboxedEnvironment(
                 loader=BaseLoader(),
                 autoescape=False,  # Not rendering HTML
                 trim_blocks=True,

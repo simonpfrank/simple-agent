@@ -4,6 +4,7 @@ Unit tests for SimpleAgent.
 Tests the thin wrapper around SmolAgents with support for multiple agent types.
 """
 
+import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 
@@ -704,3 +705,94 @@ Verbosity: 2
 Max Steps: 15
 Help"""
         mock_agent_instance.run.assert_called_once_with(expected, reset=True)
+
+
+class TestSimpleAgentJinja2Security:
+    """Test Jinja2 sandbox security in SimpleAgent."""
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_sandbox_blocks_subclasses_access(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that sandbox blocks access to __subclasses__ (dangerous method)."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        mock_agent_instance = Mock()
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template attempting to access __subclasses__ (used in RCE attacks)
+        malicious_template = "{{ agent_name.__class__.__subclasses__() }}"
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="Test",
+            user_prompt_template=malicious_template,
+        )
+
+        # Should raise an error due to sandbox restriction
+        from jinja2.sandbox import SecurityError
+        with pytest.raises((ValueError, SecurityError)):
+            agent.run("test")
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_sandbox_blocks_mro_access(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that sandbox blocks __mro__ chain walking attacks."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        mock_agent_instance = Mock()
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Template attempting MRO chain walking
+        malicious_template = "{{ agent_name.__class__.__mro__ }}"
+
+        agent = SimpleAgent(
+            name="test_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="Test",
+            user_prompt_template=malicious_template,
+        )
+
+        from jinja2.sandbox import SecurityError
+        with pytest.raises((ValueError, SecurityError)):
+            agent.run("test")
+
+    @patch("simple_agent.agents.simple_agent.LiteLLMModel")
+    @patch("simple_agent.agents.simple_agent.ToolCallingAgent")
+    def test_safe_templates_still_work(
+        self, mock_tool_calling_agent: Mock, mock_litellm: Mock
+    ) -> None:
+        """Test that legitimate templates work with the sandbox."""
+        model_config = {"model": "gpt-4o-mini", "api_key": "sk-test"}
+
+        mock_agent_instance = Mock()
+        mock_agent_instance.run.return_value = "Response"
+        mock_tool_calling_agent.return_value = mock_agent_instance
+
+        # Safe template using standard features (no slicing datetime)
+        safe_template = """{{ user_input | upper }}
+Agent: {{ agent_name }}
+Provider: {{ model_provider }}"""
+
+        agent = SimpleAgent(
+            name="safe_agent",
+            model_provider="openai",
+            model_config=model_config,
+            role="Test",
+            user_prompt_template=safe_template,
+        )
+
+        # Should work without errors
+        agent.run("hello")
+
+        # Verify the template rendered (input was uppercased)
+        call_args = mock_agent_instance.run.call_args[0][0]
+        assert "HELLO" in call_args
+        assert "safe_agent" in call_args
+        assert "openai" in call_args
