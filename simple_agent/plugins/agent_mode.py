@@ -5,9 +5,7 @@ input (without /) to the active agent in simple_agent.
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional
-
-from rich.console import Console
+from typing import Any, Callable, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +36,6 @@ def create_agent_callback(
         """
         context = context_factory()
         agent_manager = context.get("agent_manager")
-        console: Optional[Console] = context.get("console")
 
         if not agent_manager:
             return "Error: Agent manager not initialized"

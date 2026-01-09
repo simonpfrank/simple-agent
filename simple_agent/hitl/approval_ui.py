@@ -71,7 +71,6 @@ class ConsoleApprovalUI(ApprovalUIHandler):
         tool_name = request_data.get("tool_name", "Unknown")
         prompt = request_data.get("prompt", "")
         preview_data = request_data.get("preview_data")
-        timeout = request_data.get("timeout", 60)
 
         # Build display content
         content = f"[bold]Tool:[/bold] {tool_name}\n"

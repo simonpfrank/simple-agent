@@ -50,7 +50,6 @@ class PIIDetector:
             return text
 
         result = text
-        found_pii = False
 
         for pii_type in self.types:
             if pii_type not in self.PATTERNS:
@@ -60,7 +59,6 @@ class PIIDetector:
             matches = list(re.finditer(pattern, text))
 
             if matches:
-                found_pii = True
                 if self.redact:
                     # Redact by replacing with token
                     token = self.REDACTION_TOKENS[pii_type]

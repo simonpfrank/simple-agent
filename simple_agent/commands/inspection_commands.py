@@ -134,7 +134,7 @@ def response(ctx):
 
 @response.command()  # type: ignore[no-redef]
 @click.pass_context
-def show(ctx):
+def show(ctx):  # noqa: F811
     """
     Display the last formatted agent response.
 
@@ -174,7 +174,7 @@ def show(ctx):
 
 @response.command()  # type: ignore[no-redef]
 @click.pass_context
-def raw(ctx):
+def raw(ctx):  # noqa: F811
     """
     Display the raw agent response.
 

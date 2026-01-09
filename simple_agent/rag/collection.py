@@ -313,7 +313,7 @@ class Collection:
             if len(parts) != 3:
                 return "1.0.0"
 
-            major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+            major, minor, _ = int(parts[0]), int(parts[1]), int(parts[2])
             # Increment minor version on model change
             return f"{major}.{minor + 1}.0"
         except (ValueError, IndexError):

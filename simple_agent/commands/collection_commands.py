@@ -52,7 +52,7 @@ def create(ctx, name: str, path: str, embedding_model: str, chunk_size: int, chu
     collection_manager = get_collection_manager(ctx)
 
     try:
-        collection = collection_manager.create_collection(
+        collection_manager.create_collection(
             name=name,
             embedding_model=embedding_model,
             chunk_size=chunk_size,
