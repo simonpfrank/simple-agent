@@ -1,8 +1,7 @@
 """REPL commands for flow management."""
 
-from typing import Any, Optional
+from typing import Any
 
-from rich import print as rprint
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table

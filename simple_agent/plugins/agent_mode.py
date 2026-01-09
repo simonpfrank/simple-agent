@@ -8,7 +8,6 @@ import logging
 from typing import Any, Callable, Dict, Optional
 
 from rich.console import Console
-from rich.markdown import Markdown
 
 logger = logging.getLogger(__name__)
 

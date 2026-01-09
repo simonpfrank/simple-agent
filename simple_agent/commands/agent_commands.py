@@ -142,10 +142,10 @@ def load(ctx, agent_name: str):
         if agent.tools:
             console.print(f"  Tools: {[t.name for t in agent.tools]}")
         else:
-            console.print(f"  Tools: (none)")
+            console.print("  Tools: (none)")
         # Set as active agent for agent mode
         agent_manager.set_active_agent(agent.name)
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error(
             f"[COMMAND] Load agent failed - file not found: {yaml_path}",
             exc_info=_should_log_traceback(),
@@ -384,7 +384,7 @@ def chat(ctx, name: str):
     try:
         logger.debug(f"get_agent({name})")
         agent_manager.get_agent(name)
-        logger.debug(f"get_agent() verified agent exists")
+        logger.debug("get_agent() verified agent exists")
     except KeyError as e:
         logger.error(
             f"[COMMAND] Chat failed - agent '{name}' not found",
@@ -489,7 +489,7 @@ def add_tool(ctx, name: str, tool: str):
         # Add tool via agent_manager
         agent_manager.add_tool_to_agent(name, tool)
         logger.info(f"[COMMAND] Tool '{tool}' added to agent '{name}'")
-        logger.debug(f"add_tool_to_agent() completed successfully")
+        logger.debug("add_tool_to_agent() completed successfully")
         console.print()
         console.print(f"[green]✓[/green] Added tool '{tool}' to agent '{name}'")
         console.print()
@@ -526,7 +526,7 @@ def remove_tool(ctx, name: str, tool: str):
         # Remove tool via agent_manager
         agent_manager.remove_tool_from_agent(name, tool)
         logger.info(f"[COMMAND] Tool '{tool}' removed from agent '{name}'")
-        logger.debug(f"remove_tool_from_agent() completed successfully")
+        logger.debug("remove_tool_from_agent() completed successfully")
         console.print()
         console.print(f"[green]✓[/green] Removed tool '{tool}' from agent '{name}'")
         console.print()
@@ -635,7 +635,7 @@ def save(ctx, name: str, path: str):
         # Save agent
         agent_manager.save_agent_to_yaml(name, path)
         logger.info(f"[COMMAND] Agent '{name}' saved to: {path}")
-        logger.debug(f"save_agent_to_yaml() completed successfully")
+        logger.debug("save_agent_to_yaml() completed successfully")
 
         console.print()
         console.print(f"[green]✓[/green] Saved agent '{name}' to: [cyan]{path}[/cyan]")
@@ -833,7 +833,7 @@ def create_wizard(ctx):
         logger.info(
             f"[COMMAND] Wizard: Agent '{name}' created (provider={provider}, tools={len(tools)})"
         )
-        logger.debug(f"create_agent() completed successfully")
+        logger.debug("create_agent() completed successfully")
 
         console.print()
         console.print(f"[green]✓[/green] Created agent: [bold]{name}[/bold]")
@@ -847,7 +847,7 @@ def create_wizard(ctx):
             logger.debug(f"save_agent_to_yaml({name}, {yaml_path})")
             agent_manager.save_agent_to_yaml(name, yaml_path)
             logger.info(f"[COMMAND] Wizard: Agent '{name}' saved to {yaml_path}")
-            logger.debug(f"save_agent_to_yaml() completed successfully")
+            logger.debug("save_agent_to_yaml() completed successfully")
             console.print(f"  Saved to: [cyan]{yaml_path}[/cyan]")
 
         console.print()

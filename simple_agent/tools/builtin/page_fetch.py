@@ -9,10 +9,10 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup  # noqa: F401 - used by test mocks
 from smolagents import tool
 
-import html2text
+import html2text  # noqa: F401 - used by test mocks
 
 from simple_agent.tools.helpers import HTMLCleaner
 from simple_agent.tools.helpers.token_counter import estimate_tokens

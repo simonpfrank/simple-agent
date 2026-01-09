@@ -18,7 +18,6 @@ from rich.console import Console
 from rich.table import Table
 
 from simple_agent.core.token_tracker_persistence import TokenTrackerManager
-from simple_agent.commands.common import APP_THEME
 
 logger = logging.getLogger(__name__)
 

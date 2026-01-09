@@ -121,7 +121,7 @@ def config_load(context, file):
         # Merge with defaults
         logger.debug("merge_with_defaults()")
         config_dict = ConfigManager.merge_with_defaults(config_dict)
-        logger.debug(f"merge_with_defaults() completed")
+        logger.debug("merge_with_defaults() completed")
 
         # Update context
         context.obj["config"] = config_dict
@@ -191,7 +191,7 @@ def config_save(context, file):
         # Save config
         ConfigManager.save(config_dict, file)
         logger.info(f"[COMMAND] Configuration saved to: {file}")
-        logger.debug(f"ConfigManager.save() completed successfully")
+        logger.debug("ConfigManager.save() completed successfully")
 
         console.print()
         console.print(format_success(f"Configuration saved to: {file}"))
@@ -230,7 +230,7 @@ def config_set(context, key, value):
         # Set the value
         ConfigManager.set(config_dict, key, value)
         logger.info(f"[COMMAND] Config value set: {key}={value}")
-        logger.debug(f"ConfigManager.set() completed successfully")
+        logger.debug("ConfigManager.set() completed successfully")
 
         console.print()
         console.print(format_success(f"Set {key} = {value}"))
@@ -308,7 +308,7 @@ def config_reset(context, key):
             raise click.Abort()
 
         # Get default value
-        logger.debug(f"ConfigManager.get_defaults()")
+        logger.debug("ConfigManager.get_defaults()")
         defaults = ConfigManager.get_defaults()
         default_value = ConfigManager.get(defaults, key, default=None)
         logger.debug(f"get_defaults() returned default: {default_value}")
@@ -324,7 +324,7 @@ def config_reset(context, key):
         logger.debug(f"ConfigManager.set({key}, {default_value})")
         ConfigManager.set(config_dict, key, default_value)
         logger.info(f"[COMMAND] Config reset: {key} = {default_value}")
-        logger.debug(f"ConfigManager.set() completed successfully")
+        logger.debug("ConfigManager.set() completed successfully")
 
         console.print()
         console.print(format_success(f"Reset {key} to default: {default_value}"))
@@ -437,7 +437,7 @@ def config_show_paths(context):
         for path_type, path_value in sorted(paths.items()):
             console.print(f"  [green]{path_type}[/green]: {path_value}")
 
-        logger.debug(f"config_show_paths() completed")
+        logger.debug("config_show_paths() completed")
         console.print()
 
     except Exception as e:

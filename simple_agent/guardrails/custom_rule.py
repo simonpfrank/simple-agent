@@ -2,7 +2,6 @@
 
 from typing import Callable
 
-from simple_agent.guardrails.exceptions import GuardrailViolation
 
 
 class CustomRuleGuardrail:

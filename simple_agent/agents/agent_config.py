@@ -4,7 +4,7 @@ Encapsulates all agent parameters to reduce constructor complexity
 and improve testability (Issue 1-A from code review).
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, Literal, Optional
 
 

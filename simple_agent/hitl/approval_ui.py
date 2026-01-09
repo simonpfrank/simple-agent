@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 
 logger = logging.getLogger(__name__)
 

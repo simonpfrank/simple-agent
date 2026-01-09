@@ -5,7 +5,6 @@ from typing import Dict, List, Optional
 
 from simple_agent.rag.collection import Collection
 from simple_agent.rag.chroma_wrapper import ChromaWrapper
-from simple_agent.rag.exceptions import CollectionError
 
 
 class CollectionManager:

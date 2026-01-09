@@ -6,11 +6,10 @@ import logging
 import tempfile
 import platform
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, IO, Optional
 from decimal import Decimal
 
-from simple_agent.tools.helpers.token_tracker import TokenTracker, TokenStats
+from simple_agent.tools.helpers.token_tracker import TokenTracker
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 """Agent execution result with token tracking and cost information."""
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 from decimal import Decimal
 

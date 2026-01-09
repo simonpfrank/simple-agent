@@ -638,7 +638,7 @@ User query: {prompt}"""
             self._extract_rate_limits_from_response()
 
             logger.info(
-                f"last tpm:{self.last_tpm_limit}, last rpm:{self.last_rpm_limit},tpm renaming:{self.last_tpm_remaining},rpm remaining{self.last_rpm_remaining}"
+                f"last tpm:{self.last_tpm_limit}, last rpm:{self.last_rpm_limit}, tpm remaining:{self.last_tpm_remaining}, rpm remaining:{self.last_rpm_remaining}"
             )
             # Also update global rate limit tracker
             model_name = self.model_config.get("model", "unknown")

@@ -3,7 +3,6 @@
 from typing import Any, List, Optional, Union, cast
 
 from simple_agent.guardrails.custom_rule import CustomRuleGuardrail
-from simple_agent.guardrails.exceptions import GuardrailViolation
 from simple_agent.guardrails.input_validators import PIIDetector, PIIType
 
 
