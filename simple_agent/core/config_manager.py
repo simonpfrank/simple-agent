@@ -42,11 +42,12 @@ class ConfigManager:
             )
 
         # Check required top-level keys
-        required_keys = {"app", "logging", "paths"}
+        required_keys = {"app", "logging", "paths", "llm"}
         missing_keys = required_keys - set(config.keys())
         if missing_keys:
             raise ConfigValidationError(
-                f"Config missing required keys: {', '.join(sorted(missing_keys))}"
+                f"Config missing required keys: {', '.join(sorted(missing_keys))}. "
+                f"See config.yaml.example for the expected structure."
             )
 
         # Validate 'app' section
@@ -104,6 +105,21 @@ class ConfigManager:
                 raise ConfigValidationError(
                     f"'paths.{key}' must be a string, got {type(paths_config[key]).__name__}"
                 )
+
+        # Validate 'llm' section
+        if not isinstance(config.get("llm"), dict):
+            raise ConfigValidationError(
+                f"'llm' section must be a dict, got {type(config.get('llm')).__name__}"
+            )
+        llm_config = config["llm"]
+        if "provider" not in llm_config:
+            raise ConfigValidationError(
+                "'llm.provider' is required. Set to 'openai', 'anthropic', 'ollama', etc."
+            )
+        if not isinstance(llm_config["provider"], str):
+            raise ConfigValidationError(
+                f"'llm.provider' must be a string, got {type(llm_config['provider']).__name__}"
+            )
 
         # Validate optional sections if present
         optional_sections = {"custom", "agent"}
@@ -319,6 +335,9 @@ class ConfigManager:
                 "agents": "config/agents/",
                 "logs": "logs/",
                 "data": "data/",
+            },
+            "llm": {
+                "provider": "openai",
             },
             "agent": {
                 "enabled": False,  # EXPERIMENTAL: Agent mode not fully implemented

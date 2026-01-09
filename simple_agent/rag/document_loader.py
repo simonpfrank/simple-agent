@@ -56,9 +56,9 @@ class DocumentLoader:
                 try:
                     doc = DocumentLoader.load_file(str(file_path))
                     documents.append(doc)
-                except Exception:
-                    # Skip files that fail to load
-                    pass
+                except Exception as e:
+                    # Log and skip files that fail to load
+                    logger.warning(f"Failed to load file {file_path}: {e}")
 
         return documents
 

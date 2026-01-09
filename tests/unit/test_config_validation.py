@@ -5,6 +5,10 @@ import pytest
 from simple_agent.core.config_manager import ConfigManager, ConfigValidationError
 
 
+# Valid llm section for test fixtures
+VALID_LLM = {"provider": "openai"}
+
+
 class TestConfigValidationRequired:
     """Test required keys validation."""
 
@@ -14,6 +18,7 @@ class TestConfigValidationRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": VALID_LLM,
         }
         # Should not raise
         ConfigManager.validate(config)
@@ -23,6 +28,7 @@ class TestConfigValidationRequired:
         config = {
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="app"):
             ConfigManager.validate(config)
@@ -32,6 +38,7 @@ class TestConfigValidationRequired:
         config = {
             "app": {"name": "test"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="logging"):
             ConfigManager.validate(config)
@@ -41,8 +48,19 @@ class TestConfigValidationRequired:
         config = {
             "app": {"name": "test"},
             "logging": {"level": "INFO"},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="paths"):
+            ConfigManager.validate(config)
+
+    def test_config_missing_required_llm_key(self):
+        """Test config missing 'llm' key raises error."""
+        config = {
+            "app": {"name": "test", "version": "1.0"},
+            "logging": {"level": "INFO"},
+            "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+        }
+        with pytest.raises(ConfigValidationError, match="llm"):
             ConfigManager.validate(config)
 
     def test_config_with_all_required_plus_optional_keys(self):
@@ -51,6 +69,7 @@ class TestConfigValidationRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": VALID_LLM,
             "custom": {"setting": "value"},  # Optional
             "agent": {"model": "test"},  # Optional
         }
@@ -67,6 +86,7 @@ class TestConfigValidationTypes:
             "app": "invalid_string",
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="must be a dict"):
             ConfigManager.validate(config)
@@ -77,6 +97,7 @@ class TestConfigValidationTypes:
             "app": {"name": "test", "version": "1.0"},
             "logging": ["invalid", "list"],
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="must be a dict"):
             ConfigManager.validate(config)
@@ -87,8 +108,20 @@ class TestConfigValidationTypes:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": 123,
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="must be a dict"):
+            ConfigManager.validate(config)
+
+    def test_llm_section_must_be_dict(self):
+        """Test 'llm' value must be a dictionary."""
+        config = {
+            "app": {"name": "test", "version": "1.0"},
+            "logging": {"level": "INFO"},
+            "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": "invalid_string",
+        }
+        with pytest.raises(ConfigValidationError, match="llm.*must be a dict"):
             ConfigManager.validate(config)
 
     def test_optional_sections_must_be_dict(self):
@@ -97,6 +130,7 @@ class TestConfigValidationTypes:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": VALID_LLM,
             "custom": "invalid_string",
         }
         with pytest.raises(ConfigValidationError, match="custom.*must be a dict"):
@@ -112,6 +146,7 @@ class TestConfigValidationAppRequired:
             "app": {"version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="app.name"):
             ConfigManager.validate(config)
@@ -122,6 +157,7 @@ class TestConfigValidationAppRequired:
             "app": {"name": "test"},
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="app.version"):
             ConfigManager.validate(config)
@@ -132,6 +168,7 @@ class TestConfigValidationAppRequired:
             "app": {"name": 123, "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="app.name.*string"):
             ConfigManager.validate(config)
@@ -142,6 +179,7 @@ class TestConfigValidationAppRequired:
             "app": {"name": "test", "version": 1.0},
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="app.version.*string"):
             ConfigManager.validate(config)
@@ -156,6 +194,7 @@ class TestConfigValidationLoggingRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"file": "app.log"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="logging.level"):
             ConfigManager.validate(config)
@@ -166,6 +205,7 @@ class TestConfigValidationLoggingRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": 123},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="logging.level.*string"):
             ConfigManager.validate(config)
@@ -176,6 +216,7 @@ class TestConfigValidationLoggingRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INVALID_LEVEL"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="logging.level.*valid"):
             ConfigManager.validate(config)
@@ -187,6 +228,7 @@ class TestConfigValidationLoggingRequired:
                 "app": {"name": "test", "version": "1.0"},
                 "logging": {"level": level},
                 "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+                "llm": VALID_LLM,
             }
             # Should not raise
             ConfigManager.validate(config)
@@ -201,6 +243,7 @@ class TestConfigValidationPathsRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"tools": "tools/"},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="prompts"):
             ConfigManager.validate(config)
@@ -211,6 +254,7 @@ class TestConfigValidationPathsRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/"},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="tools"):
             ConfigManager.validate(config)
@@ -221,8 +265,47 @@ class TestConfigValidationPathsRequired:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": 123},
+            "llm": VALID_LLM,
         }
         with pytest.raises(ConfigValidationError, match="paths.tools.*string"):
+            ConfigManager.validate(config)
+
+
+class TestConfigValidationLlmRequired:
+    """Test required keys within 'llm' section."""
+
+    def test_llm_missing_provider_key(self):
+        """Test 'llm' section missing 'provider' key raises error."""
+        config = {
+            "app": {"name": "test", "version": "1.0"},
+            "logging": {"level": "INFO"},
+            "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": {"model": "gpt-4"},
+        }
+        with pytest.raises(ConfigValidationError, match="llm.provider"):
+            ConfigManager.validate(config)
+
+    def test_llm_provider_must_be_string(self):
+        """Test 'llm.provider' must be a string."""
+        config = {
+            "app": {"name": "test", "version": "1.0"},
+            "logging": {"level": "INFO"},
+            "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": {"provider": 123},
+        }
+        with pytest.raises(ConfigValidationError, match="llm.provider.*string"):
+            ConfigManager.validate(config)
+
+    def test_llm_valid_providers(self):
+        """Test various valid provider strings are accepted."""
+        for provider in ["openai", "anthropic", "ollama", "azure_openai"]:
+            config = {
+                "app": {"name": "test", "version": "1.0"},
+                "logging": {"level": "INFO"},
+                "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+                "llm": {"provider": provider},
+            }
+            # Should not raise
             ConfigManager.validate(config)
 
 
@@ -257,6 +340,7 @@ class TestConfigValidationIntegration:
             "app": "invalid",
             "logging": {"level": "INFO"},
             "paths": {},
+            "llm": VALID_LLM,
         }
         try:
             ConfigManager.validate(config)
@@ -278,6 +362,7 @@ class TestLoadWithValidation:
             "app": {"name": "test", "version": "1.0"},
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": {"provider": "openai"},
         }
         config_file.write_text(yaml.dump(config_data))
 
@@ -294,6 +379,7 @@ class TestLoadWithValidation:
             "app": "invalid",  # Should be dict
             "logging": {"level": "INFO"},
             "paths": {"prompts": "config/prompts/", "tools": "tools/"},
+            "llm": {"provider": "openai"},
         }
         config_file.write_text(yaml.dump(config_data))
 

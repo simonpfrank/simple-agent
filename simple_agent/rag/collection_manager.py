@@ -1,10 +1,13 @@
 """CollectionManager for managing RAG collections and agent connections."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from simple_agent.rag.collection import Collection
 from simple_agent.rag.chroma_wrapper import ChromaWrapper
+
+logger = logging.getLogger(__name__)
 
 
 class CollectionManager:
@@ -208,5 +211,5 @@ class CollectionManager:
             # Reset ChromaDB client to close connections
             if hasattr(self.chroma_wrapper, 'client') and self.chroma_wrapper.client is not None:
                 self.chroma_wrapper.client.clear_system_cache()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"ChromaDB cleanup failed (non-critical): {e}")

@@ -1,10 +1,13 @@
 """Wrapper around Chroma for persistent vector store."""
 
+import logging
 from pathlib import Path
 from typing import Any, List, Optional
 
 import chromadb
 import chromadb.config
+
+logger = logging.getLogger(__name__)
 
 
 class ChromaWrapper:
@@ -80,5 +83,6 @@ class ChromaWrapper:
         """
         try:
             return self.client.get_collection(name=name)
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Collection '{name}' not found: {e}")
             return None
