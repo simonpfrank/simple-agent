@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from simple_agent.hitl.approval_manager import ApprovalManager
+from simple_agent.hitl.exceptions import ApprovalRejected
 from simple_agent.hitl.tool_wrapper import HITLTool
 
 
@@ -13,8 +14,20 @@ class TestHITLTool:
 
     @pytest.fixture
     def mock_approval_manager(self):
-        """Create mock ApprovalManager."""
-        return Mock(spec=ApprovalManager)
+        """Create mock ApprovalManager with proper approval behavior."""
+        manager = Mock(spec=ApprovalManager)
+        # Default: request returns an ID and is_approved returns True
+        manager.request_approval.return_value = "test-request-id"
+        manager.is_approved.return_value = True
+        return manager
+
+    @pytest.fixture
+    def mock_approval_manager_rejecting(self):
+        """Create mock ApprovalManager that rejects requests."""
+        manager = Mock(spec=ApprovalManager)
+        manager.request_approval.return_value = "test-request-id"
+        manager.is_approved.return_value = False
+        return manager
 
     @pytest.fixture
     def sample_tool(self):
@@ -118,25 +131,50 @@ class TestHITLTool:
         # Tool should execute and return result
         assert result == "test:456"
 
-    def test_hitl_tool_rejects_after_rejection(self, sample_tool, mock_approval_manager):
-        """Test tool executes and approval request is created."""
+    def test_hitl_tool_raises_when_rejected(
+        self, sample_tool, mock_approval_manager_rejecting
+    ):
+        """Test tool raises ApprovalRejected when approval is not granted."""
         hitl_tool = HITLTool(
             tool=sample_tool,
-            approval_manager=mock_approval_manager,
+            approval_manager=mock_approval_manager_rejecting,
             tool_name="my_tool",
             requires_approval=True,
             timeout=60,
             default_action="reject",
         )
 
-        # Simulate execution (requests approval)
-        result = hitl_tool("test", 789)
-
-        # Tool still executes
-        assert result == "test:789"
+        # Tool should raise ApprovalRejected
+        with pytest.raises(ApprovalRejected, match="my_tool"):
+            hitl_tool("test", 789)
 
         # Approval request was made
-        mock_approval_manager.request_approval.assert_called_once()
+        mock_approval_manager_rejecting.request_approval.assert_called_once()
+        # is_approved was checked
+        mock_approval_manager_rejecting.is_approved.assert_called_once()
+
+    def test_hitl_tool_does_not_execute_when_rejected(
+        self, mock_approval_manager_rejecting
+    ):
+        """Test tool function is NEVER called when approval is rejected."""
+        call_count = {"value": 0}
+
+        def tracked_tool(x: str) -> str:
+            call_count["value"] += 1
+            return x
+
+        hitl_tool = HITLTool(
+            tool=tracked_tool,
+            approval_manager=mock_approval_manager_rejecting,
+            tool_name="tracked_tool",
+            requires_approval=True,
+        )
+
+        with pytest.raises(ApprovalRejected):
+            hitl_tool("test")
+
+        # CRITICAL: Tool should NOT have been called
+        assert call_count["value"] == 0, "Tool was executed despite rejection!"
 
     def test_hitl_tool_callable(self, sample_tool, mock_approval_manager):
         """Test HITLTool is callable."""

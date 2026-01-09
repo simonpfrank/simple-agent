@@ -55,7 +55,7 @@ class HITLTool:
             Result of tool execution
 
         Raises:
-            ApprovalRejected: If approval is rejected
+            ApprovalRejected: If approval is rejected or not granted
         """
         logger.debug(f"[TOOL] HITLTool({self.tool_name}) - requires_approval={self.requires_approval}, args_count={len(args)}, kwargs_count={len(kwargs)}")
 
@@ -63,17 +63,21 @@ class HITLTool:
         if self.requires_approval:
             prompt = self.prompt_template.format(tool_name=self.tool_name)
             logger.info(f"[APPROVAL] Requesting approval for tool: {self.tool_name}")
-            self.approval_manager.request_approval(
+            request_id = self.approval_manager.request_approval(
                 tool_name=self.tool_name,
                 prompt=prompt,
                 timeout=self.timeout,
                 default_action=self.default_action,
             )
-            # Note: In real usage, REPL will call approve() or reject()
-            # For now, just leave the pending approval for caller to handle
-            logger.debug(f"[APPROVAL] Pending approval for {self.tool_name}")
 
-        # Execute tool
+            # SECURITY FIX: Check if approval was granted before execution
+            if not self.approval_manager.is_approved(request_id):
+                logger.warning(f"[APPROVAL] Tool {self.tool_name} was not approved")
+                raise ApprovalRejected(f"Tool '{self.tool_name}' was not approved for execution")
+
+            logger.info(f"[APPROVAL] Tool {self.tool_name} approved, proceeding with execution")
+
+        # Execute tool only if approved or no approval required
         try:
             logger.debug(f"[TOOL] Executing {self.tool_name}")
             result = self.tool(*args, **kwargs)

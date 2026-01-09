@@ -76,6 +76,18 @@ class ApprovalPersistence(ABC):
         """Clear all approval history."""
         pass
 
+    @abstractmethod
+    def load_decision(self, request_id: str) -> Optional[str]:
+        """Load the decision for a specific request.
+
+        Args:
+            request_id: Unique request identifier
+
+        Returns:
+            Decision string ("approved" or "rejected") or None if not found
+        """
+        pass
+
 
 class FileApprovalPersistence(ApprovalPersistence):
     """File-based approval persistence using JSON.
@@ -222,3 +234,18 @@ class FileApprovalPersistence(ApprovalPersistence):
         """Clear all approval history."""
         self._save_json(self.history_file, [])
         logger.info("Cleared approval history")
+
+    def load_decision(self, request_id: str) -> Optional[str]:
+        """Load the decision for a specific request.
+
+        Args:
+            request_id: Unique request identifier
+
+        Returns:
+            Decision string ("approved" or "rejected") or None if not found
+        """
+        history = self._load_json(self.history_file, [])
+        for entry in history:
+            if entry.get("request_id") == request_id:
+                return entry.get("decision")
+        return None

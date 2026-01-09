@@ -184,6 +184,35 @@ class ApprovalManager:
 
         return approved
 
+    def get_decision(self, request_id: str) -> Optional[ApprovalDecision]:
+        """Get the decision for a request.
+
+        Args:
+            request_id: Request ID to check
+
+        Returns:
+            ApprovalDecision if decision exists, None if still pending
+        """
+        decision_str = self.persistence.load_decision(request_id)
+        if decision_str is None:
+            return None
+        try:
+            return ApprovalDecision(decision_str)
+        except ValueError:
+            return None
+
+    def is_approved(self, request_id: str) -> bool:
+        """Check if a request has been approved.
+
+        Args:
+            request_id: Request ID to check
+
+        Returns:
+            True if approved, False if rejected or pending
+        """
+        decision = self.get_decision(request_id)
+        return decision == ApprovalDecision.APPROVED
+
     def get_history(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get approval history from persistence.
 

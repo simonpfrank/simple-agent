@@ -374,7 +374,10 @@ class TestResolveAgentPath:
             try:
                 os.chdir(tmpdir)
                 result = _resolve_agent_path("column_matcher")
-                assert result == "config/agents/column_matcher.yaml"
+                # Returns absolute resolved path for security
+                assert result is not None
+                assert result.endswith("column_matcher.yaml")
+                assert "config/agents" in result or "config\\agents" in result
             finally:
                 os.chdir(original_cwd)
 
@@ -392,12 +395,15 @@ class TestResolveAgentPath:
             try:
                 os.chdir(tmpdir)
                 result = _resolve_agent_path("researcher")
-                assert result == "config/agents/researcher.yml"
+                # Returns absolute resolved path for security
+                assert result is not None
+                assert result.endswith("researcher.yml")
+                assert "config/agents" in result or "config\\agents" in result
             finally:
                 os.chdir(original_cwd)
 
     def test_resolve_full_path(self) -> None:
-        """Test resolving a full path returns it as-is if it exists."""
+        """Test resolving a full path returns resolved absolute path if it exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a file at a specific path
             agent_file = Path(tmpdir) / "custom" / "agent.yaml"
@@ -405,10 +411,13 @@ class TestResolveAgentPath:
             agent_file.write_text("name: custom")
 
             result = _resolve_agent_path(str(agent_file))
-            assert result == str(agent_file)
+            # Returns resolved path - may differ from input on macOS (/var vs /private/var)
+            assert result is not None
+            assert result.endswith("custom/agent.yaml") or result.endswith("custom\\agent.yaml")
+            assert Path(result).exists()
 
     def test_resolve_relative_path(self) -> None:
-        """Test resolving a relative path returns it as-is if it exists."""
+        """Test resolving a relative path returns resolved absolute path if it exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a file with relative path
             agents_dir = Path(tmpdir) / "agents"
@@ -420,7 +429,10 @@ class TestResolveAgentPath:
             try:
                 os.chdir(tmpdir)
                 result = _resolve_agent_path("agents/agent.yaml")
-                assert result == "agents/agent.yaml"
+                # Returns resolved absolute path for security
+                assert result is not None
+                assert result.endswith("agents/agent.yaml") or result.endswith("agents\\agent.yaml")
+                assert Path(result).exists()
             finally:
                 os.chdir(original_cwd)
 
@@ -452,7 +464,10 @@ class TestResolveAgentPath:
             try:
                 os.chdir(tmpdir)
                 result = _resolve_agent_path("agent")
-                assert result == "config/agents/agent.yaml"
+                # Returns absolute resolved path, preferring .yaml
+                assert result is not None
+                assert result.endswith("agent.yaml")
+                assert "config/agents" in result or "config\\agents" in result
             finally:
                 os.chdir(original_cwd)
 
@@ -513,10 +528,11 @@ class TestAgentLoadCommand:
                 agent, ["load", str(agent_file)], obj=mock_context
             )
             assert result.exit_code == 0
-            # Verify load_agent_from_yaml was called with the full path
-            mock_context["agent_manager"].load_agent_from_yaml.assert_called_once_with(
-                str(agent_file)
-            )
+            # Verify load_agent_from_yaml was called with a path containing the filename
+            # Note: Path may be resolved (e.g., /var vs /private/var on macOS)
+            mock_context["agent_manager"].load_agent_from_yaml.assert_called_once()
+            call_args = mock_context["agent_manager"].load_agent_from_yaml.call_args
+            assert "custom_agent.yaml" in call_args[0][0]
 
     def test_load_displays_agent_name_and_tools(
         self, runner: CliRunner, mock_context: dict
@@ -575,3 +591,72 @@ class TestAgentLoadCommand:
         assert result.exit_code == 0
         call_args = str(console.print.call_args_list)
         assert "not found" in call_args.lower() or "error" in call_args.lower()
+
+
+class TestResolveAgentPathSecurity:
+    """Test path traversal security in _resolve_agent_path."""
+
+    def test_rejects_double_dot_path_traversal(self) -> None:
+        """Test that .. path traversal is rejected."""
+        result = _resolve_agent_path("../../../etc/passwd")
+        assert result is None, "Path traversal with .. should be rejected"
+
+    def test_rejects_double_dot_in_middle(self) -> None:
+        """Test that .. in the middle of path is rejected."""
+        result = _resolve_agent_path("agents/../../../secret")
+        assert result is None, "Path with .. in middle should be rejected"
+
+    def test_rejects_double_dot_with_extension(self) -> None:
+        """Test that .. with yaml extension is rejected."""
+        result = _resolve_agent_path("../../config.yaml")
+        assert result is None, "Path traversal with extension should be rejected"
+
+    def test_allows_valid_agent_name(self) -> None:
+        """Test that valid agent names without .. are allowed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "valid_agent.yaml").write_text("name: valid_agent")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("valid_agent")
+                assert result is not None, "Valid agent name should be resolved"
+                assert "valid_agent.yaml" in result
+            finally:
+                os.chdir(original_cwd)
+
+    def test_resolved_path_stays_within_agents_dir(self) -> None:
+        """Test that resolved paths within config/agents stay within bounds."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "nested.yaml").write_text("name: nested")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                # Even if agent name could resolve elsewhere, it should be bounded
+                result = _resolve_agent_path("nested")
+                if result is not None:
+                    resolved = Path(result).resolve()
+                    assert str(resolved).startswith(str(agents_dir.resolve())), \
+                        "Resolved path should be within agents directory"
+            finally:
+                os.chdir(original_cwd)
+
+    def test_allows_dots_in_agent_name(self) -> None:
+        """Test that single dots in names are allowed (e.g., v1.0)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = Path(tmpdir) / "config" / "agents"
+            agents_dir.mkdir(parents=True)
+            (agents_dir / "agent.v1.0.yaml").write_text("name: agent.v1.0")
+
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                result = _resolve_agent_path("agent.v1.0")
+                assert result is not None, "Single dots in name should be allowed"
+            finally:
+                os.chdir(original_cwd)

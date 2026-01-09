@@ -1,5 +1,7 @@
 """Unit tests for runtime_config module - TDD approach."""
 
+import concurrent.futures
+import threading
 import pytest
 
 
@@ -121,6 +123,83 @@ class TestRuntimeConfig:
         # Get top-level nested dict
         llm_config = get_config_value("llm")
         assert llm_config["provider"] == "openai"
-        
+
         # Note: For deeper nesting, user needs to chain:
         # config = get_config(); value = config.get("llm", {}).get("openai", {}).get("model")
+
+
+class TestRuntimeConfigThreadSafety:
+    """Test thread-safety of runtime configuration."""
+
+    def test_concurrent_set_and_get_config(self):
+        """Test concurrent access to set_config and get_config is thread-safe."""
+        from simple_agent.core.runtime_config import set_config, get_config, _reset_config
+
+        _reset_config()
+        errors = []
+        success_count = {"value": 0}
+
+        def writer(thread_id: int) -> None:
+            """Write config with thread ID."""
+            try:
+                for _ in range(100):
+                    set_config({"thread_id": thread_id, "data": "value"})
+                    success_count["value"] += 1
+            except Exception as e:
+                errors.append(f"Writer {thread_id}: {e}")
+
+        def reader(thread_id: int) -> None:
+            """Read config repeatedly."""
+            try:
+                for _ in range(100):
+                    config = get_config()
+                    # Config should be either empty dict or valid config
+                    assert isinstance(config, dict)
+                    success_count["value"] += 1
+            except Exception as e:
+                errors.append(f"Reader {thread_id}: {e}")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for i in range(5):
+                futures.append(executor.submit(writer, i))
+                futures.append(executor.submit(reader, i))
+
+            # Wait for all threads to complete
+            concurrent.futures.wait(futures)
+
+        assert len(errors) == 0, f"Thread safety errors: {errors}"
+        assert success_count["value"] > 0, "No operations completed"
+
+    def test_concurrent_get_config_value(self):
+        """Test concurrent access to get_config_value is thread-safe."""
+        from simple_agent.core.runtime_config import set_config, get_config_value, _reset_config
+
+        _reset_config()
+        test_config = {"key1": "value1", "key2": "value2", "key3": 123}
+        set_config(test_config)
+
+        errors = []
+
+        def reader(key: str, expected: str) -> None:
+            """Read specific config value repeatedly."""
+            try:
+                for _ in range(100):
+                    value = get_config_value(key, default="missing")
+                    # Value should be consistent
+                    assert value == expected, f"Expected {expected}, got {value}"
+            except Exception as e:
+                errors.append(f"Reader {key}: {e}")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            futures = [
+                executor.submit(reader, "key1", "value1"),
+                executor.submit(reader, "key1", "value1"),
+                executor.submit(reader, "key2", "value2"),
+                executor.submit(reader, "key2", "value2"),
+                executor.submit(reader, "key3", 123),
+                executor.submit(reader, "key3", 123),
+            ]
+            concurrent.futures.wait(futures)
+
+        assert len(errors) == 0, f"Thread safety errors: {errors}"

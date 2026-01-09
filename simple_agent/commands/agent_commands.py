@@ -160,10 +160,10 @@ def load(ctx, agent_name: str):
 
 def _resolve_agent_path(agent_name: str) -> str:
     """
-    Resolve agent name to actual file path.
+    Resolve agent name to actual file path with path traversal protection.
 
     Tries multiple strategies:
-    1. If it's a full/relative path, return if it exists
+    1. If it's a full/relative path, return if it exists (with security checks)
     2. If it's just a name, look in config/agents/ with .yaml or .yml extension
     3. Return None if not found
 
@@ -171,27 +171,45 @@ def _resolve_agent_path(agent_name: str) -> str:
         agent_name: Agent name or path
 
     Returns:
-        Resolved file path, or None if not found
+        Resolved file path, or None if not found or path traversal detected
+
+    Security:
+        - Rejects any input containing ".." to prevent path traversal
+        - Validates that resolved paths in config/agents stay within that directory
     """
+    # SECURITY: Reject any path traversal attempts
+    if ".." in agent_name:
+        logger.warning(f"Path traversal attempt detected in agent name: {agent_name}")
+        return None
+
+    agents_dir = Path("config/agents").resolve()
+
     # Strategy 1: If it looks like a path (contains / or \ or file extension), try as-is
     if (
         "/" in agent_name
         or "\\" in agent_name
         or agent_name.endswith((".yaml", ".yml"))
     ):
-        if os.path.exists(agent_name):
-            return agent_name
+        candidate = Path(agent_name).resolve()
+        if candidate.exists():
+            # SECURITY: If within agents_dir, verify it stays there
+            if str(candidate).startswith(str(agents_dir)):
+                return str(candidate)
+            # Allow loading from outside agents_dir for explicit full paths
+            # (user explicitly provided path, so they intend it)
+            return str(candidate)
         # If it doesn't exist, fall through to other strategies
 
     # Strategy 2: Try in config/agents/ with .yaml extension
-    agents_dir = Path("config/agents")
-    yaml_path = agents_dir / f"{agent_name}.yaml"
-    if yaml_path.exists():
+    yaml_path = (agents_dir / f"{agent_name}.yaml").resolve()
+    # SECURITY: Verify resolved path is still within agents_dir
+    if str(yaml_path).startswith(str(agents_dir)) and yaml_path.exists():
         return str(yaml_path)
 
     # Strategy 3: Try in config/agents/ with .yml extension
-    yml_path = agents_dir / f"{agent_name}.yml"
-    if yml_path.exists():
+    yml_path = (agents_dir / f"{agent_name}.yml").resolve()
+    # SECURITY: Verify resolved path is still within agents_dir
+    if str(yml_path).startswith(str(agents_dir)) and yml_path.exists():
         return str(yml_path)
 
     # Strategy 4: If full path was provided but doesn't exist, return it anyway
